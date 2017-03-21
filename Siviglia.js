@@ -44,6 +44,18 @@ Siviglia.issetOr = function (value,defValue)
 {
     return Siviglia.isset(value)?value:defValue;
 };
+Siviglia.issetPathOr=function(value,path,defaultV)
+{
+    var parts=path.split(".");
+    var c=value;
+    for(var k=0;k<parts.length;k++)
+    {
+        if(typeof c[parts[k]]=="undefined")
+            return defaultV;
+        c=c[parts[k]];
+    }
+    return c;
+};
 Siviglia.typeOf = function (value) {
     var s = typeof value;
     if (s === 'object') {
@@ -254,7 +266,6 @@ Siviglia.Utils.buildClass = function (definition) {
                     contextObj[k].prototype = (function(st){
                         var c = Siviglia.Utils.stringToContextAndObject(st, null,contextObj);
                         return Object.create(c.context[c.object].prototype)})(inherits[i]);
-                    contextObj[k].prototype.constructor=constructor;
                 }
 
                 contextObj[k].prototype[c.object] = curClass.prototype.__construct;
@@ -460,10 +471,15 @@ Siviglia.Utils.buildClass({
                     for (k = 0; k < this.listeners[evType].length; k++) {
                         obj = this.listeners[evType][k];
                         if (obj.obj) {
-                            if (!obj.obj[obj.method])
-                                continue;
-
-                            obj.obj[obj.method](evType, data, obj.param, target);
+                            if(typeof obj.obj=="function")
+                            {
+                                obj.obj(evType,data,obj.param,target);
+                            }
+                            else {
+                                if (!obj.obj[obj.method])
+                                    continue;
+                                obj.obj[obj.method](evType, data, obj.param, target);
+                            }
                         }
                         else {
                             obj.method(evType, data, obj.param, target);
@@ -632,6 +648,19 @@ Siviglia.Utils.buildClass(
                     this.listeners=[];
                     this.origValues={};
                 },
+                destruct: function () {
+                    if (this.listener)
+                        this.listener.destruct();
+                    //console.debug("DESTROYING " + this.expandoTag);
+                    this.listener = null;
+                    if (this.node) {
+                        this.node.remove();
+                    }
+                    for(var k=0;k<this.listeners.length;k++)
+                        this.listeners[k].listener.destruct();
+                    this.listeners=null;
+                    this.node = null;
+                },
                 methods: {
                     _initialize: function (node, nodeManager, pathRoot, contextObj, caller) {
                         this.attr = node[0].getAttribute("sivValue");
@@ -652,10 +681,24 @@ Siviglia.Utils.buildClass(
                                 attribute=subAttr[0];
                                 path=subAttr[1];
                             }
-                            this.origValues[attribute]=this.node[0][attribute];
-                            var newListener=new Siviglia.model.Listener(this, "value", caller, pathRoot, contextObj, path);
-                            this.listeners.push({attr:attribute,listener:newListener});
-                            pathRoot.getPath(path, newListener, contextObj);
+                            var p2=path.split(" ");
+                            // Si en el atributo existe mas de 1 path, es append siempre.
+                            var append=p2.length > 1?1:0;
+
+
+
+                            if(attribute.substr(0,1)=='+') {
+                                attribute = attribute.substr(1);
+                                append = 1;
+                            }
+                            // Soporte para que 1 solo atributo tenga mas de 1 path, separado por espacios.
+                            // Ejemplo: className:/*a /*b,....
+                            for(var j=0;j<p2.length;j++) {
+                                this.origValues[attribute] = this.node[0][attribute];
+                                var newListener = new Siviglia.model.Listener(this, "value", caller, pathRoot, contextObj, p2[j]);
+                                this.listeners.push({attr: attribute, listener: newListener, append: append});
+                                pathRoot.getPath(p2[j], newListener, contextObj);
+                            }
                         }
                         var attr = node[0].getAttribute('SivigliaAlias');
                         if (attr && caller.nodes) {
@@ -666,13 +709,24 @@ Siviglia.Utils.buildClass(
                     onListener: function () {
                         var c;
                         var self=this;
+                        // Se resetean al valor inicial.
+                        // En una primera fase, se resetean todos los valores.
+                        // En la segunda fase, se agregan los valores de los listeners
+                        // Esto hay que hacerlo en 2 pasos por la posibilidad de que 1 atributo tenga mas de 1 path
                         this.listeners.map(function(i){
-                            self.node[0][i.attr]= i.listener.value;
+                                self.node[0][i.attr]=self.origValues[i.attr];
+                        })
+                        this.listeners.map(function(i){
+                            if(i.listener.value==null)
+                                self.node[0][i.attr]=null;
+                            else
+                                self.node[0][i.attr]=(i.append?self.node[0][i.attr]+" ":'')+i.listener.value;
                         })
                     },
                     reset: function () {
                         for(var k in this.origValues)
-                        this.node[0][k] = this.origValues[k];
+                            this.node[0][k] = this.origValues[k];
+
                     }
                 }
             },
@@ -707,16 +761,17 @@ Siviglia.Utils.buildClass(
                     _initialize:function(node,nodeManager,pathRoot,contextObj,caller)
                     {
                         this.attrProperty=node.attr("attrProperty");
+
                         this.oldProperty=node[0].style[this.attrProperty];
                         return this.Expando$_initialize(node,nodeManager,pathRoot,contextObj,caller);
                     },
                     onListener:function()
                     {
-                        this.node[0][this.attrProperty]=this.listener.value;
+                        this.node[0].style[this.attrProperty]=this.listener.value;
                     },
                     reset:function()
                     {
-                        this.node[0][this.attrProperty]=this.oldProperty;
+                        this.node[0].style[this.attrProperty]=this.oldProperty;
                     }
                 }
             },
@@ -1350,7 +1405,7 @@ Siviglia.Utils.buildClass(
                                                 return false;
                                             }
                                             else {
-                                                retValue = retValue && manager.addExpando(node, manager.installedExpandos[k], caller);
+                                                retValue =  manager.addExpando(node, manager.installedExpandos[k], caller) && retValue;
                                             }
                                             /*if(removeAttr)
                                              node.removeAttribute(k);*/
@@ -1853,6 +1908,14 @@ Siviglia.Utils.buildClass(
                     
                     getPath: function (str, listener, context) {
                         if (str.substr(0, 1) != '/') return listener.setValue(str);
+                        // Se buscan los subPaths.Estos subPaths NO son dinamicos.Se resuelven estaticamente.
+                        var m=this;
+                        str=str.replace(/{\%(.*?)%}/g,function(a,b){
+                            // Ojo, no se pasa un listener
+                            var subPath=b;
+                            return m.__getPath(listener.pathRootObject, subPath.split("/"), 0, context, this, null);
+                        });
+
                         //return this.__getPath(Siviglia.model.Root,str.split("/"),0,context,this,listener);
                         return this.__getPath(listener.pathRootObject, str.split("/"), 0, context, this, listener);
                     },
@@ -1877,6 +1940,7 @@ Siviglia.Utils.buildClass(
                             }
                             else
                             {
+
                                 if (listener.parentObject.onPathNotFound)
                                     listener.parentObject.onPathNotFound();
                             }
@@ -1928,7 +1992,7 @@ Siviglia.Utils.buildClass(
                     __getPath: function (obj, path, index, context, currentObject, listener) {
                         if (!index)index = 0;
 
-                        if (!obj) {
+                        if (typeof obj == "undefined") {
                             return this.onPathNotFound(obj, path, index, context, currentObject, listener);
                         }
 
@@ -1980,7 +2044,7 @@ Siviglia.Utils.buildClass(
                             }
                             // Si el primer caracter es @, se busca en el contexto.
                             if (c == "@") {
-                                listener.setAsContextual();
+                                listener && listener.setAsContextual();
                                 var vOnListener = null;
                                 var tempObj = context;
                                 path2[index + 1] = cI.substr(1);
@@ -2008,13 +2072,17 @@ Siviglia.Utils.buildClass(
                                 var type = typeof tempObj[path2[index + 1]];
 
                                 // En caso de que el elemento del contexto sea el ultimo elemento del path
-                                if (path.length == index + 2) {
-                                    listener.setValue(tempObj[path2[index + 1]]);
+                                if (path.length == index + 2 ) {
+                                    if(listener) {
+                                        listener.setValue(tempObj[path2[index + 1]]);
+                                        listener.setPath(path, index, currentObject, context);
+                                    }
+                                    return tempObj[path2[index + 1]];
 //                                    if (!listener.initialized) {
 //                                        currentObject.addPathListener(listener);
 //                                    }
                                 }
-                                else {
+
                                 if (!(type == "number" || type == "string")) {
                                     index++;
                                         obj = tempObj[path2[index]];
@@ -2022,11 +2090,11 @@ Siviglia.Utils.buildClass(
                                 else {
                                         path[index + 1] = tempObj[path2[index + 1]];
                                 }
-                                    this.__getPath(obj, path2, index, context, currentObject, listener, index);
+
+                                var newVal=this.__getPath(obj, path2, index, context, currentObject, listener, index);
                                     //this.__getPath(tempObj,path2,index,context,currentObject,listener,index);
-                            }
-                                listener.setPath(path, index, currentObject, context);
-                                return;
+                                listener && listener.setPath(path, index, currentObject, context);
+                                return newVal;
                             }
                             if (c == "#") {
                                 var contVal;

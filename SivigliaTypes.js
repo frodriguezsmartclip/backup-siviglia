@@ -1157,6 +1157,48 @@ Siviglia.Utils.buildClass(
 {
     context:'Siviglia.types',
     classes:{
+        DefinedObject:{
+            construct:function(definition,value)
+            {
+                this.mainPromise=$.Deferred();
+                this.typePromises=[];
+                this.__definition=definition;
+                this.__value=Siviglia.issetOr(value,null);
+                this.fields={};
+                var m=this;
+                if(Siviglia.isset(definition.FIELDS))
+                {
+                    var factory=new Siviglia.types._TypeFactory();
+                    for(var k in definition.FIELDS)
+                    {
+                        this.typePromises[k]=factory.getTypeFromDef(definition.FIELDS[k],this.__value?Siviglia.issetOr(this.__value[k],null):null);
+
+                        (function(l){
+                            m.typePromises[l].then(function(obj){
+                                m[l]=obj;
+                                m.fields[l]=m[l];
+                        })
+                        })(k);
+                    }
+                }
+                $.when.apply(this.typePromises).then(function(){m.mainPromise.resolve();},function(){m.mainPromise.reject()})
+            },
+            methods:
+            {
+                then:function(f)
+                {
+                    this.mainPromise.then(f);
+                },
+                getPromise:function()
+                {
+                    return this.mainPromise;
+                },
+                getInputFor:function(field,node)
+                {
+
+                }
+            }
+        },
         _TypeFactory:{
             construct:function(config,callback)
             {
@@ -1250,7 +1292,7 @@ Siviglia.Utils.buildClass(
                     }
                     var type=def['TYPE'];
                     if(!Siviglia.types[def['TYPE']]) { console.debug("TIPO NO EXISTE");console.dir(def);}
-                    return when(new Siviglia.types[def['TYPE']](def,val));
+                    return $.when(new Siviglia.types[def['TYPE']](def,val));
                 },
                 getModelField:function(model,field)
                 {
