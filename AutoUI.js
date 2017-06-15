@@ -352,13 +352,17 @@ Siviglia.Utils.buildClass({
                 save: function () {
 
                     var v = {};
+                    var isUnset=true;
                     for (var k in this.children) {
                         if (this.children[k].isUnset())
                             v[k] = null;
                         else
                             v[k] = this.children[k].save();
-
+                        isUnset=false;
                     }
+                    this.unset=isUnset;
+                    this.value=isUnset?null:v;
+
                     this.value = v;
                     return v;
 
@@ -421,7 +425,8 @@ Siviglia.Utils.buildClass({
                 },
                 addItem: function (key) {
                     this.checkLoaded();
-                    this.children[key] = this.getValueInstance(null);
+                    this.children[key] = this.getValueInstance(null,key);
+                    this.save();
                     this.fireEvent("change");
                 },
                 removeItem: function(key)
@@ -432,6 +437,7 @@ Siviglia.Utils.buildClass({
                         this.children[key]=null;
                         delete this.children[key];
                     }
+                    this.save();
                     this.fireEvent("change");
                 }
 
@@ -450,7 +456,7 @@ Siviglia.Utils.buildClass({
                     this.children = [];
                     var instance;
                     for (var k = 0; k < val.length; k++) {
-                        instance = this.getValueInstance(val[k]);
+                        instance = this.getValueInstance(val[k],k);
                         this.children.push(instance);
                     }
                     this.unset = false;
@@ -511,6 +517,7 @@ Siviglia.Utils.buildClass({
                 removeItem: function (position) {
                     this.checkLoaded();
                     this.children.splice(position, 1);
+                    this.save();
                     this.fireEvent("change");
                 },
                 remove: function(item)
@@ -534,7 +541,8 @@ Siviglia.Utils.buildClass({
                 addItem: function (value) {
                     this.checkLoaded();
                     if (!this.children)this.children = [];
-                    this.children.push(this.getValueInstance(value));
+                    this.children.push(this.getValueInstance(value,this.children.length));
+                    this.save();
                     this.fireEvent("change");
                 },
                 save: function () {
@@ -568,9 +576,6 @@ Siviglia.Utils.buildClass({
                     for (k in this.definition["FIELDS"])
                         this.children[k] = Siviglia.AutoUI.NodeFactory(this.definition["FIELDS"][k], this,null,this.controller);
                 }
-
-
-
             }
         },
         /**
@@ -759,7 +764,7 @@ Siviglia.Utils.buildClass({
                         //m.fireEvent("change");
                     });
                 },
-                getValueInstance: function (value) {
+                getValueInstance: function (value,key) {
                     return Siviglia.AutoUI.NodeFactory({TYPE: "STRING"}, this, value,this.controller);
                 }
             }
@@ -794,10 +799,10 @@ Siviglia.Utils.buildClass({
                 },
                 loadSource:function()
                 {
-                    if(this.definition["OPTIONS"])
+                    if(this.definition["VALUES"])
                     {
                         var h= $.Deferred();
-                        h.resolve(this.definition["OPTIONS"]);
+                        h.resolve(this.definition["VALUES"]);
                         return h;
                     }
                     if(this.definition["SOURCE"])
@@ -849,10 +854,64 @@ Siviglia.Utils.buildClass({
                     this.unset = false;
                     this.fireEvent("change");
                 },
-                getValueInstance: function (val) {
-                    return Siviglia.AutoUI.NodeFactory({"TYPE": this.childType}, this, val);
+                getValueInstance: function (val,key) {
+                    return Siviglia.AutoUI.NodeFactory({"TYPE": this.childType}, this, val,this.controller);
                 }
             }
+        },
+        /*
+            Un FixedDictionary, solo puede tener un cierto set de claves; Cada una de las claves, tiene un tipo asociado.
+            Por ejemplo, esto sirve como una configuracion de plugins: Cada clave del diccionario es un plugin.No puede haber mas
+            de una instancia de cada plugin, y la key tiene un tipo de dato asociado (la configuracion del plugin).
+         */
+        FixedDictionaryType:{
+            inherits: 'Siviglia.AutoUI.DictionaryType',
+            construct: function (definition, parent, value,controller) {
+                this.Node("FixedDictionaryType", definition, parent, value,controller);
+                this.SourcedType();
+            },
+            methods:
+                {
+                    initSubType: function() {
+                        this.children={}
+                    },
+                    setValue: function(val)
+                    {
+                        this.children={};
+                        this.value=val;
+                        for(var k in this.value)
+                        {
+                            var childType=this.definition.KEYMAP[k]["TYPE"];
+                            var newInstance=Siviglia.AutoUI.NodeFactory({"TYPE":childType},this,this.value[k]);
+                        }
+                        this.unset=false;
+                        this.fireEvent("change");
+                    },
+                    addItem: function (key) {
+                        this.checkLoaded();
+                        this.children[key] = this.getValueInstance(null,key);
+                        this.save();
+                        this.fireEvent("change");
+                    },
+                    removeItem: function(key, value)
+                    {
+                        delete this.children[key];
+                        this.save();
+                        this.fireEvent("change");
+                    },
+                    getPossibleKeys: function()
+                    {
+                        return this.definition.KEYMAP;
+                    },
+                    getValueInstance:function(val,key)
+                    {
+                        var type=Siviglia.issetOr(this.definition.KEYMAP[key],null);
+                        if(type==null)
+                            return null;
+                        return Siviglia.AutoUI.NodeFactory({"TYPE": this.definition.KEYMAP[key].TYPE}, this, val);
+
+                    }
+                }
         },
         /**
          * TypeSwitcher
@@ -940,7 +999,7 @@ Siviglia.Utils.buildClass({
             methods: {
                 initSubType: function () {
                 },
-                getValueInstance: function (val) {
+                getValueInstance: function (val,key) {
                     return Siviglia.AutoUI.NodeFactory({"TYPE": this.definition.VALUETYPE}, this, val);
                 }
             }
@@ -1079,6 +1138,10 @@ Siviglia.AutoUI.NodeFactory = function (definition, parent, value,controller) {
             o=new Siviglia.AutoUI.DictionaryType(definition, parent, value,controller);
         }
             break;
+        case "FIXEDDICTIONARY":
+        {
+            o=new Siviglia.AutoUI.FixedDictionaryType(definition, parent, value,controller);
+        }break;
         case "ARRAY":
         {
             o=new Siviglia.AutoUI.ArrayType(definition, parent, value,controller);

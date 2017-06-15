@@ -209,12 +209,24 @@ Siviglia.Utils.buildClass(
                 {
                     createInput:function()
                     {
-                        var opts={source:this.definition.VALUES,placeHolder:'Seleccionar'};
-                        this.node.jqxInput(opts);
+                        var finalOpts=[];
+                        for(var k=0;k<this.definition.VALUES.length;k++)
+                        {
+                            finalOpts.push(
+                                {html:'<div tabIndex=0 style="padding:1px">'+this.definition.VALUES[k]+'</div>',label:this.definition.VALUES[k]}
+                            )
+                        }
+                        var opts={source:finalOpts,placeHolder:'Seleccionar', height: 25, width: 200,minLength:0};
+                        this.node.jqxComboBox(opts);
+
                     },
                     setDisabled:function(val)
                     {
                         this.node.jqxInput({ disabled: val});
+                    },
+                    createBaseNode:function()
+                    {
+                        return $('<div></div>');
                     }
                 }
             },
@@ -377,7 +389,7 @@ Siviglia.Utils.buildClass(
                     createInput:function()
                     {
                         // {animationShowDelay: 300, animationHideDelay: 300, width: null, height: null, boxSize: "13px", checked: false, hasThreeStates: false, disabled: false, enableContainerClick: true, locked: false, groupName: "", keyboardCheck: true, enableHover: true, hasInput: true, rtl: false, updated: null, disabledContainer: false, _canFocus: true, aria: {"aria-checked": {name: "checked", type: "boolean"}, "aria-disabled": {name: "disabled", type: "boolean"}}, events: ["checked", "unchecked", "indeterminate", "change"]};
-                        this.node.jqxCheckBox({ width: 15, height: 15});
+                        this.node.jqxCheckBox({ width: 18, height: 18});
                     },
                     setValue:function(value){
                        if(value==null || value=="0" || value=="false" || value==false)

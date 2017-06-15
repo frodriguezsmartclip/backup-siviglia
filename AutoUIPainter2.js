@@ -7,23 +7,32 @@ Siviglia.Utils.buildClass({
                 preInitialize:function(params){
                     this.parentObject=params.parentObject;
                     this.parentNode=params.parentNode;
+                    this.controller=params.controller;
                     this.value=params.value;
                 },
                 initialize:function(params){
                     this.container=$(".factoryContainer",this.rootNode);
-                    var rootWidget=this.factory(params.parentNode,{});
-                    this.container.append(rootWidget.node);
+                    var rootWidget=this.factory(params.parentNode,null,{});
+                    this.container.append(rootWidget.view.rootNode);
                 },
-                factory:function(nodeObj,args)
+                factory:function(nodeObj,parentNode,args)
                 {
                     args = args || {};
                     args.uinode = nodeObj;
-                    args.controller=this;
+                    args.parentNode = parentNode;
+                    args.controller= this.controller;
+                    args.painterFactory=this;
                     node = args;
+
+
                     if (nodeObj.definition.PAINTER) {
-                        return new c[nodeObj.definition.PAINTER](args);
+                        return new
+                        Siviglia.AutoUI.Painter[nodeObj.definition.PAINTER](
+                            'AUTOPAINTER_'+nodeObj.definition.PAINTER,
+                            args,{},dv,Siviglia.model.Root
+                        );
                     }
-                    var c=Siviglia.AutoUI.Painter;
+
                     var type=nodeObj.getClassName();
 
                     var equivs={
@@ -35,10 +44,11 @@ Siviglia.Utils.buildClass({
                         "ArrayType":"ArrayPainter",
                         "KeyReferenceType":"KeyReferencePainter",
                         "SelectorType":"SelectorPainter",
-                        "TypeSwitcher":"TypeSwitcherPainter",
+                        "TypeSwitcher":"TypeSwitchPainter",
                         "ObjectArrayType":"ObjectArrayPainter",
                         "SivObjectSelector":"SelectorPainter",
-                        "SubdefinitionType":"SubdefinitionPainter"
+                        "SubdefinitionType":"SubdefinitionPainter",
+                        "FixedDictionaryType":"FixedDictionaryPainter",
                     };
                     if(!equivs[type])
                     {
@@ -81,9 +91,12 @@ Siviglia.Utils.buildClass({
                 preInitialize:function(params)
                 {
                     this.uinode=params.uinode;
+                    this.parentNode=params.parentNode;
                     this.controller=params.controller;
+                    this.painterFactory=params.painterFactory;
                     this.title=this.uinode.definition.LABEL || '';
                     this.description=this.uinode.definition.DESCRIPTION || '';
+                    this.helpText=Siviglia.issetOr(this.uinode.definition.HELP || '');
                     var m=this;
                     this.uinode.addListener("change",this,"reload");
                 },
@@ -113,31 +126,20 @@ Siviglia.Utils.buildClass({
                 initialize:function(params)
                 {
 
-                },
-                reload:function(event)
-                {
-                    if(this.syntheticChange)
-                        return;
-                    this.BasePainter$reload(event);
-                    var status='';
+                    this.inputF=new Siviglia.Forms.JQuery.Inputs.Enum(null,this.inputNode);
+                    var v=params.uinode.definition;
 
-                    if(this.params.uinode.isUnset())
-                    {
-                        status='selected';
-                    }
-                    else
-                    {
-                        this.combo.val(this.getValue());
-                    }
-                    var defaultOpt=$('<option value="" '+status+'>--Elegir</option>');
-                    this.combo.prepend(defautlOpt);
-                },
-                onChange: function () {
-                    this.syntheticChange=true;
-                    this.params.uinode.setValue(this.getValue());
-                    this.syntheticChange=false;
-                },
+                    this.inputF.sivInitialize(v,params.uinode.getValue(),{});
+                    var m=this;
+                    this.inputF.on("change",function(node){
+                        if(m.syntheticChange)
+                            return;
+                        m.syntheticChange=true;
+                        m.uinode.setValue(m.inputF.getValue());
+                        m.syntheticChange=false;
 
+                    })
+                },
                 getValue: function () {
                     return this.combo.val();
                 }
@@ -155,20 +157,26 @@ Siviglia.Utils.buildClass({
                     this.keys=this.uinode.getKeys();
                     this.currentWidget=null;
                     this.currentKey=null;
+
                 },
                 initialize:function(params)
                 {
                     this.widgetContainer=$('.currentWidget',this.rootNode);
                     params.parent=this;
+                    this.buildNewItemWidget(params);
+                    if(!this.uinode.definition.SAVE_URL)
+                        this.saveNode.css({"display":"none"})
+
+                },
+                buildNewItemWidget:function(params)
+                {
                     this.newItemWidget=new Siviglia.AutoUI.Painter.NewItemPainter('AUTOPAINTER_NewItem',
                         params,
                         {},
                         this.newItemNode,
                         Siviglia.model.Root
                     );
-                    if(!this.uinode.definition.SAVE_URL)
-                        this.saveNode.css({"display":"none"})
-
+                    $('.newItemWidget',this.rootNode).append(this.newItemWidget.view.rootNode);
                 },
                 doSave:function()
                 {
@@ -182,7 +190,7 @@ Siviglia.Utils.buildClass({
                     if(this.currentWidget)
                         this.currentWidget.destruct();
                     this.currentKey=params.key;
-                    this.currentWidget=this.controller.factory(this.uinode.children[params.key], {});
+                    this.currentWidget=this.painterFactory.factory(this.uinode.children[params.key], this.uinode.parent,{});
                     this.widgetContainer.append(this.currentWidget.rootNode);
                 },
                 getLabel:function(node,params,event)
@@ -198,10 +206,10 @@ Siviglia.Utils.buildClass({
                         this.currentWidget.destruct();
                     }
                 },
-                add:function(node)
+                addItem:function(val)
                 {
-                    var val=this.newElementInput.val();
                     this.uinode.addItem(val);
+                    this.onLabelClicked(null,{key:val});
                 },
                 reload:function(event)
                 {
@@ -211,6 +219,77 @@ Siviglia.Utils.buildClass({
 
             }
         },
+        FixedDictionaryPainter:
+            {
+              inherits:'DictionaryPainter',
+                methods:
+                    {
+                        buildNewItemWidget:function(params)
+                        {
+                            if(this.newItemSelector)
+                            {
+                                this.newItemSelector.destruct();
+                                this.newItemNode.html('');
+                            }
+                            var uinode=this.params.uinode;
+                            var possibleKeys=this.params.uinode.getPossibleKeys();
+                            // Se hace una copia de las keys posibles.
+                            var target={};
+                            for(var k in possibleKeys)
+                            {
+                                target[k]=possibleKeys[k];
+                            }
+                            // Si el nodo tiene un valor, eliminamos las keys ya existentes, para que solo se puedan
+                            // crear keys aun no usadas.
+                            if(!uinode.isUnset())
+                            {
+                                var v=uinode.getValue();
+                                for(var k in v)
+                                    delete target[k];
+                            }
+                            var opts=[];
+                            for(var j in target)
+                            {
+                                opts.push(target[j].LABEL);
+                            }
+                            if(opts.length>0) {
+
+                                this.newItemSelector = new Siviglia.Forms.JQuery.Inputs.Enum(null, this.newItemNode);
+                                this.newItemSelector.sivInitialize({TYPE: 'Enum', VALUES: opts}, null, {});
+
+                                var m = this;
+                                this.newItemSelector.on("change", function (node) {
+                                    if (m.syntheticChange)
+                                        return;
+                                    m.syntheticChange = true;
+                                    var curLabel = m.newItemSelector.getValue();
+                                    var tt = m.uinode.getPossibleKeys();
+                                    for (var k in tt) {
+                                        if (tt[k].LABEL == curLabel) {
+                                            m.onChangeType(k);
+                                            m.syntheticChange = false;
+                                            m.buildNewItemWidget({});
+                                        }
+                                    }
+                                });
+                            }
+                        },
+                        onChangeType:function(val)
+                        {
+                            var uinode=this.params.uinode;
+                            var possibleKeys=this.params.uinode.getPossibleKeys();
+                            var type=possibleKeys[val]["TYPE"];
+                            this.uinode.addItem(val);
+                            this.onLabelClicked(null,{key:val});
+
+                        },
+                        onRemoveClicked:function(node,params,event)
+                        {
+                            this.DictionaryPainter$onRemoveClicked(node,params,event);
+                            this.buildNewItemWidget({});
+                        }
+                    }
+            },
         ContainerPainter:
         {
             inherits:'DictionaryPainter',
@@ -227,7 +306,7 @@ Siviglia.Utils.buildClass({
                 getSubInput:function(node,params)
                 {
                     var value=this.uinode.children[params.key];
-                    var currentWidget=this.controller.factory(value, {});
+                    var currentWidget=this.painterFactory.factory(value,this.uinode.parent, {});
                     node.append(currentWidget.rootNode);
                 },
                 doSave:function()
@@ -249,9 +328,14 @@ Siviglia.Utils.buildClass({
                     this.BasePainter$preInitialize(params);
                     this.value=params.uinode.getValue();
                 },
-                onChange:function(node,params)
+                initialize:function(params)
                 {
-                    this.uinode.setValue(node.val());
+                    this.inputF=new Siviglia.Forms.JQuery.Inputs.String(null,this.inputNode);
+                    this.inputF.sivInitialize(params.uinode.definition,params.uinode.getValue(),{});
+                    var m=this;
+                    this.inputF.on("change",function(node){
+                        m.uinode.setValue(m.inputF.getValue());
+                    })
                 }
             }
         },
@@ -265,10 +349,15 @@ Siviglia.Utils.buildClass({
                     this.BasePainter$preInitialize(params);
                     this.checked=(params.uinode.getValue()===true)?"checked":"";
                 },
-                onChange:function(node,params)
+                initialize:function(params)
                 {
 
-                    this.uinode.setValue(node.is(":checked"));
+                    this.inputF=new Siviglia.Forms.JQuery.Inputs.Boolean(null,this.inputNode);
+                    this.inputF.sivInitialize(params.uinode.definition,params.uinode.getValue(),{});
+                    var m=this;
+                    this.inputF.on("change",function(node){
+                        m.uinode.setValue(m.inputF.getValue()=="1"?true:false);
+                    })
 
                 }
             }
@@ -312,6 +401,7 @@ Siviglia.Utils.buildClass({
                 preInitialize:function(params)
                 {
                     // No podemos pintarnos hasta que se cargue la definicion.
+                    this.BasePainter$preInitialize(params);
                     return params.uinode.getEntityPromise();
                 },
                 initialize:function(params)
@@ -319,7 +409,7 @@ Siviglia.Utils.buildClass({
                     // Se crea un sub-parser, a partir del nodo recibido
                     var v=$("<div></div>");
                     var s=new Siviglia.AutoUI.Painter.Factory('AUTOUI_FACTORY',
-                        {parentObject:null,parentNode:params.uinode.subController.rootNode},
+                        {parentObject:null,parentNode:params.uinode.subController.rootNode,controller:this.controller,painterFactory:this.painterFactory},
                         {},
                         v,
                         Siviglia.model.Root);
@@ -327,6 +417,96 @@ Siviglia.Utils.buildClass({
                 }
             }
         },
+        TypeSwitchPainter:
+            {
+                inherits:'BasePainter',
+                methods:
+                    {
+                        preInitialize:function(params)
+                        {
+                            this.BasePainter$preInitialize(params);
+                            this.value=params.uinode.getValue()
+                            this.typeNode = null;
+                            this.typeSelector=null;
+                        },
+                        initialize:function(params)
+                        {
+                            this.params=params;
+                            this.paintValue();
+                        },
+                        paintValue: function () {
+                            if (this.typeNode) {
+                                this.typeNodeWidget.destroy();
+                                this.typeNode.destruct();
+                            }
+                            this.createTypeSelector();
+
+
+                            var val;
+                            if (this.params.uinode.isUnset())
+                                val = null;
+                            else
+                                val = this.params.uinode.getCurrentType();
+
+                            if(val!=null) {
+                                this.typeNode = Siviglia.AutoUI.NodeFactory(this.params.uinode.getSubNode().definition, null, val, this.uinode.controller);
+                            }
+                            else
+                                this.typeNode=null;
+
+                            this.repaintType();
+
+                        },
+                        repaintType:function()
+                        {
+                            if(this.subNodeWidget)
+                                this.subNodeWidget.destruct();
+                            this.fieldContainer.innerHTML='';
+                            if (!this.params.uinode.isUnset()) {
+                                var sNode = this.params.uinode.getSubNode();
+                                this.subNodeWidget = this.painterFactory.factory(sNode, this.params.uinode.parent,{});
+                                this.fieldContainer.append(this.subNodeWidget.rootNode);
+                            }
+                        },
+                        createTypeSelector:function()
+                        {
+                            if(this.typeSelector!=null)
+                                return;
+                            var vals = this.params.uinode.definition.ALLOWED_TYPES;
+                            var val;
+                            if (this.params.uinode.isUnset())
+                                val = null;
+                            else
+                                val = this.params.uinode.getCurrentType();
+
+                            this.inputF=new Siviglia.Forms.JQuery.Inputs.Enum(null,this.typeSwitchSelector);
+                            this.inputF.sivInitialize({TYPE:'Enum',VALUES:vals},val,{});
+
+                            var m=this;
+                            this.inputF.on("change",function(node){
+                                if(m.syntheticChange)
+                                    return;
+                                m.syntheticChange=true;
+                                m.onChangeType(m.inputF.getValue());
+                                m.syntheticChange=false;
+
+                            })
+                        },
+                        onChangeType: function (v) {
+
+
+                            if (!v) {
+                                alert("Please choose a type");
+                                return;
+                            }
+                            if (this.params.uinode.getCurrentType() == v) {
+                                return;
+                            }
+                            this.params.uinode.setType(v);
+                            this.repaintType();
+                        }
+                    }
+            },
         NewItemPainter:
         {
             inherits:'BasePainter',
@@ -378,7 +558,7 @@ Siviglia.Utils.buildClass({
                     else
                         val=this.newItemSelector.val();
                     if (val == "") return;
-                    this.params.uinode.addItem(val);
+                    this.params.parent.addItem(val);
                     this.paintInput();
                 }
             }
