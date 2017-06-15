@@ -1,0 +1,245 @@
+
+<link rel="stylesheet" href="<?php echo WEBPATH;?>/js/packages/bootstrap/css/bootstrap.min.css">
+<!--[_CSS][_FILE]##STATICS_DOCUMENT_ROOT##/packages/jquery-ui/jquery-ui.min.css[#][_URL]##STATICS_WEB_ROOT##/packages/jquery-ui/jquery-ui.min.css[#][#]
+[_CSS][_URL]http://fonts.googleapis.com/css?family=Roboto+Condensed[#][#]
+[_CSS][_FILE]##SITE_DOCUMENT_ROOT##/css/style.css[#][_URL]##SITE_WEB_ROOT##/css/style.css[#][#]-->
+<script src="<?php echo WEBPATH;?>/js/packages/jquery/jquery-3.1.1.js"></script>
+<!--[_SCRIPT][_FILE]##STATICS_DOCUMENT_ROOT##/packages/jquery-ui/jquery-ui.min.js[#][_URL]##STATICS_WEB_ROOT##/packages/jquery-ui/jquery-ui.min.js[#][#]-->
+<script src="<?php echo WEBPATH;?>/js/packages/bootstrap/js/bootstrap.min.js"></script>
+<script src="<?php echo WEBPATH;?>/js/packages/Siviglia-js/Siviglia.js"></script>
+<script src="<?php echo WEBPATH;?>/js/packages//Siviglia-js/Model.js"></script>
+<script src="<?php echo WEBPATH;?>/js/packages/Siviglia-js/AutoUI.js"></script>
+<script src="<?php echo WEBPATH;?>/js/packages/jqxwidgets/jqx-all.js"></script>
+<link rel="stylesheet" href="<?php echo WEBPATH;?>/js/packages/jqxwidgets/jqwidgets/styles/jqx.base.css" type="text/css" />
+<link rel="stylesheet" href="<?php echo WEBPATH;?>/js/packages/jqxwidgets/jqwidgets/styles/jqx.flat.css" type="text/css" />
+<script src="<?php echo WEBPATH;?>/js/packages/Siviglia-js/jQuery/forms/inputs/BaseInput.js"></script>
+<script src="<?php echo WEBPATH;?>/js/packages/Siviglia-js/AutoUIPainter2.js"></script>
+
+<style>
+    .remove, .NewItemString .add {
+        font-family:'IcoMoon'
+    }
+    .remove:before {
+        content: '\ea0d';
+        font-size: 13px;
+        color: #D8A9A9;
+    }
+    .NewItemString .add {
+        margin-left: 5px;
+        margin-top: 6px;
+        color: green;
+    }
+    .NewItemString .add:before {
+        font-family:"Ionicons";
+        content: '\f359';
+        font-size: 20px;
+    }
+    .remove {
+        font-family: 'IcoMoon';
+    }
+    input[type=checkbox]{
+        width:15px !important;
+        height:15px !important;
+    }
+    .ContainerType {}
+    .containerLabel {
+        min-width: 200px;
+        display: table-cell;
+        vertical-align: top;
+        text-align: right;
+        padding-right: 7px;
+    }
+    .ContainerType .ContainerType .containerLabel {
+        min-width:150px !important;
+        font-size:12px
+    }
+    .containerInput {
+        display: table-cell;
+    }
+    .dictionaryInput {
+        min-width:200px
+    }
+    .removebutton:after {
+        font-family:"Ionicons";
+        font-size: 20px;
+        content: "\f128";
+        color: darkred;
+        margin-top: 7px;
+        margin-left: 5px;
+    }
+    .navbar-form {
+        padding:0px !important;
+    }
+</style>
+
+
+
+<div id="" style="display:none">
+    <div sivWidget="AUTOUI_FACTORY" widgetParams="parentObject,parentNode,value" widgetCode="Siviglia.AutoUI.Painter.Factory" class="WidgetFactory">
+        <div class="factoryContainer"></div>
+    </div>
+    <div sivWidget="AUTOPAINTER_DictionaryType" widgetParams="parentObject,parentNode,value" widgetCode="Siviglia.AutoUI.Painter.DictionaryPainter"
+         class="DictionaryType ContainerType">
+        <div class="panel panel-primary">
+            <div class="panel-heading" sivValue="/*title" class="title"></div>
+            <div class="panel-body">
+                <!--<div class="container-fluid">-->
+                <p class="text-info" sivValue="/*description"></p>
+
+                <div class="row" style="margin-left:0px">
+                    <div style="display:flex">
+                    <div class="containerLabel">
+                        <div class="well">
+                        <ul  class="nav nav-stacked" sivLoop="/*keys" contextIndex="current">
+                            <li role="presentation">
+                                <button class="btn btn-primary" sivValue="/@current" sivEvent="click" sivCallback="onLabelClicked" sivParams='{"key":"/@current"}'></button>
+                                <span class="removebutton" style="float:right" sivEvent="click" sivCallback="onRemoveClicked" sivParams='{"key":"/@current"}'></span>
+                            </li>
+                        </ul>
+                        </div>
+                        <div class="newItemWidget"></div>
+                    </div>
+                        <div class="containerInput dictionaryInput">
+                            <div class="currentWidget">
+                            </div>
+                        </div>
+
+                    </div>
+
+                </div>
+
+                <!--</div>-->
+            </div>
+            <div class="actions">
+                <div class="addItem" sivId="newItemNode"></div>
+                <div style="float:right" class="saveNode" sivId="saveNode">
+                    <input type="button" value="Guardar" sivEvent="click" sivCallback="doSave">
+                </div>
+                <div style="clear:both"></div>
+            </div>
+        </div>
+    </div>
+
+    <div sivWidget="AUTOPAINTER_FixedDictionaryType" widgetParams="parentObject,parentNode,value" widgetCode="Siviglia.AutoUI.Painter.FixedDictionaryPainter"
+         class="DictionaryType ContainerType">
+        <div class="panel panel-primary">
+            <div class="panel-heading" sivValue="/*title" class="title"></div>
+            <div class="panel-body">
+                <p class="text-info" sivValue="/*description"></p>
+                <!--<div class="container-fluid">-->
+                <div class="row" style="margin-bottom:10px;margin-left:0px">
+                    <div class="containerLabel well" style="margin-right:5px">
+                        <ul  class="nav nav-stacked" sivLoop="/*keys" contextIndex="current">
+                            <li role="presentation">
+                                <button class="btn btn-primary" sivValue="/@current" sivEvent="click" sivCallback="onLabelClicked" sivParams='{"key":"/@current"}'></button>
+                                <span class="removebutton" style="float:right" sivEvent="click" sivCallback="onRemoveClicked" sivParams='{"key":"/@current"}'></span>
+                            </li>
+                        </ul>
+                        <div class="newItemWidget"></div>
+                    </div>
+                    <div class="containerInput dictionaryInput" style="padding-right:10px;padding-left:10px">
+                        <div class="currentWidget">
+                        </div>
+                    </div>
+                </div>
+                <!--</div>-->
+                <div class="actions">
+                    <div class="addItem" sivId="newItemNode"></div>
+                    <div style="float:right" class="saveNode" sivId="saveNode">
+                        <input type="button" value="Guardar" sivEvent="click" sivCallback="doSave">
+                    </div>
+                    <div style="clear:both"></div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <div sivWidget="AUTOPAINTER_ContainerType" widgetParams="parentObject,parentNode,value" widgetCode="Siviglia.AutoUI.Painter.ContainerPainter"
+         class="ContainerType">
+        <div class="panel panel-primary">
+            <!--<div class="panel-heading" sivValue="/*title" class="title"></div>-->
+            <div class="panel-body">
+                <p class="text-info" sivValue="/*description"></p>
+                <form class="form-horizontal">
+                    <div class="inputs" sivLoop="/*keys" contextIndex="current">
+                        <div style="margin:4px">
+
+                            <label class="containerLabel text-primary"  class="control-label" sivCall="getLabel" sivParams='{"key":"/@current"}'></label>
+                            <div class="containerInput" sivCall="getSubInput" sivParams='{"key":"/@current"}'></div>
+                        </div>
+                    </div>
+                    <div class="saveNode" sivId="saveNode">
+                        <input type="button" value="Guardar" sivEvent="click" sivCallback="doSave">
+                    </div>
+                </form>
+            </div>
+
+        </div>
+
+    </div>
+
+    <div sivWidget="AUTOPAINTER_StringType" widgetParams="parentObject,parentNode,value" widgetCode="Siviglia.AutoUI.Painter.StringPainter" class="StringType">
+        <div class="input-group" sivId="inputNode">
+        </div>
+    </div>
+    <div sivWidget="AUTOPAINTER_BooleanType" widgetParams="parentObject,parentNode,value" widgetCode="Siviglia.AutoUI.Painter.BooleanPainter" class="BooleanType">
+        <div class="input-group" sivId="inputNode">
+        </div>
+    </div>
+    <div sivWidget="AUTOPAINTER_ArrayType" widgetParams="parentObject,parentNode,value" widgetCode="Siviglia.AutoUI.Painter.ArrayPainter" class="ArrayType">
+        <p class="text-info" sivValue="/*description"></p>
+        <div class="newItemWidget" sivId="newItemNode"></div>
+        <div sivLoop="/*uinode/children" contextIndex="current" class="arrayValues" style="min-height:20px">
+            <h4><span class="label label-primary">
+                <span sivValue="/@current/value"></span>
+                <a><span class="remove glyphicon glyphicon-remove-sign glyphicon-white" sivEvent="click" sivCallback="onRemoveClicked" sivParams='{"key":"/@current"}'></span></a>
+            </span></h4>
+        </div>
+        <div  class="newItem" sivId="newItemNode"></div>
+    </div>
+    <div sivWidget="AUTOPAINTER_NewItem" widgetParams="parentObject,parentNode" widgetCode="Siviglia.AutoUI.Painter.NewItemPainter" class="NewItem">
+        <div class="NewItemString">
+            <form class="navbar-form navbar-stacked" role="search">
+                <div class="form-group">
+                    <input style="float:left" type="text" class="form-control  addKey" placeholder="Nuevo" sivId="newItemString">
+                    <select style="float:left" class="form-control" sivId="newItemSelector"></select>
+                    <div style="float:left" sivEvent="click" sivCallback="onAdd" class="add"></div>
+                    <div style="clear:both"></div>
+                </div>
+
+            </form>
+        </div>
+        <div class="NewItemSelector" style="display:none">
+
+        </div>
+    </div>
+    <div sivWidget="AUTOPAINTER_TypeSwitcher" widgetParams="parentObject,parentNode" widgetCode="Siviglia.AutoUI.Painter.TypeSwitchPainter" class="TypeSwitchType">
+        <div class="panel panel-primary">
+            <!--<div class="panel-heading" sivValue="/*title" class="title"></div>-->
+            <div class="panel-body">
+                <div sivId="fieldContainer"></div>
+                <div class="typeChanger">
+                    <div sivId="typeSwitchSelector">
+
+                    </div>
+                    <input type="button" sivEvent="click" sivCallback="changeType">
+                </div>
+            </div>
+
+        </div>
+    </div>
+    <div sivWidget="AUTOPAINTER_SelectorType" widgetParams="parentObject,parentNode" widgetCode="Siviglia.AutoUI.Painter.SelectorPainter" class="SelectorType">
+        <div class="input-group" sivId="inputNode">
+        </div>
+        <div class="NewItemSelector" style="display:none">
+
+        </div>
+    </div>
+    <div sivWidget="AUTOPAINTER_SubdefinitionType" widgetParams="parentObject,parentNode" widgetCode="Siviglia.AutoUI.Painter.SubdefinitionPainter" class="SubdefinitionType">
+        <div sivId="subcontainer">
+
+        </div>
+    </div>
+
+</div>
