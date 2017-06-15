@@ -129,7 +129,6 @@ Siviglia.Utils.buildClass(
                 construct:function(config)
                 {
                     this.config=config;
-
                     $.getScript(config.baseUrl+'/'+Siviglia.Model.mapper.getCommonJSPrefix()+'jqwidgets/globalization/globalize.culture.'+config.locale+'.js');
                 },
                 methods:

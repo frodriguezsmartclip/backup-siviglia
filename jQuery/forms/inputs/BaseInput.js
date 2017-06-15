@@ -23,9 +23,8 @@ Siviglia.Utils.buildClass(
                         if(value!=null)
                             this.setValue(value);
                         this.rootNode.addClass(definition.TYPE);
-                        this.rootNode.addClass(definition.NAME);
-
-
+                        if(typeof definition.NAME!="undefined")
+                            this.rootNode.addClass(definition.NAME);
                     },
                     showError:function(type,message,exception)
                     {
