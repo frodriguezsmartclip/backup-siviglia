@@ -612,6 +612,7 @@ Siviglia.Utils.buildClass(
                         this.node.remove();
                     }
                     this.node = null;
+                    this.destroyed=true;
                 },
                 methods: {
                     _initialize: function (node, nodeManager, pathRoot, contextObj, caller) {
@@ -780,6 +781,19 @@ Siviglia.Utils.buildClass(
                 construct: function () {
                     this.Expando("sivCall");
                 },
+                destruct: function () {
+                    if(this.paramObj)
+                        this.paramObj.destruct();
+                    if (this.listener)
+                        this.listener.destruct();
+                    //console.debug("DESTROYING " + this.expandoTag);
+                    this.listener = null;
+                    if (this.node) {
+                        this.node.remove();
+                    }
+                    this.node = null;
+                    this.destroyed=true;
+                },
                 methods: {
                     _initialize: function (node, nodeManager, pathRoot, contextObj, caller) {
                         this.method = node.attr("sivCall");
@@ -815,7 +829,10 @@ Siviglia.Utils.buildClass(
                         var src = this.caller;
                         if (this.caller.viewObject)
                             src = src.viewObject
-                        src[this.method](this.node, $(this.node).data("params"));
+                        var params=null;
+                        if(Siviglia.isset(this.paramObj))
+                            params=this.paramObj.getValues();
+                        src[this.method](this.node, params);
                     },
 
                     reset: function () {
@@ -930,6 +947,7 @@ Siviglia.Utils.buildClass(
                             console.debug("SivIf no valido:"+attr);
                             return;
                         }
+                        this.origDisplay=node.css("display");
                         this.pathRoot=pathRoot;
                         this.context=contextObj;
                         this.operator=parts[1];
@@ -938,8 +956,10 @@ Siviglia.Utils.buildClass(
                         this.node = node;
                         var newListener=new Siviglia.model.Listener(this, "value", caller, pathRoot, contextObj, this.source);
                         this.listener=newListener;
+                        this.dontRecurse=false;
                         pathRoot.getPath(this.source, newListener, contextObj);
-                        return false;
+
+                        return this.dontRecurse;
                     },
                     onListener: function () {
                         this.removeContent();
@@ -969,6 +989,8 @@ Siviglia.Utils.buildClass(
                             this.oManager.parse([curNode], this.listener.caller, true, true);
                             this.node.append(curNode);
                         }
+                        this.node.css("display",this.origDisplay);
+                        this.dontRecurse=false;
                     },
                     removeContent:function()
                     {
@@ -976,6 +998,8 @@ Siviglia.Utils.buildClass(
                         if (this.oManager) {
                             this.oManager.destruct();
                         }
+                        this.node.css("display","none");
+                        this.dontRecurse=true;
                     },
                     onPathNotFound:function(path)
                     {
@@ -1149,6 +1173,16 @@ Siviglia.Utils.buildClass(
                 construct: function () {
                     this.Expando("sivParams");
                 },
+                destruct:function(){
+
+                    var nListeners = this.listeners.length;
+                    var index;
+                    for (var k = 0; k < nListeners; k++) {
+                        this.listeners[k].l.destruct();
+                    }
+                    this.controller=null;
+                    this.listeners=[];
+                },
                 methods: {
                     _initialize: function (node, nodeManager, pathRoot, contextObj, caller) {
                         this.node = node;
@@ -1203,10 +1237,11 @@ Siviglia.Utils.buildClass(
                     },
                     onListener: function () {
                         var nListeners = this.listeners.length;
-                        var index;
+                        this.paramValues={};
                         for (var k = 0; k < nListeners; k++) {
                             var cl = this.listeners[k];
                             cl.p[cl.i] = this.listeners[k].l.value;
+                            this.paramValues[cl.i]=this.listeners[k].l.value;
                             //index=this.listeners[k].i;
                             //this.params[index]=this.listeners[k].l.value;
                             if (this.controller && this.controller.viewObject) {
@@ -1214,12 +1249,18 @@ Siviglia.Utils.buildClass(
                                     this.controller.viewObject[j] = this.params[j];
                             }
                         }
-                        if (this.controller) {
-                            this.controller.reset();
-                        }
+
                         if (this.node) {
                             this.node.data("params", this.params);
                         }
+
+                        if (this.controller) {
+                            this.controller.reset();
+                        }
+                    },
+                    getValues:function()
+                    {
+                        return this.paramValues;
                     },
                     reset: function () {
                         var attr = this.node[0].getAttribute(this.expandoTag);
@@ -1350,12 +1391,19 @@ Siviglia.Utils.buildClass(
                     this.pathRoot = pathRoot;
                     this.context = contextObj;
                     this.expandos = [];
+                    this.destroyed = true;
+                    if(!Siviglia.isset(Siviglia.__expandoCount))
+                        Siviglia.__expandoCount=0;
+                    this.eid=Siviglia.__expandoCount;
+                    console.log("CREANDO EXPANDOMANAGER CON EID:"+this.eid);
+                    Siviglia.__expandoCount++;
                 },
                 destruct: function () {
                     //console.debug("******DESTROYING EXPANDOS");
                     this.destroyExpandos();
                     this.pathRoot = null;
                     this.expandos = null;
+                    console.log("DESTROYING EXPANDO "+this.eid);
                 },
                 methods: {
                     parse: function (htmlNode, caller, removeAttr, keepObjects) {
@@ -1379,17 +1427,22 @@ Siviglia.Utils.buildClass(
                                 function (node) {
                                     var k, attr;
                                     var retValue = true;
+                                    if(node.getAttribute("sivId"))
+                                    {
+                                        var cWidget=Siviglia.UI.Dom.Expando.WidgetExpando.prototype.widgetStack.pop();
+                                        var target=cWidget;
+                                        if(cWidget!=cWidget.viewObject)
+                                            target=cWidget.viewObject;
+
+                                        target[node.getAttribute("sivId")]=$(node);
+                                        Siviglia.UI.Dom.Expando.WidgetExpando.prototype.widgetStack.push(cWidget);
+                                    }
                                     for (k in manager.installedExpandos) {
                                         if (!node.getAttribute) {
                                             //console.dir(node);
                                             break;
                                         }
-                                        if(node.getAttribute("sivId"))
-                                        {
-                                            var cWidget=Siviglia.UI.Dom.Expando.WidgetExpando.prototype.widgetStack.pop();
-                                            cWidget[node.getAttribute("sivId")]=$(node);
-                                            Siviglia.UI.Dom.Expando.WidgetExpando.prototype.widgetStack.push(cWidget);
-                                        }
+
                                         attr = node.getAttribute(k);
                                         if (attr) {
 
@@ -1514,6 +1567,12 @@ Siviglia.Utils.buildClass(
                     },
                     getInstance: function () {
                         return new Siviglia.UI.Dom.Expando.ViewExpando(this.widgetName);
+                    },
+                    notifyPathListeners:function()
+                    {
+                        Siviglia.UI.Dom.Expando.WidgetExpando.prototype.widgetStack.push(this);
+                        this.PathListener$notifyPathListeners();
+                        Siviglia.UI.Dom.Expando.WidgetExpando.prototype.widgetStack.pop();
                     }
                 }
             },
@@ -1560,8 +1619,17 @@ Siviglia.Utils.buildClass(
                     this.widgetRoot = null;
                     this.widgetName = widgetName || null;
                     this.subViews = [];
+                    if(!Siviglia.isset(Siviglia.__viewCounter))
+                        Siviglia.__viewCounter=0;
+                    this.eid=Siviglia.__viewCounter;
+                    Siviglia.__viewCounter++;
+                    console.log("Creada vista con id:"+this.eid);
                 },
                 destruct: function () {
+                    this.destroyed=true;
+                    console.log("Destruyendo vista con id:"+this.eid);
+                    if(this.resultPromise && this.resultPromise.state=="pending")
+                        this.resultPromise.reject();
                     if (this.oManager) {
                         this.oManager.destruct();
                     }
@@ -1621,13 +1689,6 @@ Siviglia.Utils.buildClass(
                         }
                         /**************/
                         var r=this.attach(this.caller, this.rootNode, this.params, this.nodeParams, this.pathRoot, this.context);
-
-                        if(r==1)
-                        {
-                            if (this.viewObject && this.viewObject.initialize) {
-                                this.viewObject.initialize(this.params);
-                            }
-                        }
                     },
                     onChange: function () {
                     },
@@ -1656,6 +1717,7 @@ Siviglia.Utils.buildClass(
                             this.viewObject = new Siviglia.model.PathListener();
 
                         this.oManager = new Siviglia.UI.Dom.Expando.ExpandoManager(pathRoot, contextObj);
+                        console.log(" Widget creando manager con id "+this.oManager.eid);
                         if (this.nodeParams) {
                             var p = {};
 
@@ -1678,23 +1740,28 @@ Siviglia.Utils.buildClass(
                         for (var j in params) {
                             this.viewObject[j] = params[j];
                         }
-                        var resultPromise=1;
+                        this.resultPromise=$.Deferred();
+                        this.resultPromise.resolve();
                         if (this.viewObject.preInitialize && !this.preInitialized) {
                             this.preInitialized = true;
                             var result=this.viewObject.preInitialize(params);
                             if(result && result.then)
-                                resultPromise=result;
+                                this.resultPromise=result;
                         }
                         var m=this;
-                        $.when(resultPromise).then(
+                        console.log("Pidiendo promesa para la vista con id:"+this.eid);
+                        this.resultPromise.then(
                             function(v){
+                                if(m.destroyed)
+                                    return;
+                                console.log("Ejecutando promesa de la vista con id:"+m.eid);
                                 m.afterPreInitialize(widgetInstance,caller, node, params, widgetParams, pathRoot, contextObj);
                                 if (m.viewObject && m.viewObject.initialize) {
                                     m.viewObject.initialize(m.params);
                                 }
                             }
                         )
-                        return resultPromise;
+                        return this.resultPromise;
 
 //                    this.rootNode.html("");
 
@@ -2585,7 +2652,14 @@ Siviglia.Utils.buildClass(
                         this.parentWidget = caller;
                         this.attach(this.caller, this.rootNode, this.params, this.nodeParams, this.pathRoot, this.context);
                         return false;
+                    },
+                    notifyPathListeners:function()
+                    {
+                        Siviglia.UI.Dom.Expando.WidgetExpando.prototype.widgetStack.push(this);
+                        this.ViewExpando$notifyPathListeners();
+                        Siviglia.UI.Dom.Expando.WidgetExpando.prototype.widgetStack.pop();
                     }
+
                 }
             }
 
@@ -2605,6 +2679,7 @@ Siviglia.Utils.buildClass({
             {
                 this.App=App;
                 this.EventManager();
+                this.oManager=new Siviglia.UI.Dom.Expando.ExpandoManager(this.App.root,this.App.root.context);
             },
             methods:
             {
@@ -2612,10 +2687,15 @@ Siviglia.Utils.buildClass({
                 {
 
                     this.fireEvent("PAGE_LOADED");
-                    var oManager=new Siviglia.UI.Dom.Expando.ExpandoManager(this.App.root,this.App.root.context);
-                    oManager.parse($(document.body),null);
+                    this.oManager.parse($(document.body),null);
                     this.fireEvent("UI_INITIALIZED");
+                },
+                parseWidgets:function(node) {
+                    this.oManager.parse(node, null, null, true);
                 }
+                /*
+
+                 */
             }
         },
         App:{
@@ -2890,4 +2970,106 @@ Siviglia.Utils.buildClass({
     }
 });
 
+Siviglia.Utils.load=function(assets)
+{
+
+    var loadHTML=function(url,node){
+        var p=$.Deferred();
+
+        $.get(url).then(function(r){
+            if(typeof node == "undefined")
+            {
+                node=$("<div></div>");
+                $(document.body).append(node);
+            }
+            node.html(r);
+            // Ojo, aqui se llama a un objeto Siviglia.App.Page
+            p.resolve(node);
+        });
+        return p;
+    };
+    var loadJS=function(url){
+        var promise=$.Deferred();
+        var v=document.createElement("script");
+        v.onload=function(){promise.resolve();}
+        v.src=url;
+        document.head.appendChild(v);
+        return promise;
+    };
+    var loadCSS=function(url){
+        var promise=$.Deferred();
+        var v=document.createElement("link");
+        v.rel="stylesheet";
+        v.href=url;
+        v.onload=function(){promise.resolve();}
+        document.head.appendChild(v);
+        return promise;
+    };
+
+    var curPromise=$.Deferred();
+    var subpromises=[];
+    for(var k=0;k<assets.length;k++)
+    {
+        var p=assets[k];
+        if(typeof p=="string")
+        {
+            var type="html";
+            // Es una simple cadena.Se busca que tipo de recurso puede ser.
+            var aa=document.createElement("a");
+            aa.href=p;
+            var path=aa.pathname.split("/");
+            if(path.length>0)
+            {
+                var ss=path[path.length-1];
+                var suffix=ss.split(".");
+                if(suffix.length > 1)
+                    type=suffix.pop();
+            }
+            switch(type) {
+                case "html": {
+                    subpromises.push(loadHTML(p));
+                }break;
+                case "js": {
+                    subpromises.push(loadJS(p));
+                }break;
+                    case "css": {
+                        subpromises.push(loadCSS(p));
+                    }break;
+                }
+            }
+            else
+            {
+                switch(p.type)
+                {
+                    case "widget":{
+                        if(!p.node) {
+                            p.node = $("<div></div>");
+                            $(document.body).append(p.node);
+                        }
+                        var pr=$.Deferred();
+                        subpromises.push(pr);
+                        var promises=[];
+                        promises.push(loadHTML(p.template,p.node));
+                        promises.push(loadJS(p.js));
+                        $.when.apply($,promises).then(function(){
+                            page.parseWidgets(p.node);
+                            pr.resolve(p.node);
+                        })
+                    }break;
+                    case "html":{
+                        subpromises.push(loadHTML(p.url));
+                    }break;
+                    case "js":{
+                        subpromises.push(loadJS(p.url));
+                    }break;
+                    case "css":{
+                        subpromises.push(loadCSS(p.url));
+                    }break;
+                }
+            }
+        }
+
+        $.when.apply($, subpromises).done(function() {curPromise.resolve();});
+        return curPromise;
+};
 

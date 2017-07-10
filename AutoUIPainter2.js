@@ -23,7 +23,7 @@ Siviglia.Utils.buildClass({
                     args.controller= this.controller;
                     args.painterFactory=this;
                     node = args;
-
+                    var dv=$('<div></div>');
 
                     if (nodeObj.definition.PAINTER) {
                         return new
@@ -48,13 +48,25 @@ Siviglia.Utils.buildClass({
                         "ObjectArrayType":"ObjectArrayPainter",
                         "SivObjectSelector":"SelectorPainter",
                         "SubdefinitionType":"SubdefinitionPainter",
-                        "FixedDictionaryType":"FixedDictionaryPainter",
+                        "FixedDictionaryType":"FixedDictionaryPainter"
                     };
                     if(!equivs[type])
                     {
+                        // Si no se encuentra un tipo de painter asociado, se mira si existe una clase del proyecto,
+                        // que nos diga que painter usar.
+                        // Es decir, que un tipo de dato "custom" debe proveer de una clase en el namespace Siviglia.AutoUI,
+                        // que gestiona el tipo, y que tiene una variable PAINTER "estatica" (prototipo)
+                        if(Siviglia.isset(Siviglia.AutoUI[type]))
+                            equivs[type]=Siviglia.AutoUI[type].PAINTER;
+
                         throw "NO ENCONTRADO WIDGET PARA "+type;
                     }
-                    var dv=$('<div></div>');
+                    if(!Siviglia.AutoUI.Painter[equivs[type]])
+                    {
+                        throw "NO ENCONTRADO PAINTER PARA "+type+" : ("+equivs[type]+")";
+                    }
+
+
                     var w=new Siviglia.AutoUI.Painter[equivs[type]]('AUTOPAINTER_'+type,
                         args,
                         {},
@@ -154,29 +166,35 @@ Siviglia.Utils.buildClass({
                 preInitialize:function(params)
                 {
                     this.BasePainter$preInitialize(params);
-                    this.keys=this.uinode.getKeys();
+
                     this.currentWidget=null;
                     this.currentKey=null;
-
+                    // Miramos si el tipo que vamos a generar, es simple o no.
+                    var childType=params.uinode.getValueInstance(null,null);
+                    this.hasSimpleType=childType.isSimpleType();
                 },
                 initialize:function(params)
                 {
-                    this.widgetContainer=$('.currentWidget',this.rootNode);
-                    params.parent=this;
-                    this.buildNewItemWidget(params);
                     if(!this.uinode.definition.SAVE_URL)
                         this.saveNode.css({"display":"none"})
-
                 },
-                buildNewItemWidget:function(params)
+                buildNewItemWidget:function(node,params)
                 {
+                    if(this.newItemWidget) {
+                        this.newItemWidget.destruct();
+                    }
+                    node.html("");
+
+                    var pp=this.params;
+                    pp.parent=this;
+                    var tempNode=$("<div></div>");
                     this.newItemWidget=new Siviglia.AutoUI.Painter.NewItemPainter('AUTOPAINTER_NewItem',
-                        params,
+                        pp,
                         {},
-                        this.newItemNode,
+                        tempNode,
                         Siviglia.model.Root
                     );
-                    $('.newItemWidget',this.rootNode).append(this.newItemWidget.view.rootNode);
+                    node.append(tempNode);
                 },
                 doSave:function()
                 {
@@ -187,11 +205,28 @@ Siviglia.Utils.buildClass({
                 },
                 onLabelClicked:function(node, params)
                 {
-                    if(this.currentWidget)
-                        this.currentWidget.destruct();
                     this.currentKey=params.key;
-                    this.currentWidget=this.painterFactory.factory(this.uinode.children[params.key], this.uinode.parent,{});
-                    this.widgetContainer.append(this.currentWidget.rootNode);
+                    this.notifyPathListeners();
+
+                },
+                getInputFor:function(node,params)
+                {
+                    if(this.currentWidget!=null) {
+                        this.currentWidget.destruct();
+                        this.currentWidget = null;
+                        node.html("");
+                    }
+                    if(params.key==null)
+                        return;
+                    var newNode=this.__getInputFor(params.key);
+                    node.append(newNode);
+                },
+                __getInputFor:function(key)
+                {
+                    var newWidget=this.painterFactory.factory(this.uinode.children[key], this.uinode.parent,{});
+                    //this.currentWidget=newWidget;
+                    //this.currentKey=key;
+                    return newWidget.rootNode;
                 },
                 getLabel:function(node,params,event)
                 {
@@ -200,11 +235,13 @@ Siviglia.Utils.buildClass({
                 },
                 onRemoveClicked:function(node,params,event)
                 {
-                    this.uinode.removeItem(params.key);
-                    if(params.key==this.currentKey)
+                    if(params.key==this.currentKey && this.currentWidget!=null)
                     {
                         this.currentWidget.destruct();
                     }
+                    this.currentKey=null;
+                    this.currentWidget=null;
+                    this.uinode.removeItem(params.key);
                 },
                 addItem:function(val)
                 {
@@ -213,7 +250,7 @@ Siviglia.Utils.buildClass({
                 },
                 reload:function(event)
                 {
-                    this.keys=this.uinode.getKeys();
+
                     this.BasePainter$reload(event);
                 }
 
@@ -224,12 +261,19 @@ Siviglia.Utils.buildClass({
               inherits:'DictionaryPainter',
                 methods:
                     {
-                        buildNewItemWidget:function(params)
+                        preInitialize:function(params)
+                        {
+                            this.BasePainter$preInitialize(params);
+                            this.currentWidget=null;
+                            this.currentKey=null;
+                        },
+
+                        buildNewItemWidget:function(node,params)
                         {
                             if(this.newItemSelector)
                             {
-                                this.newItemSelector.destruct();
-                                this.newItemNode.html('');
+                                this.newItemSelector.node.remove();
+                                this.newItemSelector=null;
                             }
                             var uinode=this.params.uinode;
                             var possibleKeys=this.params.uinode.getPossibleKeys();
@@ -258,7 +302,7 @@ Siviglia.Utils.buildClass({
                                 this.newItemSelector.sivInitialize({TYPE: 'Enum', VALUES: opts}, null, {});
 
                                 var m = this;
-                                this.newItemSelector.on("change", function (node) {
+                                this.newItemSelector.on("change", function (ev) {
                                     if (m.syntheticChange)
                                         return;
                                     m.syntheticChange = true;
@@ -268,11 +312,13 @@ Siviglia.Utils.buildClass({
                                         if (tt[k].LABEL == curLabel) {
                                             m.onChangeType(k);
                                             m.syntheticChange = false;
-                                            m.buildNewItemWidget({});
+                                            m.buildNewItemWidget(node,{});
                                         }
                                     }
                                 });
+                                node.append(this.newItemSelector.node);
                             }
+
                         },
                         onChangeType:function(val)
                         {
@@ -286,8 +332,27 @@ Siviglia.Utils.buildClass({
                         onRemoveClicked:function(node,params,event)
                         {
                             this.DictionaryPainter$onRemoveClicked(node,params,event);
-                            this.buildNewItemWidget({});
-                        }
+                            this.buildNewItemWidget(this.newItemNode);
+                        },
+                        getInputFor:function(node,params)
+                        {
+                            if(this.currentWidget!=null) {
+                                this.currentWidget.destruct();
+                                this.currentWidget = null;
+                                node.html("");
+                            }
+                            if(params.key==null)
+                                return;
+                            var newNode=this.__getInputFor(params.key);
+                            node.append(newNode);
+                        },
+                        __getInputFor:function(key)
+                        {
+                            var newWidget=this.painterFactory.factory(this.uinode.children[key], this.uinode.parent,{});
+                            this.currentWidget=newWidget;
+                            this.currentKey=key;
+                            return newWidget.rootNode;
+                        },
                     }
             },
         ContainerPainter:
@@ -295,6 +360,13 @@ Siviglia.Utils.buildClass({
             inherits:'DictionaryPainter',
             methods:
             {
+                preInitialize:function(params)
+                {
+                    this.BasePainter$preInitialize(params);
+
+                    this.currentWidget=null;
+                    this.currentKey=null;
+                },
                 initialize:function(params)
                 {
                     this.DictionaryPainter$initialize(params);
@@ -362,6 +434,80 @@ Siviglia.Utils.buildClass({
                 }
             }
 
+        },
+        ObjectArrayPainter: {
+            inherits:'BasePainter',
+            methods: {
+                preInitialize:function(params)
+                {
+                    this.BasePainter$preInitialize(params);
+                    this.currentWidget=null;
+                    this.currentKey=null;
+                    this.uinode=params.uinode;
+                    this.keyDirection="HORIZONTAL";
+                },
+                initialize:function(params)
+                {
+
+                    this.nElems=this.uinode.children.length;
+                    this.widgetContainer=$('.currentWidget',this.rootNode);
+                    params.parent=this;
+                    //if(!this.uinode.definition.SAVE_URL)
+                    //    this.saveNode.css({"display":"none"})
+                },
+                doSave:function()
+                {
+                    if(this.uinode.definition.SAVE_URL)
+                    {
+                        this.uinode.saveToUrl();
+                    }
+                },
+                onLabelClicked:function(node, params)
+                {
+                        if(this.currentWidget)
+                            this.currentWidget.destruct();
+                        this.currentKey=params.index;
+                        this.currentWidget=this.painterFactory.factory(this.uinode.children[params.index], this.uinode.parent,{});
+                        this.widgetContainer.append(this.currentWidget.rootNode);
+                },
+                getLabel:function(node,params,event)
+                {
+                    if(typeof this.uinode.definition.VALUELABEL!="undefined")
+                        node.html(this.uinode.getValue()[params.index][this.uinode.definition.VALUELABEL]);
+                    else
+                        node.html(params.index);
+                },
+                onRemoveClicked:function(node,params,event)
+                {
+                        this.uinode.removeItem(params.index);
+                        if(params.index==this.currentKey)
+                        {
+                            this.currentWidget.destruct();
+                        }
+                },
+                addItem:function(node)
+                {
+                    var val=this.uinode.addItem(null);
+                    this.onLabelClicked(null,{index:this.uinode.children.length-1});
+                },
+                reload:function(event)
+                {
+                    this.nElems=this.uinode.children.length;
+                    this.BasePainter$reload(event);
+                }
+
+            }
+        },
+        FixedPainter: {
+            inherits:'BasePainter',
+            methods:
+                {
+                    preInitialize:function(params)
+                    {
+                        var tt=params;
+                        this.uinode=params.uinode;
+                    }
+                }
         },
         ArrayPainter:
         {
@@ -472,7 +618,8 @@ Siviglia.Utils.buildClass({
                         {
                             if(this.typeSelector!=null)
                                 return;
-                            var vals = this.params.uinode.definition.ALLOWED_TYPES;
+                            //var vals = this.params.uinode.definition.ALLOWED_TYPES;
+                            var vals=this.params.uinode.getAllowedTypes();
                             var val;
                             if (this.params.uinode.isUnset())
                                 val = null;
@@ -558,7 +705,7 @@ Siviglia.Utils.buildClass({
                     else
                         val=this.newItemSelector.val();
                     if (val == "") return;
-                    this.params.parent.addItem(val);
+                    this.params.uinode.addItem(val);
                     this.paintInput();
                 }
             }

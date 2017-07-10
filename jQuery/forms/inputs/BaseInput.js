@@ -211,8 +211,16 @@ Siviglia.Utils.buildClass(
                         var finalOpts=[];
                         for(var k=0;k<this.definition.VALUES.length;k++)
                         {
+                            var c=this.definition.VALUES[k];
+                            var label,value;
+                            label=value=c;
+                            if(typeof c=="object")
+                            {
+                                label=c.LABEL;
+                                value=c.VALUE;
+                            }
                             finalOpts.push(
-                                {html:'<div tabIndex=0 style="padding:1px">'+this.definition.VALUES[k]+'</div>',label:this.definition.VALUES[k]}
+                                {html:'<div tabIndex=0 style="padding:1px">'+label+'</div>',label:label,value:value}
                             )
                         }
                         var opts={source:finalOpts,placeHolder:'Seleccionar', height: 25, width: 200,minLength:0};

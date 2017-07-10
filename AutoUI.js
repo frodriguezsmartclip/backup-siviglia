@@ -160,6 +160,7 @@ Siviglia.Utils.buildClass({
                 this.unset = true;
                 this.loaded = false;
                 this.parent=parent;
+                this.simpleType=false;
                 if (typeof(parent) == "string")
                     this.parent = this.getPath(parent);
                 else
@@ -180,14 +181,16 @@ Siviglia.Utils.buildClass({
                     }
                 }
 
-                this.initSubType();
 
+                this.initSubType();
                 //*/
                 //this.__definition=definition;
                 if (typeof value != "undefined" && value != null)
                     this.setValue(value);
                 else
                     this.value = null;
+
+
             },
             methods: {
                 initSubType: function () {
@@ -312,7 +315,8 @@ Siviglia.Utils.buildClass({
                     var data=Siviglia.types.toJson(this.save());
                     var path=this.getCurrentPath();
                     return this.controller.saveObject(this.definition.SAVE_URL,data,path);
-                }
+                },
+                isSimpleType:function(){return this.simpleType;}
             }
         },
 
@@ -325,6 +329,7 @@ Siviglia.Utils.buildClass({
             inherits: "Siviglia.AutoUI.Node",
             construct: function (definition, parent, value,controller) {
                 this.Node("BooleanType", definition, parent, value,controller);
+                this.simpleType=true;
             }
         },
         /**
@@ -337,7 +342,7 @@ Siviglia.Utils.buildClass({
             methods: {
                 setValue: function (val) {
                     this.value = val;
-                    for (k in val) {
+                    for (var k in val) {
                         if (this.children[k]) {
                             this.children[k].setValue(this.getValueFromKey(k));
                         }
@@ -428,6 +433,7 @@ Siviglia.Utils.buildClass({
                     this.children[key] = this.getValueInstance(null,key);
                     this.save();
                     this.fireEvent("change");
+                    return this.children[key];
                 },
                 removeItem: function(key)
                 {
@@ -541,9 +547,11 @@ Siviglia.Utils.buildClass({
                 addItem: function (value) {
                     this.checkLoaded();
                     if (!this.children)this.children = [];
-                    this.children.push(this.getValueInstance(value,this.children.length));
+                    var nI=this.getValueInstance(value,this.children.length);
+                    this.children.push(nI);
                     this.save();
                     this.fireEvent("change");
+                    return nI;
                 },
                 save: function () {
 
@@ -724,6 +732,10 @@ Siviglia.Utils.buildClass({
             inherits: "Siviglia.AutoUI.SourcedType",
             construct: function (definition, parent, value,controller) {
                 this.Node("StringType", definition, parent, value,controller);
+                this.simpleType=true;
+            },
+            methods:{
+                isSimpleType:function(){return true;}
             }
         },
         /**
@@ -733,6 +745,7 @@ Siviglia.Utils.buildClass({
             inherits: "Siviglia.AutoUI.Node",
             construct: function (definition, parent, value,controller) {
                 this.Node("IntegerType", definition, parent, value);
+                this.simpleType=true;
             }
         },
         /**
@@ -750,6 +763,7 @@ Siviglia.Utils.buildClass({
             },
             methods: {
                 initSubType: function () {
+                    this.children = [];
                 },
                 getReference: function () {
                     this.save();
@@ -882,7 +896,7 @@ Siviglia.Utils.buildClass({
                         for(var k in this.value)
                         {
                             var childType=this.definition.KEYMAP[k]["TYPE"];
-                            var newInstance=Siviglia.AutoUI.NodeFactory({"TYPE":childType},this,this.value[k]);
+                            this.children[k]=Siviglia.AutoUI.NodeFactory({"TYPE":childType},this,this.value[k]);
                         }
                         this.unset=false;
                         this.fireEvent("change");
@@ -892,6 +906,7 @@ Siviglia.Utils.buildClass({
                         this.children[key] = this.getValueInstance(null,key);
                         this.save();
                         this.fireEvent("change");
+                        return this.children[key];
                     },
                     removeItem: function(key, value)
                     {
@@ -935,13 +950,23 @@ Siviglia.Utils.buildClass({
                     this.receivedValue = val;
                     if (this.subNode)
                         this.subNode.destruct();
-                    var typeField = this.definition.TYPE_FIELD;
-                    subType = val[typeField];
+                    var subType=this.getTypeFromValue(val);
                     this.currentType = subType;
-                    console.debug("CURRENTTYPE::" + this.currentType);
                     this.subNode = Siviglia.AutoUI.NodeFactory({"TYPE": subType}, this, val);
                     this.unset = false;
                     this.fireEvent("change");
+                },
+                getTypeFromValue:function(val)
+                {
+                    var typeField = Siviglia.issetOr(this.definition.TYPE_FIELD,null);
+                    if(typeField!=null)
+                        return val[typeField];;
+
+                    for(var ss in this.definition.TYPE_TYPE)
+                    {
+                        if(val.constructor.toString().match(ss)==ss)
+                            return this.definition.TYPE_TYPE[ss].TYPE;
+                    }
                 },
                 getValue: function () {
                     if (this.subNode && !this.subNode.isUnset())
@@ -954,22 +979,45 @@ Siviglia.Utils.buildClass({
                     return null;
                 },
                 setType: function (typeName) {
-                    var c = {};
-                    c[this.definition.TYPE_FIELD] = typeName;
+                    if(Siviglia.isset(this.definition.TYPE_FIELD)) {
+                        var c = {};
+                        c[this.definition.TYPE_FIELD] = typeName;
+                    }
                     this.setValue(c);
                 },
                 getAllowedTypes: function () {
                     var result = [];
-                    for (var k = 0; k < this.definition.ALLOWED_TYPES.length; k++) {
-                        var n = this.definition.ALLOWED_TYPES[k];
-                        result.push({name: n, value: n});
+                    if(Siviglia.isset(this.definition.TYPE_FIELD)) {
+                        for (var k = 0; k < this.definition.ALLOWED_TYPES.length; k++) {
+                            var n = this.definition.ALLOWED_TYPES[k];
+                            result.push({name: n, value: n});
+                        }
+                    }
+                    else
+                    {
+                        for(var ss in this.definition.TYPE_TYPE)
+                        {
+                            var cc=this.definition.TYPE_TYPE[ss];
+                            result.push({name:cc.LABEL,value:cc.TYPE});
+                        }
                     }
                     return result;
                 },
                 getCurrentType: function () {
-                    if (this.receivedValue) {
-                        var typeField = this.definition.TYPE_FIELD;
-                        return this.receivedValue[typeField];
+                    if (Siviglia.isset(this.receivedValue)) {
+                        if(Siviglia.isset(this.definition.TYPE_FIELD)) {
+                            var typeField = this.definition.TYPE_FIELD;
+                            return this.receivedValue[typeField];
+                        }
+                        else
+                        {
+                            for(var ss in this.definition.TYPE_TYPE)
+                            {
+                                var cc=this.definition.TYPE_TYPE[ss];
+                                if(this.receivedValue.constructor.toString().match(ss) != null)
+                                    return cc.TYPE;
+                            }
+                        }
                     }
                     return this.currentType;
                 },
@@ -989,7 +1037,7 @@ Siviglia.Utils.buildClass({
          * @author ICSW (11/06/2012)
          */
         ObjectArrayType: {
-            inherits: 'Siviglia.AutoUI.Node,Siviglia.AutoUI.BaseArrayContainerType',
+            inherits: 'Siviglia.AutoUI.BaseArrayContainerType,Siviglia.AutoUI.SourcedType',
             construct: function (definition, parent, value,controller) {
                 this.value = [];
                 this.children = [];
@@ -1167,11 +1215,30 @@ Siviglia.AutoUI.NodeFactory = function (definition, parent, value,controller) {
         }break;
         default:
         {
+            // Se mira si el tipo es un tipo "custom", definido dentro de la definicion
+            // del formulario, en el padre.
+
             def = parent.controller.definitions[type];
             if (def)
                 o=new Siviglia.AutoUI.NodeFactory(def, parent, value,controller);
             else
-                console.debug("UNKNOWN NODE TYPE IN DEFINITION: "+type);
+            {
+
+                // Si el tipo no esta definido en la definicion del padre, se
+                // mira si existe el tipo como clase.Ojo que aqui, el nombre del tipo
+                // debe coincidir con el nombre de la clase, y estar en el namespace Siviglia.AutoUI
+                if(Siviglia.isset(Siviglia.AutoUI[type]))
+                {
+                    o=new Siviglia.AutoUI[type](def,parent,value,controller);
+                }
+                else
+                {
+                    // Si no es un tipo derivado, y no hay ninguna clase que lo gestione,
+                    // es un error
+                    throw "AUTOUI: UNKNOWN NODE TYPE IN DEFINITION: " + type;
+                }
+            }
+
         }
     }
     //o.controller=parent?parent.controller:controller;
