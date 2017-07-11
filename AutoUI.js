@@ -990,7 +990,7 @@ Siviglia.Utils.buildClass({
                     if(Siviglia.isset(this.definition.TYPE_FIELD)) {
                         for (var k = 0; k < this.definition.ALLOWED_TYPES.length; k++) {
                             var n = this.definition.ALLOWED_TYPES[k];
-                            result.push({name: n, value: n});
+                            result.push({LABEL: n, VALUE: n});
                         }
                     }
                     else
