@@ -187,8 +187,17 @@ Siviglia.Utils.buildClass({
                 //this.__definition=definition;
                 if (typeof value != "undefined" && value != null)
                     this.setValue(value);
-                else
-                    this.value = null;
+                else {
+                    if(typeof definition["DEFAULT"]!="undefined")
+                    {
+                        this.setValue(
+                            this.decodeDefault(definition["DEFAULT"])
+                        );
+
+                    }
+                    else
+                        this.value = null;
+                }
 
 
             },
@@ -248,6 +257,9 @@ Siviglia.Utils.buildClass({
                 },
                 getReference: function () {
                     return this.value
+                },
+                decodeDefault: function(def){
+                    return def;
                 },
 
                 isUnset: function () {
