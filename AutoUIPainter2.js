@@ -205,6 +205,7 @@ Siviglia.Utils.buildClass({
                 },
                 onLabelClicked:function(node, params)
                 {
+                    console.log("*****LABEL CLICKED*****");
                     this.currentKey=params.key;
                     this.notifyPathListeners();
 
@@ -377,6 +378,7 @@ Siviglia.Utils.buildClass({
                 },
                 getSubInput:function(node,params)
                 {
+                    console.log("************GETTING SUBINPUT*****");
                     var value=this.uinode.children[params.key];
                     var currentWidget=this.painterFactory.factory(value,this.uinode.parent, {});
                     node.append(currentWidget.rootNode);

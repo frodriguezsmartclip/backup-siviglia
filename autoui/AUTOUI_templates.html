@@ -4,14 +4,14 @@
 <!--<script src="<?php echo STATICS_WEBPATH;?>/packages/jquery/jquery-3.1.1.js"></script>-->
 <!--[_SCRIPT][_FILE]##STATICS_DOCUMENT_ROOT##/packages/jquery-ui/jquery-ui.min.js[#][_URL]##STATICS_WEB_ROOT##/packages/jquery-ui/jquery-ui.min.js[#][#]-->
 <!--<script src="<?php echo STATICS_WEBPATH;?>/packages/bootstrap/js/bootstrap.min.js"></script>-->
-<script src="<?php echo STATICS_WEBPATH;?>/packages/Siviglia-js/Siviglia.js"></script>
-<script src="<?php echo STATICS_WEBPATH;?>/packages//Siviglia-js/Model.js"></script>
-<script src="<?php echo STATICS_WEBPATH;?>/packages/Siviglia-js/AutoUI.js"></script>
-<script src="<?php echo STATICS_WEBPATH;?>/packages/jqxwidgets/jqx-all.js"></script>
-<link rel="stylesheet" href="<?php echo STATICS_WEBPATH;?>/packages/jqxwidgets/jqwidgets/styles/jqx.base.css" type="text/css" />
-<link rel="stylesheet" href="<?php echo STATICS_WEBPATH;?>/packages/jqxwidgets/jqwidgets/styles/jqx.flat.css" type="text/css" />
-<script src="<?php echo STATICS_WEBPATH;?>/packages/Siviglia-js/jQuery/forms/inputs/BaseInput.js"></script>
-<script src="<?php echo STATICS_WEBPATH;?>/packages/Siviglia-js/AutoUIPainter2.js"></script>
+<script src="<?php echo STATICS_WEBPATH;?>/packages/Siviglia/Siviglia.js"></script>
+<script src="<?php echo STATICS_WEBPATH;?>/packages//Siviglia/Model.js"></script>
+<script src="<?php echo STATICS_WEBPATH;?>/packages/Siviglia/AutoUI.js"></script>
+<script src="<?php echo STATICS_WEBPATH;?>/packages/jqwidgets/jqx-all.js"></script>
+<link rel="stylesheet" href="<?php echo STATICS_WEBPATH;?>/packages/jqwidgets/styles/jqx.base.css" type="text/css" />
+<link rel="stylesheet" href="<?php echo STATICS_WEBPATH;?>/packages/jqwidgets/styles/jqx.flat.css" type="text/css" />
+<script src="<?php echo STATICS_WEBPATH;?>/packages/Siviglia/jQuery/forms/inputs/BaseInput.js"></script>
+<script src="<?php echo STATICS_WEBPATH;?>/packages/Siviglia/AutoUIPainter2.js"></script>
 
 <style>
     .remove, .NewItemString .add {
@@ -96,9 +96,11 @@
                         </div>
                         <div class="newItemWidget" sivCall="buildNewItemWidget"></div>
                     </div>
+                        <div sivIf="/*currentKey != null">
                         <div class="containerInput dictionaryInput">
                             <div class="currentWidget" sivCall="getInputFor" sivParams='{"key":"/*currentKey"}'>
                             </div>
+                        </div>
                         </div>
 
                     </div>
@@ -179,8 +181,13 @@
                     <div class="inputs" sivLoop="/*uinode/getKeys" contextIndex="current">
                         <div style="margin:4px">
                             <label class="containerLabel text-primary"  class="control-label" sivCall="getLabel" sivParams='{"key":"/@current"}'></label>
-                            <div sivIf="/*uinode/isSimpleType == false" class="containerInput" sivCall="getSubInput" sivParams='{"key":"/@current"}'></div>
-                            <div sivIf="/*uinode/isSimpleType == true" sivCall="getSubInput" sivParams='{"key":"/@current"}'></div>
+                            <div sivIf="/*uinode/isSimpleType == false" class="containerInput">
+                                <div sivCall="getSubInput" sivParams='{"key":"/@current"}'></div>
+                            </div>
+
+                            <div sivIf="/*uinode/isSimpleType == true">
+                                <div sivCall="getSubInput" sivParams='{"key":"/@current"}'></div>
+                            </div>
 
                         </div>
                     </div>

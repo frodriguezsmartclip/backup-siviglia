@@ -1202,7 +1202,7 @@ Siviglia.Utils.buildClass(
                     for(var k in fields)
                     {
                         result[k]=fields[k];
-                        var q=fields[k]["MODEL"] || fields[k]["OBJECT"];
+                        var q=fields[k]["MODEL"] || fields[k]["MODEL"];
                         if(!q)
                         {
                                 continue;
@@ -1230,7 +1230,7 @@ Siviglia.Utils.buildClass(
                         for(var k=0;k<pendingFields.length;k++)
                         {
                             var cf=pendingFields[k];
-                            var pM=fields[cf]["MODEL"] || fields[cf]["OBJECT"];
+                            var pM=fields[cf]["MODEL"] || fields[cf]["MODEL"];
                             var pF=fields[cf]["FIELD"];
                             if(!pF && fields[cf]["FIELDS"])
                             {

@@ -174,8 +174,9 @@ define(["dojo/_base/declare","dijit/Tooltip", "dijit/_WidgetBase",
                parts=model.split('\\');
                if(parts[0]=='')
                     parts=parts.splice(1);
-               if(parts[0]=="backoffice")
+               if(parts[0]=="model")
                    parts=parts.splice(1);
+
                model=parts.join("/");
                if(stdTransforms.transforms[model] && stdTransforms.transforms[model]['FIELDS'][def["FIELD"]])
                {

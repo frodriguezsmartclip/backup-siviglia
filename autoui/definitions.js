@@ -1312,7 +1312,7 @@
                 "Required"
             }
         ,
-            "OBJECT"
+            "MODEL"
         :
             {
                 "CUSTOMTYPE"
@@ -1694,7 +1694,7 @@
             "FIELDS"
     :
         {
-            "OBJECT"
+            "MODEL"
         :
             {
                 "TYPE"

@@ -1391,7 +1391,7 @@ Siviglia.Utils.buildClass(
                     this.pathRoot = pathRoot;
                     this.context = contextObj;
                     this.expandos = [];
-                    this.destroyed = true;
+                    this.destroyed = false;
                     if(!Siviglia.isset(Siviglia.__expandoCount))
                         Siviglia.__expandoCount=0;
                     this.eid=Siviglia.__expandoCount;
@@ -1403,6 +1403,7 @@ Siviglia.Utils.buildClass(
                     this.destroyExpandos();
                     this.pathRoot = null;
                     this.expandos = null;
+                    this.destroyed=true;
                     console.log("DESTROYING EXPANDO "+this.eid);
                 },
                 methods: {
