@@ -865,7 +865,7 @@ Siviglia.Utils.buildClass({
                         // We suppose those are keys.
                         var nVal = {};
                         for (var k = 0; k < val.length; k++)
-                            this.children[val[k]] = Siviglia.AutoUI.NodeFactory({"TYPE": this.childType}, this, null);
+                            this.children[val[k]] = Siviglia.AutoUI.NodeFactory({"TYPE": this.childType}, this, null,this.controller);
 
                         this.value = nVal;
                     }
@@ -874,7 +874,7 @@ Siviglia.Utils.buildClass({
 
 
                     for (var k in this.value) {
-                        var newInstance = Siviglia.AutoUI.NodeFactory({"TYPE": this.childType}, this, this.getValueFromKey(k));
+                        var newInstance = Siviglia.AutoUI.NodeFactory({"TYPE": this.childType}, this, this.getValueFromKey(k),this.controller);
                         this.children[k] = newInstance;
                     }
                     this.unset = false;
@@ -908,7 +908,7 @@ Siviglia.Utils.buildClass({
                         for(var k in this.value)
                         {
                             var childType=this.definition.KEYMAP[k]["TYPE"];
-                            this.children[k]=Siviglia.AutoUI.NodeFactory({"TYPE":childType},this,this.value[k]);
+                            this.children[k]=Siviglia.AutoUI.NodeFactory({"TYPE":childType},this,this.value[k],this.controller);
                         }
                         this.unset=false;
                         this.fireEvent("change");
@@ -935,7 +935,7 @@ Siviglia.Utils.buildClass({
                         var type=Siviglia.issetOr(this.definition.KEYMAP[key],null);
                         if(type==null)
                             return null;
-                        return Siviglia.AutoUI.NodeFactory({"TYPE": this.definition.KEYMAP[key].TYPE}, this, val);
+                        return Siviglia.AutoUI.NodeFactory({"TYPE": this.definition.KEYMAP[key].TYPE}, this, val,this.controller);
 
                     }
                 }
@@ -964,7 +964,7 @@ Siviglia.Utils.buildClass({
                         this.subNode.destruct();
                     var subType=this.getTypeFromValue(val);
                     this.currentType = subType;
-                    this.subNode = Siviglia.AutoUI.NodeFactory({"TYPE": subType}, this, val);
+                    this.subNode = Siviglia.AutoUI.NodeFactory({"TYPE": subType}, this, val,this.controller);
                     this.unset = false;
                     this.fireEvent("change");
                 },
@@ -1060,7 +1060,7 @@ Siviglia.Utils.buildClass({
                 initSubType: function () {
                 },
                 getValueInstance: function (val,key) {
-                    return Siviglia.AutoUI.NodeFactory({"TYPE": this.definition.VALUETYPE}, this, val);
+                    return Siviglia.AutoUI.NodeFactory({"TYPE": this.definition.VALUETYPE}, this, val,this.controller);
                 }
             }
         },
@@ -1164,7 +1164,8 @@ Siviglia.AutoUI.NodeFactory = function (definition, parent, value,controller) {
     }
     if (type[0] == "*") {
         type = type.substr(1);
-        def = Siviglia.AutoUI.root.definitions[type];
+        //def = Siviglia.AutoUI.root.definitions[type];
+        def=controller.definitions[type];
         if (!def) {
             Siviglia.debug("Tipo no encontrado: *type:" + type);
             return null;

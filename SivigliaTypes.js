@@ -918,7 +918,28 @@ Siviglia.Utils.buildClass(
                     this.BaseType('Text',def,val);
                 }
             },
+            ArrayType:
+            {
+                inherits:'BaseType',
+                construct:function(def,val)
+                {
+                    this.BaseType('ArrayType',def,val);
+                },
+                methods:
+                {
+                    validate:function(val)
+                    {
+                        return true;
+                    },
+                    set:function(val)
+                    {
+                        this.valueSet=true;
+                        this.value=val;
 
+                        return val;
+                    }
+                }
+            },
             Timestamp:
             {
                 inherits:'DateTime',

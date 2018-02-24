@@ -2,414 +2,220 @@ Siviglia.Utils.buildClass(
     {
         context:'Siviglia.Data',
         classes:
-        {
-            DataException:
             {
-                construct:function(text)
-                {
-                    console.debug(text);
-                }
-            },
-            /*
-                Clase para almacenar el estado bajo el cual se ha obtenido un dataset.
-                Incluye el numero de
+                /*
+                    DataSource base:
+                    Recibe como parametro un fetcher (ver mas abajo), que es la clase que se encarga de
+                    obtener los datos.
+                    Lanza eventos sobre la carga del datasource.
 
-             */
-            DataSetStatus:
-            {
-                // Se puede llamar con un array, y en ese caso se inicializa a partir de el-
-                // Este objeto deberia ser inmutable.
-                construct:function(nRows,datasourceStatus)
-                {
-                    if(Siviglia.Utils.isArray(nRows)) {
-                        var obj = nRows;
-                        this.nRows=obj.length;
-                    }
-                    else
-                        this.nRows=nRows;
-                    this.datasourceStatus=datasourceStatus;
-
-                },
-                methods:
-                {
-
-                }
-            },
-            DataSet:
-            {
-                inherits:'Siviglia.model.PathListener',
-                construct:function(data,status,datasource)
-                {
-                    this.PathListener();
-                    this.initialize(data,status,datasource);
-
-                },
-                methods:
-                {
-                    initialize:function(data,status,datasource)
+                 */
+                BaseDataSource:
                     {
-                        this.data=data.map(function(c){ return new Siviglia.Data.DataObject(c)});
-                        this.data=data;
-                        this.status=status;
-                        this.datasource=datasource;
-                        this.notifyPathListeners();
-                    },
-                    setValue:function(data,status)
-                    {
-                        this.initialize(data,status,this.datasource);
-
-                    },
-                    getDataSource:function()
-                    {
-                        return this.datasource;
-                    },
-                    iterate:function(callback)
-                    {
-                          return this.data.map(callback);
-                    },
-                    getRow:function(i)
-                    {
-                        if(i < 0 || i > this.data.length)
+                        inherits:"Siviglia.Dom.EventManager",
+                        constants:{
+                            EVENT_START_LOAD:"START_FETCHING",
+                            EVENT_LOADED:"LOADED",
+                            EVENT_LOADING:"LOADING",
+                            EVENT_LOAD_ERROR:"LOAD_ERROR",
+                            EVENT_INVALID_DATA:"INVALID_DATA"
+                        },
+                        construct:function(fetcher)
                         {
-                            throw  new Siviglia.Data.DataException('Index Out of bounds:'+i);
-                        }
-                        return data[i];
-                    },
-                    getCount:function()
-                    {
-                        return this.status.nRows;
-                    },
-                    getTotalCount:function()
-                    {
-                        return this.status.totalRows;
-                    }
-                }
-            },
-            DataObject:{
-                construct:function(data,dataSet)
-                {
-                    this.initialize(data,dataSet);
-                },
-                methods:
-                {
-                    initialize:function(data,dataSet)
-                    {
-                        this.data=data;
-                        this.dataset=dataSet
-                    },
-                    get:function(field){return this.data[field];}
-                }
-            },
-            TypedDataSet:
-            {
-                inherits:'DataSet',
-                construct:function(data,status,datasource,metadata)
-                {
-                    this.initialize(data,status,datasource,metadata);
-                    this.typedRows=[];
-
-                },
-                methods:
-                {
-                    initialize:function(data,status,datasource,metadata)
-                    {
-                        this.DataSet$initialize(data,status,datasource);
-                        this.metadata=metadata;
-                        this.notifyPathListeners();
-                    },
-                    setValue:function(data,status)
-                    {
-                        this.DataSet$setValue(data);
-                        this.status=status;
-                        this.notifyPathListeners();
-                    },
-                    __typeRow:function(rowIndex)
-                    {
-                        if(!this.typedRows[rowIndex])
-                            this.typedRows[rowIndex]=new Siviglia.data.TypedDataObject(this.data[rowIndex],this,metadata);
-
-                        return this.typedRows[rowIndex];
-                    },
-                    getRow:function(i)
-                    {
-                        return this.__typeRow(i);
-                    },
-                    iterate:function(callback)
-                    {
-                        return this.__typeRow(i).map(callback);
-                    }
-                }
-            },
-            TypedDataObject:
-            {
-                inherits:'DataObject',
-                construct:function(data,dataSet,metadata)
-                {
-                    this.initialize(data,dataSet,metadata);
-                },
-                methods:
-                {
-                    initialize:function(data,dataSet,metadata)
-                    {
-                        var factory=new Siviglia.types._TypeFactory();
-                        this.metadata=metadata;
-                        this.dataSet=dataSet;
-                        this.data={};
-                        // Se mapean las propiedades al objeto.
-                        for(var k in metadata)
-                            this[k]=factory.getTypeFromDef(this.metadata[k],Siviglia.issetOr(data[k],null));
-                    }
-                }
-
-            },
-
-            DataSourceStatus:
-            {
-                constants:
-                {
-                    STATE_NOT_LOADED:1,
-                    STATE_LOADING:2,
-                    STATE_LOADED:3,
-                    EVENT_STATUS_CHANGED:"DS_STATUS_CHANGED"
-                },
-                construct:function(datasource,loadStatus,parameters,filters,ordering,grouping)
-                {
-                    this.datasource=datasource;
-                    this.loadStatus=loadStatus;
-                    this.parameters=parameters;
-                    this.filters=filters;
-                    this.ordering=ordering;
-                    this.grouping=grouping;
-                },
-                methods:
-                {
-                    onChange:function()
-                    {
-                        this.datasource.fetch(this);
-                    }
-                }
-            },
-            // Clase base, no destinada a instanciarse.
-            // Las clases derivadas deben implementar el metodo __fetch, que devuelve un objeto conteniendo
-            // success y data
-            // objeto definition:
-            /*
-                    {
-                        DataClass:'xxxx', // Clase custom de datos.Si no, una de las clases de Siviglia.Data.
-                        fieldDefinition:
+                            this.localPromise=null;
+                            this.fetcher=fetcher;
+                        },
+                        methods:
                             {
-                                // (opcional)
-                                // Pueden ser varias cosas.
-                                // Debe estar definido como un Datasource de Siviglia.
-                            },
-                         parametersDefinition:
-                            {
-                                // Definicion de parametros.Igual que un DS de Siviglia.
-                            },
-                         filters:
-                            {
-                                // Estructura de filtros.A ser especificada, via objeto json
-                            },
-                         ordering:{
-                                // Array de objetos con {field:xx, dir:ASC|DESC,func:function(a,b)}
-                         },
-                         grouping:{
-                                // Campos de agrupacion.Es un array con {field:xxx, group:{<parametros de agrupacion>}}
-
-                         }
-                     }
-             */
-            // El resultado obtenido, se devuelve en un tipo de dato estandar de Siviglia.Data (dependiendo de si
-            // habia metadata o no, si es un array o un objeto, etc),
-            DataSource:
-            {
-                inherits:"Siviglia.Dom.EventManager",
-                constants:{
-                    EVENT_START_LOAD:"START_FETCHING",
-                    EVENT_LOADED:"LOADED",
-                    EVENT_FILTERS_SET:"FILTERS_SET",
-                    EVENT_LOADING:"LOADING",
-                    EVENT_LOAD_ERROR:"LOAD_ERROR",
-                    EVENT_INVALID_DATA:"INVALID_DATA"
-                },
-
-                construct:function(definition)
-                {
-                    this.definition          = definition;
-                    this.fieldDefinition     = Siviglia.issetOr(definition.FIELDS,null);
-                    this.parameterDefinition = Siviglia.issetOr(definition.PARAMS,null);
-                    this.paginator           = Siviglia.issetOf(definition.PAGING,null);
-                    this.fiters              = Siviglia.issetOr(definition.FILTERS,null);
-                    this.ordering              = Siviglia.issetOr(definition.ORDERING,null);
-                    this.grouping              = Siviglia.issetOr(definition.GROUPING,null);
-                    this.status              = new DataSourceStatus(this,
-                                                        Siviglia.Data.DataSourceStatus.STATE_NOT_LOADED,
-                                                        this.STATE_LOADING,
-                                                        this.parameterDefinition,
-                                                        this.filters,
-                                                        this.ordering,
-                                                        this.grouping
-                                                );
-                },
-                methods:
-                {
-                    getStatus:function()
-                    {
-                        return this.status;
-                    },
-                    setFieldDefinition:function(def)
-                    {
-                         this.fieldDefinition=def;
-                    },
-                    getFieldDefinition:function()
-                    {
-                        return this.fieldDefinition;
-                    },
-                    getParameters:function()
-                    {
-                        return this.parameterDefinition;
-                    },
-                    fetch:function(status)
-                    {
-                        var newStatus=Siviglia.issetOr(status,null);
-                        if(newStatus)
-                            this.setStatus(status);
-                        var h= $.Deferred();
-                        var m=this;
-                        this.status.loadStatus=Siviglia.Data.DatasourceStatus.STATE_LOADING;
-                        this.fireEvent(Sivilia.Data.DataSource.EVENT_LOADING);
-
-                        $.when(this.__fetch()).then(function(data){
-                            m.onData(data);
-                        },function(e){
-                            m.fireEvent(Siviglia.Data.Datasource.LOAD_ERROR);
-                        })
-                    },
-                    onData:function(data)
-                    {
-                        if(this.isLoadValid(data))
-                        {
-                            var root=this.getRootDataNode(data);
-                            this.processData(root);
-                            this.status.loadStatus=Siviglia.Data.DatasourceStatus.STATE_LOADED;
-                            this.fireEvent(Sivilia.Data.DataSource.EVENT_LOADED);
-
-                        }
-                        else
-                        {
-                            m.fireEvent(Siviglia.Data.Datasource.INVALID_DATA);
-                        }
-                    },
-                    processData:function(data)
-                    {
-                        if(!Siviglia.isArray(data))
-                            data=[data];
-
-
-                            if(!this.dataSet)
-                            {
-                                if(!this.fieldDefinition)
-                                    this.dataSet=new Siviglia.Data.DataSet(data,this.status,this);
-                                else
-                                    this.dataSet=new Siviglia.Data.TypedDataSet(data,this.status,this,this.fieldDefinition);
+                                fetch:function(parameters,options)
+                                {
+                                    if(this.localPromise)
+                                        return this.localPromise;
+                                    this.localPromise=$.Deferred();
+                                    var m=this;
+                                    this.fireEvent(Siviglia.Data.BaseDataSource.EVENT_LOADING);
+                                    $.when(this.fetcher.fetch(parameters,options)).then(function(data){
+                                        m.onData(data);
+                                    },function(e){
+                                        m.fireEvent(Siviglia.Data.BaseDataSource.LOAD_ERROR);
+                                        m.localPromise.reject();
+                                        m.localPromise=null;
+                                    });
+                                    return this.localPromise;
+                                },
+                                onData:function(data)
+                                {
+                                    this.localPromise.resolve(data);
+                                    this.fireEvent(Siviglia.Data.BaseDataSource.EVENT_LOADED);
+                                    this.localPromise=null;
+                                }
                             }
-                            else
-                                this.dataSet.setValue(data,this.status);
+                    },
+                    /*
+                        FrameworkDataSource
+                        Sobreescribe DataSource para post-procesar los datos, obteniendo su definicion, y los posibles errores.
 
-                    },
-                    isLoadValid:function(data)
-                    {
-                        return data.sucess==true;
-                    },
-                    getRootDataNode:function(data)
-                    {
-                        return data.data;
-                    },
-                    setStatus:function(status)
-                    {
-                        this.status=status;
-                        this.fireEvent(Siviglia.Data.DataSource.EVENT_FILTERS_SET,status);
-                    }
-                }
-            },
-            JsonDataSource:
-            {
-                inherits:'DataSource',
-                construct:function(data,definition)
-                {
-                    this.DataSource(definition);
-                    this.baseData=data;
-                },
-                methods:
-                {
-                    __fetch:function()
-                    {
-                        var newData=this.baseData;
-                        if(this.status.filters)
+                     */
+                    FrameworkDataSource:{
+                        inherits:'BaseDataSource',
+                        construct:function(fetcher,processor)
                         {
-
-                        }
-                        if(this.status.ordering)
-                        {
-                            newData=this.jsSort(newData);
-                        }
-                        if(this.status.grouping)
-                        {
-
-                        }
-                        if(this.status.paginator)
-                        {
-                            var start=this.status.paginator.currentPage*this.status.paginator.elemsPerPage;
-                            var end=start+this.status.paginator.elemsPerPage;
-                            newData=newData.slice(start,end);
-                        }
-                        return newData;
-                    },
-                    jsSort:function(newData)
-                    {
-                        var o=this.status.ordering;
-                        var factory;
-                        var haveDef=Siviglia.isset(this.fieldDefinition);
-                        if(!haveDef)
-                            def={};
-                        else
-                        {
-                            def=this.fieldDefinition;
-                            factory=new Siviglia.types._TypeFactory();
-                        }
-                        var f = function (val1, val2, fieldName,direction,sortIndex) {
-                            if(def[fieldName])
+                            this.definition=null;
+                            this.processor=processor || null;
+                            this.BaseDataSource(fetcher);
+                        },
+                        methods:
                             {
-                                var tval1=factory.getTypeFromDef(def[fieldName],val1[fieldName]);
-                                var tval2=factory.getTypeFromDef(def[fieldName,val2[fieldName]]);
-                                var result=tval1.compare(tval2,direction);
-                                sortIndex++;
-                                if(sortIndex== o.length);
-                                return 0;
-                                var t=o[sortIndex];
-                                var sortFunc=Siviglia.issetOr(t.func,f);
-                                return sortFunc(val1,val2,  t.field,Siviglia.issetOr(t.dir,'ASC'),sortIndex);
+                                setDefinition:function(definition)
+                                {
+                                    this.definition=definition;
+                                },
+                                onData:function(data)
+                                {
+                                    if(this.isLoadValid(data))
+                                    {
+                                        if(data.definition)
+                                            this.setDefinition(data.definition);
+                                        var root=this.getRootDataNode(data);
+                                        var m=this;
+                                        $.when(this.processData(root)).then(function(processed){
+                                            m.localPromise.resolve(processed);
+                                            m.fireEvent(Siviglia.Data.BaseDataSource.EVENT_LOADED);
+                                        });
+                                    }
+                                    else
+                                    {
+                                        m.fireEvent(Siviglia.Data.BaseDataSource.INVALID_DATA);
+                                    }
+                                },
+                                processData:function(data)
+                                {
+                                    if(this.processor)
+                                        return this.processor.process(this.definition,data);
+                                    return data;
+                                },
+                                isLoadValid:function(data)
+                                {
+                                    return data.error==0;
+                                },
+                                getRootDataNode:function(data)
+                                {
+                                    return data.data;
+                                }
                             }
-                            //  a signed integer where a negative return value means x < y, positive means x > y and 0 means x = 0.
-                            if(val1[fieldName] == val2[fieldName])
+                    },
+                    /*
+                        Procesador de tipos: convierte los datos de un datasource, a datos tipados.
+                     */
+                    TypeProcessor:{
+                        methods:
                             {
-                                sortIndex++;
-                                if(sortIndex== o.length);
-                                return 0;
-                                var t=o[sortIndex];
-                                var sortFunc=Siviglia.issetOr(t.func,f);
-                                return sortFunc(val1,val2, t.field,Siviglia.issetOr(t.dir,'ASC'),sortIndex);
+                                process:function(definition,data)
+                                {
+                                    var nData=[];
+                                    var sPromises=[];
+                                    var lp=$.Deferred();
+                                    for(var k=0;k<data.length;k++)
+                                    {
+                                        var np=$.Deferred();
+                                        (function(f,p) {
+                                            var ni = new Siviglia.types.DefinedObject(definition, data[k]);
+                                            ni.mainPromise.then(function(i){
+                                                nData[f]=i;
+                                                p.resolve();
+                                            });
+                                            sPromises.push(p);
+                                        })(k,np);
+                                    }
+                                    $.when.apply($,sPromises).then(function(){lp.resolve(nData)});
+                                    return lp;
+                                }
                             }
-                            return o[sortIndex].dir=="ASC"?val1 > val2:val2<val1;
-                        };
-
-                        newData.sort(function(val1,val2){
-                            return f(val1,val2,o[0].field,Siviglia.issetOr(t.dir,'ASC'),0);
-                        });
-                        return newData;
+                    },
+                    /*
+                        Simple fetcher de una url.
+                     */
+                    RemoteDataSourceFetcher: {
+                            construct:function(url)
+                            {
+                                this.url=url;
+                            },
+                            methods:
+                                {
+                                    fetch:function()
+                                    {
+                                        var baseUrl=this.getUrl();
+                                        var transport=new Siviglia.Model.Transport();
+                                        return transport.doGet(baseUrl);
+                                    },
+                                    getUrl:function()
+                                    {
+                                        return this.url;
+                                    }
+                                }
+                        },
+                    /*
+                        Fetcher de una url del framework
+                     */
+                    FrameworkDataSourceFetcher:
+                    {
+                        inherits:'RemoteDataSourceFetcher',
+                        construct:function(model,name)
+                        {
+                            this.model=model;
+                            this.name=name;
+                            this.params=null;
+                            this.options=null;
+                            this.RemoteDataSourceFetcher(null);
+                        },
+                        methods:
+                            {
+                                fetch:function(parameters,options)
+                                {
+                                    var allP={};
+                                    if(parameters)
+                                    {
+                                        for(var k in parameters)
+                                            allP[k]=parameters[k];
+                                    }
+                                    if(options)
+                                    {
+                                        for(var k in options)
+                                            allP[k]=options[k];
+                                    }
+                                    this.params=parameters;
+                                    this.options=options;
+                                    var baseUrl=this.getUrl(allP);
+                                    var transport=new Siviglia.Model.Transport();
+                                    return transport.doGet(baseUrl);
+                                },
+                                getUrl:function(params)
+                                {
+                                    var mName=new Siviglia.Model.ModelName(this.model);
+                                    var p=this.params || {};
+                                    if(this.options) {
+                                        var o = this.options.ordering;
+                                        var cp = this.options.currentPage;
+                                        var ps = this.options.pagination;
+                                        if (o) {
+                                            for (var i = 0; i < o.length; i++) {
+                                                var sort = o[i];
+                                                var suff = (i > 0 ? i : '');
+                                                p["__sort" + suff] = sort.attribute;
+                                                p["__sortDir" + suff] = sort.descending ? 'DESC' : 'ASC';
+                                            }
+                                        }
+                                        if(ps) {
+                                            p["__count"] = ps;
+                                            if(cp)
+                                                p["__start"]=cp*ps;
+                                        }
+                                    }
+                                    name=this.name.replace('Ds','');
+                                    return mName.getDatasourceUrl(name,null,params)
+                                }
+                            }
                     }
-                }
             }
-        }
     }
 );

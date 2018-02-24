@@ -227,36 +227,15 @@ Siviglia.Utils.buildClass({
                     var objPath=mname.replace('\\','/').split("/");
                     if(objPath[0]=="")
                         objPath=objPath.splice(1);
-                    switch(objPath.length)
-                    {
-                        case 1:
-                        {
-                            this.namespace=Siviglia.Model.config.defaultNamespace;
-                            this.parentModel=null;
-                            this.model=objPath[0];
-                        }break;
-                        case 3:
-                        {
-                            this.namespace=Siviglia.Model.config.defaultNamespace;
-                            this.parentModel=objPath[0];
-                            this.model=objPath[1];
-                        }break;
-                        case 2:
-                        {
-                            if(Siviglia.Model.config.namespaces[objPath[0]])
-                            {
-                                this.namespace=objPath[0];
-                                this.model=objPath[1];
-                                this.parentModel=null;
-                            }
-                            else
-                            {
-                                this.namespace=Siviglia.Model.config.defaultNamespace;
-                                this.model=objPath[1];
-                                this.parentModel=objPath[0];
-                            }
-                        }
-                    }
+                    if(objPath[0]!="model")
+                        objPath.unshift("model");
+                    this.namespace=objPath[1];
+                    var l=objPath.length;
+                    this.model=objPath[l-1];
+                    objPath.shift();
+                    objPath.shift();
+                    objPath.pop();
+                    this.parentModel=objPath.length==0?null:objPath;
                 }
                 else
                 {
@@ -266,8 +245,10 @@ Siviglia.Utils.buildClass({
 
                     this.model=src.name;
                     this.parentModel=src.parentObject;
+
                     this.namespace=src.layer;
                 }
+                this.parentModelStr=this.parentModel?this.parentModel.join("/"):"";
                 this.config=Siviglia.Model.mapper.config;
             },
             methods:{
@@ -282,8 +263,8 @@ Siviglia.Utils.buildClass({
                 getCanonical:function(ignoreNamespace)
                 {
                     if(ignoreNamespace)
-                        return (this.namespace==this.config.defaultNamespace?'':this.namespace+'/')+(this.parentModel?this.parentModel+'/':'')+this.model;
-                    return this.namespace+'/'+(this.parentModel?this.parentModel+'/':'')+this.model;
+                        return 'model/'+(this.namespace==this.config.defaultNamespace?'':this.namespace+'/')+(this.parentModelStr+'/')+this.model;
+                    return 'model/'+this.namespace+'/'+(this.parentModelStr)+this.model;
                 },
                 getCanonicalDotted:function(ignoreNamespace)
                 {
@@ -322,7 +303,7 @@ Siviglia.Utils.buildClass({
             methods:{
                 getMetaPath:function(options)
                 {
-                    return this.config.baseUrl+'/meta.php?'+options;
+                    return this.config.baseUrl+'/meta?'+options;
                 },
                 getModel:function(spec)
                 {
@@ -331,31 +312,25 @@ Siviglia.Utils.buildClass({
                 },
                 getObjectPath:function(model)
                 {
-                    return model.namespace+'/'+(model.parentModel?model.parentModel+'/objects/':'')+model.model;
+                    return 'model/'+model.namespace+'/'+(model.parentModel?model.parentModel.join('/objects/')+'/objects/':'')+model.model;
                 },
                 getObjectUrl:function(model)
                 {
                     if(model.namespace==this.config.defaultNamespace)
-                        return this.config.baseUrl+"/"+(model.parentModel?model.parentModel+'/objects/':'')+model.model;
+                        return this.config.baseUrl+"/"+(model.parentModel?model.parentModel.join('/objects')+'/objects/':'')+model.model;
                     else
                         return this.config.baseUrl+"/"+ this.getObjectPath(model)
                 },
                 getDatasourceUrl:function(model,datasource,id,params)
                 {
-                    var query="";
-                    if(params && typeof params == "object")
-                    {
-                        for(var k in params)
-                            query+='&'+k+'='+encodeURIComponent(params[k]);
-                    }
-
+                    var query=$.param(params);
                     var baseUrl = this.config.baseUrl;
                     var datasourcePrefix = '';
                     if (this.config.datasourcePrefix !== undefined) {
-                        datasourcePrefix = this.config.datasourcePrefix;
+                        datasourcePrefix = this.config.datasourcePrefix+"/";
                     }
 
-                    return baseUrl+datasourcePrefix+model.getCanonical(1)+'/'+(id?id+'/':'')+datasource+'?output=json'+query;
+                    return baseUrl+datasourcePrefix+model.getCanonical(1)+'/'+(id?id+'/':'')+datasource+'?output=json'+"&"+query;
                 },
                 getJSModelPath:function(model)
                 {
@@ -641,13 +616,6 @@ Siviglia.Utils.buildClass({
                     });
                     return p;
                 },
-                getDatasourceUrl:function(model,name,params,p)
-                {
-                    var mName=new Siviglia.Model.ModelName(model);
-                    var id=null;
-                    name=name.replace('Ds','');
-                    return mName.getDatasourceUrl(name,null,params)
-                },
 
                 getMemoryDataSource:function(model,name,params,p)
                 {
@@ -700,53 +668,13 @@ Siviglia.Utils.buildClass({
                     }
 
                 },
-                getDataSource:function(model, name, params,p)
+                /*
+                    El formato de options es:
+                    {sort:[{attribute:, descending:(true/false)}],page:,pagination:}}
+                 */
+                getDataSource:function(model, name, params,options)
                 {
-                        var location=this.getDatasourceUrl(model.modelName,name,params,p);
-                        var h=$.Deferred();
-                        this.transport.doGet(location,
-                        function(response){
-                            var p=response.definition;
-                            if(p.DATASOURCES)
-                            {
-                                if(!response.data)
-                                {
-                                    h.reject(error);
-                                    showError(error);
-                                }
-                                var result={};
-                                for(var k in response.data)
-                                {
-                                    var opt={data:response.data[k]};
-                                    if(p.DATASOURCES[k].INDEXFIELDS)
-                                        opt.idProperty=p.DATASOURCES[k].INDEXFIELDS[0];
-                                    result[k]=new Siviglia.Model.Datasource.Memory(opt);
-                                }
-                                h.resolve(result);
-                            }
-                            if(p.INDEXFIELDS)
-                                indexF= p.INDEXFIELDS[0];
-                            else
-                                indexF= null;
-                            var obs=new Siviglia.Model.Datasource.Store({
-                                target:location,
-                                requestOptions:{
-                                    handleAs:'json',
-                                    definition:p,
-                                    model:model,
-                                    indexField:indexF,
-                                    query:params,
-                                    headers:{}
-                                }
-                            });
-                            h.resolve(obs);
-                        },
-                        function(error)
-                        {
-                            h.reject(error);
-                            showError(error);
-                        });
-                    return h;
+                        return new Siviglia.Data.RemoteDataSource(model,name,params,options);
                 },
                 getRawDataSource:function(model, name, params)
                 {
@@ -932,21 +860,21 @@ Siviglia.Utils.buildClass({
             });
             return p;
         },
-        getDataSource:function(dsName,params)
+        getDataSource:function(dsName,params,options)
         {
             var c=this;
             var p=$.Deferred();
             this.getDefinition().then(function(def){
-                        Siviglia.Model.loader.getDataSource(c,dsName,params,null).then(function(data)
-                        {
-                            p.resolve(data);
-                        },
-                        function(error)
-                        {
-                            p.reject(error);
-                            showError(error);                            
-                        });
-
+                var fetcher=new Siviglia.Data.FrameworkDataSourceFetcher(c.modelName,dsName);
+                var ds=new Siviglia.Data.FrameworkDataSource(fetcher,null);
+                ds.fetch(params,options).then(function(data) {
+                    p.resolve(data);
+                    },
+                    function(error)
+                    {
+                        p.reject(error);
+                        showError(error);
+                    });
             });
             return p;
         },

@@ -2681,6 +2681,8 @@ Siviglia.Utils.buildClass({
                 this.App=App;
                 this.EventManager();
                 this.oManager=new Siviglia.UI.Dom.Expando.ExpandoManager(this.App.root,this.App.root.context);
+                var m=this;
+                $(function(){m.onLoaded();});
             },
             methods:
             {
