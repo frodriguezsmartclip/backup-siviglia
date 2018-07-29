@@ -1,0 +1,76 @@
+<html>
+<head>
+    <script src="../jquery.min.js"></script>
+    <script src="../Siviglia.js"></script>
+    <style type="text/css">
+        .estilo1 {color:red}
+        .estilo2 {color:blue}
+    </style>
+    <script src="../SivigliaTypes.js"></script>
+    <script>
+
+        Siviglia.Utils.buildClass(
+            {
+                context:"Test",
+                classes:
+                    {
+                        "SimpleWidget":{
+                            inherits: "Siviglia.UI.Widget,Siviglia.Dom.EventManager",
+                            methods: {
+                                preInitialize: function (params) {
+                                    this.myNull="Lalas";
+                                    this.uno={dos:"pepito"};
+                                    this.tres={
+                                            "uno":"estilo1",
+                                            "dos":"estilo2"
+                                    };
+                                    this.cuatro="uno";
+                                    var factory=new Siviglia.types._TypeFactory();
+                                    var ttype=factory.getTypeFromDef({
+                                        "TYPE":"String",
+                                        "DEFAULT":"MyVal"
+                                    }).then(function(t){
+                                        console.dir(t.getValue());
+                                    })
+                                },
+                                initialize: function (params) {
+                                    var s=this;
+                                    setTimeout(function(){
+                                        s.cuatro="dos";
+                                        s.myNull="Lila";s.notifyPathListeners();},1000);
+                                },
+                                doClicked:function(node,params)
+                                {
+                                    this.currentSelection=params.current;
+                                    this.notifyPathListeners();
+                                }
+                            }
+                        }
+                    }
+            }
+        );
+    </script>
+</head>
+<body>
+<div style="display:none">
+    <div sivWidget="Test.SimpleWidget" widgetParams="" widgetCode="Test.SimpleWidget">
+        <div sivValue="class|[%/*tres/{/*cuatro}%]">
+            <div style="" sivValue="Esto es [%/*myNull%] con dos [%/*uno/dos%]"></div>
+        </div>
+    </div>
+</div>
+<div sivView="Test.SimpleWidget"></div>
+
+
+<script>
+    var remoteRoot=new Siviglia.model.RemotePath("http://127.0.0.1/buscando");
+    var tmp=new Siviglia.UI.Dom.Expando.ExpandoManager(
+        //Siviglia.model.Root,
+        remoteRoot,
+        //Siviglia.model.Root.context
+        remoteRoot.context
+     );
+    tmp.parse($(document.body),null,null,true);
+</script>
+</body>
+</html>

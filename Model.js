@@ -278,7 +278,7 @@ Siviglia.Utils.buildClass({
                                 return App[this.namespace][this.parentModel];
                         return null;
                     }
-                    return App[this.namespace];
+                    return App["model"][this.namespace];
                 },
                 getDatasourceUrl:function(datasource,id,params)
                 {
@@ -594,7 +594,7 @@ Siviglia.Utils.buildClass({
                     );
                     return p;
                 },
-                getModelInstance:function(modelMeta)
+                getModelInstance:function(modelMeta,params)
                 {
                     var mName=new Siviglia.Model.ModelName(modelMeta.modelName);
                     var context=mName.getContext();
@@ -602,7 +602,7 @@ Siviglia.Utils.buildClass({
                     {
                         if(context[mName.model]["Model"])
                         {
-                            var i=new context[mName.model]["Model"](modelMeta);
+                            var i=new context[mName.model]["Model"](modelMeta,params);
                             return $.when(i);
                         }
                     }
@@ -745,13 +745,13 @@ Siviglia.Utils.buildClass({
             },
             methods:
             {
-                create:function()
+                create:function(params)
                 {
                     var p=$.Deferred();
                     var c=this;
                     var h=0;
                     this.getDefinition().then(function(d){
-                        $.when(Siviglia.Model.loader.getModelInstance(c)).then(
+                        $.when(Siviglia.Model.loader.getModelInstance(c,params)).then(
                             function(i) {
                                 h=1;
                                 p.resolve(i);
@@ -860,21 +860,19 @@ Siviglia.Utils.buildClass({
             });
             return p;
         },
-        getDataSource:function(dsName,params,options)
+        getDataSource:function(dsName,params,options,controller)
         {
+            // model,dsname,params,controller
             var c=this;
             var p=$.Deferred();
+            var t={};
+            for(var k in params){t[k]=params[k];}
+            for(var k in options){t[k]=options[k];}
             this.getDefinition().then(function(def){
-                var fetcher=new Siviglia.Data.FrameworkDataSourceFetcher(c.modelName,dsName);
-                var ds=new Siviglia.Data.FrameworkDataSource(fetcher,null);
-                ds.fetch(params,options).then(function(data) {
-                    p.resolve(data);
-                    },
-                    function(error)
-                    {
-                        p.reject(error);
-                        showError(error);
-                    });
+                var ds=new Siviglia.Data.FrameworkDataSource(c.modelName,dsName,params,controller);
+                ds.addListener("LOADED",null, function(data) {p.resolve(data);});
+                ds.addListener("LOAD_ERROR",null,function(){p.reject();});
+                ds.addListener("INVALID_DATA",null,function(){p.reject()});
             });
             return p;
         },

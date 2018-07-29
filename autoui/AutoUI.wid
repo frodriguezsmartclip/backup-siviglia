@@ -60,7 +60,8 @@
                         "ObjectArrayType":"ObjectArrayPainter",
                         "SivObjectSelector":"SelectorPainter",
                         "SubdefinitionType":"SubdefinitionPainter",
-                        "FixedDictionaryType":"FixedDictionaryPainter"
+                        "FixedDictionaryType":"FixedDictionaryPainter",
+                        "FormContainer":"FormContainerPainter"
                     };
                     if(!equivs[type])
                     {
@@ -139,30 +140,37 @@
                 preInitialize:function(params)
                 {
                     this.BasePainter$preInitialize(params);
-                    var h= $.Deferred();
                     var m=this;
-                    params.uinode.loadSource().then(function(v){
-                        m.options=v;
-                        h.resolve();
-                    })
-                    return h;
+                    params.uinode.addListener("sourceChange",this,"initializeInput")
                 },
-                initialize:function(params)
+                initialize:function(params) {
+                    this.initializeInput();
+                },
+
+                initializeInput:function()
                 {
-
-                    this.inputF=new Siviglia.Forms.JQuery.Inputs.Enum(null,this.inputNode);
-                    var v=params.uinode.definition;
-
-                    this.inputF.sivInitialize(v,params.uinode.getValue(),{});
                     var m=this;
-                    this.inputF.on("change",function(node){
-                        if(m.syntheticChange)
-                            return;
-                        m.syntheticChange=true;
-                        m.uinode.setValue(m.inputF.getValue());
-                        m.syntheticChange=false;
+                    this.uinode.getSourceValues().then(function(vals) {
+                        if (m.inputF) {
+                            m.inputF.destruct();
+                        }
+                        m.inputF = new Siviglia.Forms.JQuery.Inputs.Enum(null, m.inputNode);
+                        var v = m.uinode.definition;
+                        var localDef = {}
+                        for (var k in v)
+                            localDef[k] = v[k];
+                        localDef["VALUES"] = vals;
+                        m.inputF.sivInitialize(localDef, m.uinode.getValue(), {});
 
-                    })
+                        m.inputF.on("change", function (node) {
+                            if (m.syntheticChange)
+                                return;
+                            m.syntheticChange = true;
+                            m.uinode.setValue(m.inputF.getValue());
+                            m.syntheticChange = false;
+
+                        })
+                    });
                 },
                 getValue: function () {
                     return this.combo.val();
@@ -668,6 +676,44 @@
                         }
                     }
             },
+        FormContainerPainter:
+            {
+              //listContainer,viewContainer,groups
+                inherits:'BasePainter',
+                methods:
+                    {
+                        preInitialize:function(params)
+                        {
+                            this.BasePainter$preInitialize(params);
+                            this.value=params.uinode.getValue()
+                            this.groups=params.uinode.definition.GROUPS;
+                        },
+                        initialize:function(params)
+                        {
+                            this.params=params;
+                            this.paintValue();
+                        },
+                        paintValue:function()
+                        {
+
+                        },
+                        getHLink:function(node,params)
+                        {
+                            var c=params.current;
+                            node.attr("href","#"+c);
+                        },
+                        getContents:function(node,params)
+                        {
+                            node.attr("id",params.current);
+                            for(var k in this.uinode.definition.GROUPS[params.current]["CONTENTS"])
+                            {
+                                var currentWidget=this.painterFactory.factory(this.uinode.groups[params.current][k],this.uinode.parent, {});
+                                node.append(currentWidget.rootNode);
+                            }
+                        }
+
+                    }
+            },
         NewItemPainter:
         {
             inherits:'BasePainter',
@@ -758,13 +804,7 @@
         height:15px !important;
     }
     .ContainerType {}
-    .containerLabel {
-        min-width: 200px;
-        display: table-cell;
-        vertical-align: top;
-        text-align: right;
-        padding-right: 7px;
-    }
+
     .ContainerType .ContainerType .containerLabel {
         min-width:150px !important;
         font-size:12px
@@ -899,15 +939,19 @@
             <div class="panel-body">
                 <p class="text-info description" sivValue="/*description"></p>
 
-                    <div class="inputs" sivLoop="/*uinode/getKeys" contextIndex="current">
-                        <div style="margin:4px">
-                            <label class="containerLabel text-primary"  class="control-label" sivCall="getLabel" sivParams='{"key":"/@current"}'></label>
+                    <div class="inputs container" sivLoop="/*uinode/getKeys" contextIndex="current">
+                        <div class="row">
+                            <div class="col col-sm-1 col-md-1">
+                            <label class="text-primary"  class="control-label" sivCall="getLabel" sivParams='{"key":"/@current"}'></label>
+                            </div>
+                            <div class="col col-sm-11 col-md-11">
                             <div sivIf="/*uinode/isSimpleType == false" class="containerInput">
                                 <div sivCall="getSubInput" sivParams='{"key":"/@current"}'></div>
                             </div>
 
                             <div sivIf="/*uinode/isSimpleType == true">
                                 <div sivCall="getSubInput" sivParams='{"key":"/@current"}'></div>
+                            </div>
                             </div>
 
                         </div>
@@ -1030,4 +1074,25 @@
         <div sivValue="/*uinode/value"></div>
     </div>
 
+    <div sivWidget="AUTOPAINTER_FormContainer" widgetParams="parentObject,parentNode,value" widgetCode="Siviglia.AutoUI.Painter.FormContainerPainter" class="FormContainerType">
+        <div class="container">
+            <div class="row">
+                <div sivId="listContainer" class="col col-md-2 col-sm-2">
+                    <ul class="nav nav-tabs tabs-left" sivLoop="/*groups" contextIndex="current">
+                        <li class="nav-item">
+                            <a class="nav-link" sivCall="getHLink" data-toggle="tab" sivValue="/@current/LABEL" sivParams='{"current":"/@current-index"}'></a>
+                        </li>
+                </ul>
+                </div>
+                    <div sivId="viewContainer" class="col col-md-10 col-sm-10">
+                        <div class="tab-content card" sivLoop="/*groups" contextIndex="current">
+                            <div class="tab-pane" sivCall="getContents" sivParams='{"current":"/@current-index"}' role="tabpanel">
+
+                            </div>
+                        </div>
+
+                    </div>
+            </div>
+        </div>
+    </div>
 </div>

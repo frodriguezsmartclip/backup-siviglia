@@ -1,0 +1,116 @@
+<html>
+<head>
+    <script src="../jquery.min.js"></script>
+    <script src="../Siviglia.js"></script>
+    <script>
+        Siviglia.model.Root.addElement("simple",{a:"hola",b:"myvar"});
+        Siviglia.Utils.buildClass(
+            {
+                context:"Test",
+                classes:
+                    {
+                        "SimpleWidget":{
+                            inherits: "Siviglia.UI.Widget,Siviglia.Dom.EventManager",
+                            methods: {
+                                preInitialize: function (params) {
+
+                                    /*this.index1="hola";
+                                    this.index2={
+                                        "uno":"indexValue",
+                                        "dos":"secondary"
+                                    };
+                                    this.index3="uno";
+                                    this.obj = {
+                                        "indexValue":{
+                                            "hola":{
+                                                "value":"BIEN RESUELTO!!"
+                                            }
+                                        },
+                                        "secondary":{
+                                            "hola":{
+                                                "value":"Esto es secondary!"
+                                            }
+                                        },
+                                        "third":"uno",
+                                        "fourth":"dos",
+
+                                        "complex":"uno"
+                                    };*/
+
+                                    this.info={
+                                        "uno":{
+                                            "a":"Hola","b":"Adios"
+                                        },
+                                        "dos":{
+                                            "a":"Hola2","b":"Adios2"
+                                        },
+                                        "tres":{
+                                            "a":"Hola3","b":"Adios3"
+                                        },
+                                        "cuatro":{
+                                            "a":"Hola4","b":"Adios4"
+                                        }
+
+                                    };
+                                    //this.currentSelection=null;
+                                    this.currentSelection="uno";
+                                },
+                                initialize: function (params) {
+                                    /*var m=this;
+
+                                    setTimeout(function(){
+                                        m.index3="dos";
+                                        m.notifyPathListeners();
+
+                                        setTimeout(function(){
+                                            m.obj.secondary.hola.value="lalas";
+                                            m.notifyPathListeners();
+                                        },2000);
+
+                                    },2000);
+
+                                    */
+                                },
+                                doClicked:function(node,params)
+                                {
+                                    this.currentSelection=params.current;
+                                    this.notifyPathListeners();
+                                }
+                            }
+                        }
+                    }
+            }
+        );
+    </script>
+</head>
+<body>
+<div style="display:none">
+    <div sivWidget="Test.SimpleWidget" widgetParams="" widgetCode="Test.SimpleWidget">
+
+        <div sivLoop="/*info" contextIndex="current">
+            <div sivValue="/@current-index" sivEvent="click" sivCallback="doClicked" sivParams='{"current":"/@current-index"}'></div>
+        </div>
+
+        <div sivLoop="/*info/{/*currentSelection}" contextIndex="current">
+            <div><span style="font-weight:bold" sivValue="/@current-index"></span>:<span sivValue="/@current"></span> </div>
+        </div>
+
+        <!--<span sivValue="/*obj/{/*index2/{/*index3}}/{/*index1}/value"></span>-->
+        <span sivValue="/*probando/probando2/probando3"></span>
+    </div>
+</div>
+<div sivView="Test.SimpleWidget"></div>
+
+
+<script>
+    var remoteRoot=new Siviglia.model.RemotePath("http://127.0.0.1/buscando");
+    var tmp=new Siviglia.UI.Dom.Expando.ExpandoManager(
+        //Siviglia.model.Root,
+        remoteRoot,
+        //Siviglia.model.Root.context
+        remoteRoot.context
+     );
+    tmp.parse($(document.body),null,null,true);
+</script>
+</body>
+</html>

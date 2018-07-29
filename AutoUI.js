@@ -9,11 +9,14 @@ Siviglia.Utils.buildClass({
          */
         AutoUIController:
         {
+            extends:'Siviglia.model.RemotePath',
             construct:function(baseUrl,parentController)
             {
                 this.baseUrl=baseUrl;
                 if(typeof parentController !="undefined")
                     this.parentController=parentController;
+                //this.RemotePath(baseUrl);
+                this.PathRoot();
             },
              methods:
              {
@@ -30,7 +33,7 @@ Siviglia.Utils.buildClass({
                  clone:function()
                  {
 
-                     return new Siviglia.AutoUI.AutoUIController(this.baseUrl);
+                     return new Siviglia.AutoUI.AutoUIController(this.baseUrl,parentController);
                  },
                  setParent:function(obj)
                  {
@@ -134,12 +137,12 @@ Siviglia.Utils.buildClass({
                      })
                      return h;
                  },
-                 getPath:function()
+                 /*getPath:function()
                  {
                      if(this.parentController==null)
                         return null;
                      return this.parentController.getCurrentPath();
-                 }
+                 }*/
 
              }
         },
@@ -153,7 +156,7 @@ Siviglia.Utils.buildClass({
          */
 
         Node: {
-            inherits: 'Siviglia.Dom.EventManager',
+            inherits: 'Siviglia.model.PathResolver',
             construct: function (className, definition, parent, value,controller) {
                 this.className = className;
                 this.controller=controller;
@@ -210,6 +213,7 @@ Siviglia.Utils.buildClass({
                 getClassName: function () {
                     return this.className;
                 },
+
                 setValue: function (value) {
                     if (this.value === value)return;
 
@@ -277,59 +281,55 @@ Siviglia.Utils.buildClass({
                 hasSourceInput: function () {
                     return this.definition["SOURCE"];
                 },
-                getPath: function (path, position) {
-                    this.checkLoaded();
 
-                    // Los nodos TYPESWITCH no consumen path, deben ser transparentes.
-                    /*if(this.__definition.type=="TYPESWITCH")
-                     return this.__parent.__getPath(path,position);*/
-
-                    if (position == path.length) {
-                        return this;
-                    }
-
-                    if (path[position] == "..") {
-                        return this.parent.getPath(path, position + 1);
-                    }
-                    return null;
-                },
-                getCurrentPath: function () {
-                    if (this.parent == null)
-                    {
-                        var cPath=this.controller.getPath();
-                        if(cPath)
-                            return cPath;
-
-                        return '/ROOT';
-                    }
-                    return this.parent.__getCurrentPath(this);
-                },
-                __getCurrentPath: function (obj) {
-                    var kPart='';
-                    if(this.getKeys)
-                    {
-                        kPart='/'+this.getKeyFromValue(obj);
-                    }
-                    if (this.parent == null){
-                        var cPath = this.controller.getPath();
-                        var base;
-                        if (cPath)
-                            base=cPath;
-                        else
-                            base='/ROOT';
-                        return base+kPart;
-                    }
-
-                    return this.parent.__getCurrentPath(this) + kPart;
-                },
                 saveToUrl: function () {
                     var val = this.save();
                     var data=Siviglia.types.toJson(this.save());
                     var path=this.getCurrentPath();
                     return this.controller.saveObject(this.definition.SAVE_URL,data,path);
                 },
-                isSimpleType:function(){return this.simpleType;}
+                isSimpleType:function(){return this.simpleType;},
+                __getPathProperty:function(path,index,context,currentObject,listener,index)
+                {
+                    // En un nodo, las propiedades pueden ser :
+                    // .. <-- es ir al padre
+                    // Ninguna, es decir, no se especifica una subpropiedad, sino que este elemento
+                    // es el ultimo del path: se devuelve el valor.
+                    // Cualquier otro: a definir en las clases derivadas, especialmente, en los
+                    // contenedores.Esto se hace en getCustomPathProperty.
+                    var prop = path[index + 1];
+                    if(prop=="..")
+                        return this.__getPath(this.parent,path,index+1,context,currentObject,listener);
+
+                    var val;
+                    if(index+1==path.length-1) {
+                        val = this.getValue();
+                        this.__initializeListener(listener,val,path,index,context);
+                    }
+                    else
+                       val=this.getCustomPathProperty(path,index,context,currentObject,listener);
+
+                   return val;
+                },
+                getCustomPathProperty:function(path,index,context,currentObject,listener)
+                {
+                    throw "AutoUI:Simple Nodes dont have custom properties."
+                },
+                __initializeListener:function(listener,value,path,index,context)
+                {
+                    if (listener) {
+
+                        if (!listener.initialized) {
+
+                            listener.setPath(path, index, this, context);
+                            //currentObject.addPathListener(listener);
+                        }
+                        listener.setValue(value);
+                    }
+                }
+
             }
+
         },
 
         /**
@@ -393,16 +393,27 @@ Siviglia.Utils.buildClass({
                     for (var k in this.children) res.push(k);
                     return res;
                 },
-                getPath: function (path, position) {
+                getCustomPathProperty:function(path,index,context,currentObject,listener)
+                {
                     this.checkLoaded();
-                    var p = this.Node$getPath(path, position);
-                    if (p) return p;
+                    var prop= path[index + 1];
+                    var val=null;
+                    if(prop == "_KEYS_")
+                    {
+                        var res=[];
+                        for(var k in this.children)
+                            res.push(k);
+                        this.__initializeListener(listener,res,path,index,context);
+                        return res;
+                    }
 
-                    if (this.children[path[position]])
-                        return this.children[path[position]].getPath(path, position + 1);
+                    if(!this.children[prop])
+                        throw "Path not found"
 
-                    return null;
+                    return this.__getPath(this.children[prop],path,index+1,context,currentObject,listener);
                 },
+
+
                 getReference: function () {
                     this.checkLoaded();
                     var results = [];
@@ -574,7 +585,26 @@ Siviglia.Utils.buildClass({
                         }
                     }
                     return this.value;
-                }
+                },
+
+                getCustomPathProperty:function(path,index,context,currentObject,listener)
+                {
+                    this.checkLoaded();
+                    var prop= path[index + 1];
+                    var val=null;
+                    if(prop == "_COUNT_")
+                    {
+                        var res=this.children.length;
+                        this.__initializeListener(listener,res,path,index,context);
+                        return res;
+                    }
+                    var pint=parseInt(prop);
+                    if(pint < 0 || pint > this.children.length)
+                        throw "Invalid index";
+
+
+                    return this.__getPath(this.children[k],path,index+1,context,currentObject,listener);
+                },
 
             }
         },
@@ -611,40 +641,15 @@ Siviglia.Utils.buildClass({
                 this.listeningTo = null;
             },
             methods: {
+
                 loadSource: function (pathSrc) {
                     var h= $.Deferred();
 
-                    var subPaths = pathSrc.split("@");
-                    this.__sourcePathExpression = pathSrc;
+                    var newListener = new Siviglia.model.Listener(this, "value", caller, pathRoot, contextObj, p2[j]);
+                    this.listeners.push({attr: attribute, listener: newListener, append: append});
+                    pathRoot.getPath(p2[j], newListener, contextObj);
 
-                    if (subPaths.length > 1) {
-                        var k;
-                        for (k = 1; k < subPaths.length; k += 2) {
-                            var parts = subPaths[k].split("/");
-                            var nestedRef;
-                            if (parts[0] == '..')
-                                nestedRef = this.parent.getPath(parts, 1);
-                            else
-                                nestedRef = this.rootNode.getPath(parts, 1);
 
-                            if (!nestedRef) {
-                                console.dir("NO se encuentra referencia anidada " + subPaths[k])
-                                return [];
-                            }
-                            var val = nestedRef.getValue();
-
-                            // Como dependemos del valor de este objeto, tenemos que "escuchar" cambios en su valor.
-
-                            nestedRef.addListener("change", this, "onSourceExpressionChanged");
-
-                            console.debug("VALOR DE REFERENCIA ANIDADA : " + val);
-                            if (val == undefined || val == null)
-                                return null;
-                            subPaths[k] = val;
-                        }
-                        pathSrc = subPaths.join('');
-
-                    }
 
                     if(pathSrc.substr(0,9)=="[BASEURL]")
                     {
@@ -691,6 +696,7 @@ Siviglia.Utils.buildClass({
                 },
 
                 onSourceExpressionChanged: function () {
+                    this.fireEvent("sourceChange");
 
                 },
                 getSourceValues: function () {
@@ -716,7 +722,10 @@ Siviglia.Utils.buildClass({
                     else {
                         curVal = m.save();
                         if (Siviglia.typeOf(curVal) != "array") {
-                            curVal = [curVal];
+                            if(curVal==null)
+                                curVal=[];
+                            else
+                                curVal = [curVal];
                         }
                     }
 
@@ -727,7 +736,7 @@ Siviglia.Utils.buildClass({
                         if (sourceExclusive && array_contains(curVal, sVal))
                             continue;
 
-                        sVals.push({name: sVal, value: sVal});
+                        sVals.push({LABEL: sVal, VALUE: sVal});
                     }
                         p.resolve(sVals);
                     });
@@ -787,7 +796,7 @@ Siviglia.Utils.buildClass({
                     this.loadSource(this.definition["SOURCE"]).then(function(srcValObject) {
                         var val = srcValObject.getReference();
                         m.setValue(array_intersect(m.value, val));
-                        //m.fireEvent("change");
+                        m.fireEvent("sourceChange");
                     });
                 },
                 getValueInstance: function (value,key) {
@@ -964,7 +973,12 @@ Siviglia.Utils.buildClass({
                         this.subNode.destruct();
                     var subType=this.getTypeFromValue(val);
                     this.currentType = subType;
-                    this.subNode = Siviglia.AutoUI.NodeFactory({"TYPE": subType}, this, val,this.controller);
+                    var subdefinition={"TYPE": subType};
+                    if(Siviglia.issetOr(this.definition,"ALLOWED_TYPE_DEFINITIONS",null))
+                    {
+                        subdefinition=this.definition.ALLOWED_TYPE_DEFINITIONS[subType=="String"?"_String":subType];
+                    }
+                    this.subNode = Siviglia.AutoUI.NodeFactory(subdefinition, this, val,this.controller);
                     this.unset = false;
                     this.fireEvent("change");
                 },
@@ -1000,9 +1014,18 @@ Siviglia.Utils.buildClass({
                 getAllowedTypes: function () {
                     var result = [];
                     if(Siviglia.isset(this.definition.TYPE_FIELD)) {
-                        for (var k = 0; k < this.definition.ALLOWED_TYPES.length; k++) {
-                            var n = this.definition.ALLOWED_TYPES[k];
-                            result.push({LABEL: n, VALUE: n});
+                        if(Siviglia.isset(this.definition.ALLOWED_TYPE_DEFINITIONS))
+                        {
+                            for (var k in this.definition.ALLOWED_TYPE_DEFINITIONS) {
+                                var n = this.definition.ALLOWED_TYPE_DEFINITIONS[k];
+                                result.push({LABEL: n.LABEL || n, VALUE: k});
+                            }
+                        }
+                        if(Siviglia.isset(this.definition.ALLOWED_TYPES)) {
+                            for (var k = 0; k < this.definition.ALLOWED_TYPES.length; k++) {
+                                var n = this.definition.ALLOWED_TYPES[k];
+                                result.push({LABEL: n, VALUE: n});
+                            }
                         }
                     }
                     else
@@ -1010,7 +1033,7 @@ Siviglia.Utils.buildClass({
                         for(var ss in this.definition.TYPE_TYPE)
                         {
                             var cc=this.definition.TYPE_TYPE[ss];
-                            result.push({name:cc.LABEL,value:cc.TYPE});
+                            result.push({LABEL:cc.LABEL,VALUE:cc.TYPE});
                         }
                     }
                     return result;
@@ -1040,6 +1063,55 @@ Siviglia.Utils.buildClass({
                     if (this.parent == null)return '/ROOT';
                     return this.parent.__getCurrentPath(this);
                 }
+            }
+
+        },
+        FormContainer: {
+            inherits: 'Siviglia.AutoUI.Node',
+            construct: function (definition, parent, value,controller) {
+                this.groups={};
+                this.Node("FormContainer", definition, parent, value,controller);
+
+            },
+            destruct: function () {
+                for(var k in this.groups)
+                {
+                    for(var h in this.groups[k])
+                        this.groups[k][h].destruct();
+                }
+            },
+            methods: {
+                setValue: function (val) {
+                    for(var k in this.definition.GROUPS)
+                    {
+                        this.groups[k]={};
+                        var cdef=this.definition.GROUPS[k];
+                        for(var h in  cdef.CONTENTS)
+                        {
+                            var curVal=typeof val[h]=="undefined"?null:val[h];
+                            this.groups[k][h]= Siviglia.AutoUI.NodeFactory(cdef.CONTENTS[h], this, curVal,this.controller);
+                        }
+                    }
+                    this.value=val;
+                    this.unset = false;
+                    this.fireEvent("change");
+                },
+                getValue: function () {
+                  var v={};
+                  for(var k in this.groups)
+                  {
+                      for(var j in this.groups[k])
+                      {
+                          v[j]=this.groups[k][j].getValue();
+                      }
+                  }
+                  return v;
+                },
+                __getCurrentPath: function (obj) {
+                    if (this.parent == null)return '/ROOT';
+                    return this.parent.__getCurrentPath();
+                },
+                isSimpleType:function(){return false;}
             }
 
         },
@@ -1157,10 +1229,24 @@ Siviglia.Utils.buildClass({
 
 Siviglia.AutoUI.NodeFactory = function (definition, parent, value,controller) {
     var type = definition.TYPE;
+    var cDef=definition;
+    var newDef={};
+    while(cDef)
+    {
+        for(var k in cDef)
+        {
+            if(typeof newDef[k]=="undefined" || k=="TYPE")
+                newDef[k]=cDef[k];
+        }
+        cDef=controller.definitions[cDef["INHERITS"]];
+    }
+
+    definition=newDef;
+    type=definition["TYPE"];
     
     if (!type) {
-        if (definition["CUSTOMTYPE"]) return new Siviglia.AutoUI[definition["CUSTOMTYPE"]](definition, parent, value);
-        debugger;
+        if (definition["CUSTOMTYPE"])
+            return new Siviglia.AutoUI[definition["CUSTOMTYPE"]](definition, parent, value);
     }
     if (type[0] == "*") {
         type = type.substr(1);
@@ -1225,6 +1311,10 @@ Siviglia.AutoUI.NodeFactory = function (definition, parent, value,controller) {
         case "SUBDEFINITION":
         {
             o=new Siviglia.AutoUI.SubdefinitionType(definition,parent,value,controller);
+        }break;
+        case "FORMCONTAINER":
+        {
+            o=new Siviglia.AutoUI.FormContainer(definition, parent, value,controller);
         }break;
         default:
         {

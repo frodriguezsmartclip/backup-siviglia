@@ -260,10 +260,10 @@
   "Relationship": {
     "LABEL": "Relationship",
     "CUSTOMTYPE": "SivRelationship",
-    TYPE_FIELD: 'MULTIPLICITY',
-    ALLOWED_TYPES: [
-      '1:N',
-      'MultipleRelationship'
+    "TYPE_FIELD": "MULTIPLICITY",
+    "ALLOWED_TYPES": [
+      "1:N",
+      "MultipleRelationship"
     ]
   },
   "1:N": {

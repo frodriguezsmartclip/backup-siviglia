@@ -1,4 +1,38 @@
 
+array_contains = function (haystack, needle) {
+
+    for (var i = 0; i < haystack.length; i++) {
+        if (haystack[i] == needle) return true;
+    }
+    return false;
+
+}
+array_compare = function (total, partial, storeEq) {
+    if (!total)return [];
+    if (!partial)return [];
+    var k, j;
+    var found = false;
+    var result = [];
+    for (k = 0; k < total.length; k++) {
+        found = false;
+        for (j = 0; j < partial.length; j++) {
+            if (total[k] == partial[j]) {
+                found = true;
+                break;
+            }
+        }
+        if ((found && storeEq ) || (!found && !storeEq))
+            result[result.length] = total[k];
+    }
+    return result;
+}
+array_intersect = function (total, partial) {
+    if (!total)return [];
+    if (!partial)return [];
+    return array_compare(total, partial, true);
+}
+
+
 Siviglia.Utils.buildClass(
 {
     context:'Siviglia.types',
@@ -36,12 +70,16 @@ Siviglia.Utils.buildClass(
         },
         BaseType:
         {
+            inherits:'Siviglia.Dom.EventManager',
             construct:function(type,def,val)
             {
                 this.type=type;
                 this.definition=def;
+                this.definition["TYPE"]=type;
+
                 this.valueSet=false;
                 this.flags=0;
+                this.sourceFactory=null;
                 if(val)this.setValue(val);
             },
             constants:
@@ -59,12 +97,15 @@ Siviglia.Utils.buildClass(
                 setFlags:function(flags){this.flags|=flags;},
                 getFlags:function(){return this.flags;},
                 setValue:function(val){
+                    if(val==this.value)
+                        return;
                     if(this.isNull(val))
                     {
                         this.valueSet=false;this.value=null;
                     }
                     else
                     {this.valueSet=true;this.value=val}
+                    this.onChange()
                 },
                 validate:function(val)
                 {
@@ -81,7 +122,7 @@ Siviglia.Utils.buildClass(
                    if(type.hasValue())
                    {
                        this.valueSet=true;
-                       this.value=type.getValue();
+                       this.setValue(type.getValue());
                    }
                    else
                    {
@@ -121,10 +162,12 @@ Siviglia.Utils.buildClass(
                 },
                 __rawSet:function(val){this.value=val;this.valueSet=(val!==null);},
                 set:function(val){
-                    if(val==null)
+                    if(val == this.value)
+                        return;
+                    if(val===null)
                     {
-                        this.valueSet=false;
-                        this.value=null;
+                        this.unset();
+                        this.onChange();
                         return;
                     }
                     if(typeof val=="object" && val!==null)
@@ -139,7 +182,14 @@ Siviglia.Utils.buildClass(
                         return true;
                     return this.flags & this.TYPE_SET_ON_SAVE || this.flags & this.TYPE_SET_ON_ACCESS;
                 },
-                clear:function(){this.valueSet=true;this.value=null;},
+                unset:function(){
+                    if(!this.valueSet)
+                        return;
+                    this.valueSet=false;this.value=null;this.onChange()},
+                clear:function(){
+                    if(this.valueSet==true && this.value==null)
+                        return;
+                    this.valueSet=true;this.value=null;this.onChange()},
                 isEditable:function(){return !(this.flags & this.TYPE_NOT_EDITABLE);},
                 get:function(){if(!this.valueSet)
                     throw new Siviglia.types.BaseException('BaseType',Siviglia.types.BaseException.ERR_UNSET);
@@ -155,7 +205,29 @@ Siviglia.Utils.buildClass(
                 getDefaultValue:function(){return this.definition.DEFAULT;},
                 getRelationshipType:function(){return $.when(this);},
                 getDefinition:function(){return this.definition;},
-                serialize:function(){return this.getValue();}
+                serialize:function(){return this.getValue();},
+                onChange:function()
+                {
+                    this.fireEvent("CHANGE",{data:this});
+                },
+                setController:function(controller)
+                {
+                    this.controller=controller;
+                },
+                hasSource:function()
+                {
+                    return false;
+                },
+                getSource:function()
+                {
+                    if(!this.hasSource())
+                        return null;
+                },
+                getSourceLabel:function(){return null;},
+                getSourceValue:function(){return null;},
+                intersect:function(val){
+                    return val;
+                }
             }
         },
         IntegerException:
@@ -166,7 +238,6 @@ Siviglia.Utils.buildClass(
                 ERR_TOO_SMALL:100,
                 ERR_TOO_BIG:101,
                 ERR_NOT_A_NUMBER:102
-
             },
             construct:function(code,params){this.BaseException(code,params,'IntegerException');}
         },
@@ -189,7 +260,17 @@ Siviglia.Utils.buildClass(
                         return this.getDefaultValue();
                     return null;
                 },
-                setValue:function(val){if(this.isNull(val)){this.valueSet=false;this.value=null;}else{this.valueSet=true;this.value=parseInt(val)}},
+                setValue:function(val){
+                    if(this.isNull(val))
+                    {
+                        this.valueSet=false;this.value=null;
+                    }
+                    else
+                    {
+                        this.valueSet=true;this.value=parseInt(val);
+                    }
+                    this.onChange()
+                },
                 validate:function(val)
                 {
                     
@@ -329,6 +410,7 @@ Siviglia.Utils.buildClass(
                     }
                     else
                         this.value=false;
+                    this.onChange()
                 }
             }
         },
@@ -438,7 +520,8 @@ Siviglia.Utils.buildClass(
                         m=(m<10)?('0'+m):m;
                         s=(s<10)?('0'+s):s;
                         this.valueSet=true;
-                        this.value=c.getFullYear()+'-'+M+'-'+D+' '+H+':'+m+':'+s;                        
+                        this.value=c.getFullYear()+'-'+M+'-'+D+' '+H+':'+m+':'+s;
+                        this.onChange()
                     },
                     serialize:function()
                     {
@@ -540,6 +623,7 @@ Siviglia.Utils.buildClass(
                     D=(D<10)?('0'+D):D;
                     this.valueSet=true;
                     this.value=c.getFullYear()+'-'+M+'-'+D;
+                    this.onChange()
                 }
             }
         },
@@ -586,7 +670,9 @@ Siviglia.Utils.buildClass(
                         this.value=this.findIndexOf(val);
                     }
                     else
-                        this.value=parseInt(val);          
+                        this.value=parseInt(val);
+
+                    this.onChange()
 
                 },
                 findIndexOf:function(str)
@@ -618,7 +704,19 @@ Siviglia.Utils.buildClass(
                         return null;
                     }
                     return this.definition.VALUES[this.value];
-                }      
+                },
+                hasSource:function()
+                {
+                    return true;
+                },
+                getSource:function(controller)
+                {
+                    var s=new Siviglia.Data.SourceFactory();
+                    return s.getFromSource(this.definition,controller,{});
+                },
+                getSourceLabel:function(){return "[[KEY]]";},
+                getSourceValue:function(){return "[[VALUE]]";}
+
             }
          },
         State:{
@@ -692,6 +790,7 @@ Siviglia.Utils.buildClass(
                         this.localValidate(val);                        
                         this.valueSet=true;
                         this.value=val;
+                        this.onChange()
                     }
                 }
             },
@@ -832,6 +931,7 @@ Siviglia.Utils.buildClass(
                         {
                             this.value=null;
                             this.valueSet=false;
+                            this.onChange();
                             return;
                         }
 
@@ -843,8 +943,8 @@ Siviglia.Utils.buildClass(
                         this.BaseType$setValue(val);                        
                         if(this.valueSet) 
                             this.innerValue=new Big(val);
+                        this.onChange();
                     }
-
                 }
             },
             Money:
@@ -892,14 +992,44 @@ Siviglia.Utils.buildClass(
                     },
                     getRelationshipType:function()
                     {
-                        var obj=this.definition.OBJECT;
+                        var obj=this.definition.MODEL;
                         var target;
                         if('FIELD' in this.definition)
                             target=this.definition['FIELD'];
                         else
                             target=this.definition['FIELDS'][0];
                         return Siviglia.types.TypeFactory.getRelationFieldTypeInstance(obj,target);                        
-                    }
+                    },
+                    hasSource:function()
+                    {
+                        return true;
+                    },
+                    getSource:function(controller,params)
+                    {
+                        var s=new Siviglia.Data.SourceFactory();
+                        return s.getFromSource(this.definition,controller,params);
+                    },
+                    getSourceLabel:function(){return this.definition.SEARCHFIELD;},
+                    getSourceValue:function(){return this.definition.FIELD;},
+                    getSearchField:function()
+                    {
+                        return this.definition.SEARCHFIELD;
+                    },
+                    getValueField:function()
+                    {
+                        if('FIELD' in this.definition)
+                            target=this.definition['FIELD'];
+                        else
+                            target=this.definition['FIELDS'][0];
+                        return target;
+                    },
+                    // Devuelve parametros fijos que son necesarios para
+                    // establecer la relacion.Se aplican al datasource.
+                    getFixedParameters:function()
+                    {
+                        return Siviglia.issetOr(this.definition["CONDITIONS"],null);
+                    },
+
                 }
             },
             Street:
@@ -918,28 +1048,7 @@ Siviglia.Utils.buildClass(
                     this.BaseType('Text',def,val);
                 }
             },
-            ArrayType:
-            {
-                inherits:'BaseType',
-                construct:function(def,val)
-                {
-                    this.BaseType('ArrayType',def,val);
-                },
-                methods:
-                {
-                    validate:function(val)
-                    {
-                        return true;
-                    },
-                    set:function(val)
-                    {
-                        this.valueSet=true;
-                        this.value=val;
 
-                        return val;
-                    }
-                }
-            },
             Timestamp:
             {
                 inherits:'DateTime',
@@ -957,6 +1066,555 @@ Siviglia.Utils.buildClass(
                     this.BaseType('UUID',def,value);
                 }
             },
+        BaseKeyContainerType: {
+            inherits: 'BaseType',
+            construct:function(name,def,value)
+            {
+                this.factory=new Siviglia.types._TypeFactory();
+                this.BaseType(name,def,value);
+            },
+            methods: {
+                isContainer: function () {
+                    return true;
+                },
+                getKeys: function () {
+                    if(!this.is_set())
+                        return [];
+                    var res=[];
+                    for (var k in this.children) res.push(k);
+                    return res;
+                },
+                getValueFromKey: function (k) {
+                    if(this.definition["VALUEFIELD"])
+                    {
+                        if(this.definition["VALUEFIELD"]=="[#KEY#]")
+                            return k;
+                        return this.value[k][this.definition["VALUEFIELD"]];
+                    }
+
+                    return this.value[k];
+                }
+            }
+        },
+            Container:{
+              inherits:'BaseKeyContainerType',
+                construct:function(def,value)
+                {
+                    this.definition=def;
+                    this.factory=new Siviglia.types._TypeFactory();
+                    this.children={};
+                    this.initializeTypes();
+                    this.BaseKeyContainerType('Container',def,value)
+                },
+                methods:{
+                    initializeTypes:function()
+                    {
+                        for(var k in this.definition.FIELDS)
+                            this.children[k]=this.factory.getType(this.definition["FIELDS"][k],null);
+                    },
+                    getKeys: function () {
+                        var res=[];
+                        for (var k in this.children) res.push(k);
+                        return res;
+                    },
+                    validate:function(val)
+                    {
+                        for(var k in this.definition.FIELDS)
+                        {
+                            var cd=this.definition.FIELDS[k];
+                            var c=this.children[k];
+                            if(cd.REQUIRED && (typeof val[k]=="undefined" || val[k]==null))
+                                throw new Siviglia.types.BaseTypeException(ERR_UNSET,{field:k});
+                            c.validate(val[k]);
+                        }
+                        return true;
+                    },
+                    getValue:function()
+                    {
+                        var res={};
+                        for(var k in this.definition.FIELDS) {
+                            res[k] = this.children[k].getValue();
+                            if(res[k] == null)
+                            {
+                                if(!this.definition.PRESERVE_NULL_KEYS)
+                                    delete res[k];
+                            }
+                        }
+                        return res;
+                    },
+                    copy:function(val)
+                    {
+                        this.setValue(val);
+                    },
+                    setValue:function(val)
+                    {
+                        for(var k in this.definition.FIELDS) {
+                            if(Siviglia.isset(val[k]))
+                                this.children[k].set(val[k]);
+                        }
+                        this.valueSet=true;
+                        this.onChange()
+                    },
+                    setItem:function(key,value)
+                    {
+                        this.children[key].set(value);
+                        this.onChange()
+                    }
+                }
+            },
+            Dictionary:{
+                inherits:'BaseKeyContainerType',
+                construct:function(def,value)
+                {
+                    this.children={};
+                    this.BaseKeyContainerType('Dictionary',def,value)
+                },
+                methods:{
+                    validate:function(val)
+                    {
+                        var ins=this.getValueInstance();
+                        for(var k in val)
+                        {
+                            ins.validate(val);
+                        }
+                        return true;
+                    },
+                    copy:function(val)
+                    {
+                        this.setValue(val);
+                    },
+                    setValue:function(val)
+                    {
+                        this.children={};
+                        for(var k in val) {
+                            this.children[k] = this.getValueInstance(val[k]);
+                        }
+                        this.valueSet=true
+                        this.onChange()
+                    },
+                    getValue:function()
+                    {
+                        var v={};
+                        for(var k in this.children)
+                        {
+                            v[k]=this.children[k].getValue();
+                        }
+                        return v;
+                    },
+                    getValueInstance:function(val)
+                    {
+                        return this.factory.getType(this.definition["VALUETYPE"],Siviglia.issetOr(val,null));
+                    },
+                    setItem:function(key,value)
+                    {
+                        this.children[key].set(value);
+                        this.onChange()
+                    },
+                    addItem:function(key)
+                    {
+                        this.valueSet=true;
+                        this.children[key]=this.getValueInstance();
+                        this.onChange()
+                    },
+                    removeItem:function(key)
+                    {
+                        this.children[key].destruct();
+                        delete this.children[key];
+                        if(this.getKeys().length==0)
+                            this.valueSet=false;
+                        this.onChange()
+                    },
+                    intersect:function(val) {
+                        if (!this.valueSet)
+                            return val;
+                        if (val.length == 0)
+                            return val;
+                        var keys = this.getKeys()
+                        return array_compare(val, keys, false);
+                    }
+                }
+            },
+        /*
+         Un FixedDictionary, solo puede tener un cierto set de claves; Cada una de las claves, tiene un tipo asociado.
+         Por ejemplo, esto sirve como una configuracion de plugins: Cada clave del diccionario es un plugin.No puede haber mas
+         de una instancia de cada plugin, y la key tiene un tipo de dato asociado (la configuracion del plugin).
+         */
+
+        FixedDictionary:{
+            inherits: 'Dictionary',
+            construct: function (definition, value) {
+                this.children={};
+                this.BaseKeyContainerType('FixedDictionary',definition,value)
+            },
+            methods:
+                {
+                    setValue: function(val)
+                    {
+                        this.children={};
+                        this.value=val;
+                        for(var k in this.value)
+                        {
+                            var childType=this.definition.KEYMAP[k]["TYPE"];
+                            this.children[k]=this.factory.getType(childType,value[k]);
+                        }
+                        this.valueSet=true;
+                        this.onChange();
+                    },
+                    addItem: function (key) {
+                        this.children[key] = this.getValueInstance(null,key);
+                        this.valueSet=true;
+                        this.onChange();
+                        return this.children[key];
+
+                    },
+                    removeItem: function(key)
+                    {
+                        this.children[key].destruct();
+                        delete this.children[key];
+                        this.valueSet=false;
+                        for(var k in this.children)
+                        {
+                            this.valueSet=true;
+                            break;
+                        }
+                        this.onChange();
+                    },
+                    getPossibleKeys: function()
+                    {
+                        var res=[];
+                        for(var k in this.definition.KEYMAP)
+                            res.push(k);
+                        return res;
+                    },
+                    getAvailableKeys:function()
+                    {
+                        var res=[]
+                        for(var k in this.definition.KEYMAP)
+                        {
+                            if(this.children && this.children[k])
+                                continue;
+                            res.push(k);
+                        }
+                        return res;
+                    },
+                    getValueInstance:function(val,key)
+                    {
+                        var type=Siviglia.issetOr(this.definition.KEYMAP[key],null);
+                        if(type==null)
+                            return null;
+                        return this.factory.getType(this.definition.KEYMAP[key],val);
+
+                    },
+                    hasSource:function()
+                    {
+                        return true;
+                    },
+                    getSource:function(controller,params)
+                    {
+                        var s=new Siviglia.Data.SourceFactory();
+                        return s.getFromSource(this.definition.KEYMAP,controller,params);
+                    },
+                    getSourceLabel:function(){return "[[KEY]]";},
+                    getSourceValue:function(){return "[[VALUE]]";}
+                }
+        },
+        TypeSwitcherException:{
+            inherits:'BaseException',
+            constants: {
+                ERR_TYPE_NOT_SET:140,
+                ERR_INVALID_TYPE:141,
+            },
+            construct:function(code,param)
+            {
+                this.BaseException(code,param,'TypeSwitcherException');
+            }
+        },
+        TypeSwitcher: {
+            inherits: 'BaseType',
+
+            construct: function (definition, value) {
+                this.subNode = null;
+                this.BaseType("TypeSwitcher", definition, value);
+                this.currentType = null;
+            },
+            destruct: function () {
+                this.subNode.destruct();
+            },
+            methods: {
+                setValue: function (val) {
+                    this.receivedValue = val;
+                    if (this.subNode)
+                        this.subNode.destruct();
+                    var subType=this.getTypeFromValue(val);
+                    this.currentType = subType;
+                    var subdefinition={"TYPE": subType};
+                    if(Siviglia.issetOr(this.definition,"ALLOWED_TYPE_DEFINITIONS",null))
+                    {
+                        subdefinition=this.definition.ALLOWED_TYPE_DEFINITIONS[subType=="String"?"_String":subType];
+                    }
+                    this.subNode =(new Siviglia.types._TypeFactory()).getType(subdefinition, val);
+                    this.valueSet=true;
+                    this.onChange();
+                },
+                validate:function(val)
+                {
+                    var cType=Siviglia.issetOr(val[this.definition.TYPE_FIELD],null);
+                    if(cType==null)
+                        throw new Siviglia.types.TypeSwitcherException(Siviglia.types.TypeSwitcherException.ERR_INVALID_TYPE);
+                    if(!this.isValidType(cType))
+                        throw new Siviglia.types.TypeSwitcherException(Siviglia.types.TypeSwitcherException.ERR_INVALID_TYPE);
+                    if(!this.subNode)
+                        throw new Siviglia.types.TypeSwitcherException(Siviglia.types.TypeSwitcherException.ERR_TYPE_NOT_SET);
+                    if(this.subNode)
+                    this.subNode.validate(val);
+                },
+                getTypeFromValue:function(val)
+                {
+                    var typeField = Siviglia.issetOr(this.definition.TYPE_FIELD,null);
+                    if(typeField!=null)
+                        return val[typeField];;
+                    throw new Siviglia.types.TypeSwitcherException(Siviglia.types.TypeSwitcherException.ERR_INVALID_TYPE);
+                },
+                getValue: function () {
+                    if (this.subNode && this.subNode.is_set())
+                        return this.subNode.getValue();
+                    return null;
+                },
+
+                setType: function (typeName) {
+                    if(Siviglia.isset(this.definition.TYPE_FIELD)) {
+                        var c = {};
+                        c[this.definition.TYPE_FIELD] = typeName;
+                    }
+                    this.setValue(c);
+                },
+                isValidType:function(v)
+                {
+                    var list=this.getAllowedTypes();
+                    for(var k=0;k<list.length;k++)
+                    {
+                        if(v==list[k].VALUE)
+                            return true;
+                    }
+                    return false;
+                },
+                getAllowedTypes: function () {
+                    var result = [];
+
+                    if(Siviglia.isset(this.definition.ALLOWED_TYPE_DEFINITIONS))
+                    {
+                        for (var k in this.definition.ALLOWED_TYPE_DEFINITIONS) {
+                            var n = this.definition.ALLOWED_TYPE_DEFINITIONS[k];
+                            result.push({LABEL: n.LABEL || n, VALUE: k});
+                        }
+                    }
+                    if(Siviglia.isset(this.definition.ALLOWED_TYPES)) {
+                        for (var k = 0; k < this.definition.ALLOWED_TYPES.length; k++) {
+                            var n = this.definition.ALLOWED_TYPES[k];
+                            result.push({LABEL: n, VALUE: n});
+                        }
+                    }
+                    return result;
+                },
+                getCurrentType: function () {
+
+                    if(Siviglia.isset(this.definition.TYPE_FIELD)) {
+                        var typeField = this.definition.TYPE_FIELD;
+                        return this.receivedValue[typeField];
+                    }
+                        return this.currentType;
+                },
+                getSubNode: function () {
+                    return this.subNode;
+                }
+            }
+        },
+        Array: {
+            inherits: 'BaseType',
+            construct: function (definition, value) {
+                this.children=null;
+                this.value=null;
+                this.factory=new Siviglia.types._TypeFactory();
+                this.BaseType("Array", definition, value);
+            },
+            methods: {
+                setValue: function (val) {
+                    if (this.children) {
+                        for (var k = 0; k < this.children.length; k++)
+                            this.children[k].destruct();
+
+                    }
+                    this.value = val;
+                    this.children = [];
+                    var instance;
+                    for (var k = 0; k < val.length; k++) {
+                        instance = this.getValueInstance();
+                        instance.setValue(val);
+                        this.children.push(instance);
+                    }
+                    this.valueSet=true;
+                    this.onChange();
+                },
+                getValue:function()
+                {
+                    if(this.children==null)
+                        return null;
+                    var fNulls=Siviglia.issetOr(this.definition.REMOVE_NULLS,true);
+                    var res=[];
+                    for(var k=0;k<this.children.length;k++)
+                    {
+                        if(this.children[k].is_set())
+                            res.push(this.children[k].getValue());
+                    }
+                    return res;
+                },
+                getKeys: function () {
+                    if (!this.children) return [];
+                    var res = [];
+                    for (var k = 0; k < this.children.length; k++) res.push(k);
+                    return res;
+                },
+                add: function (val) {
+
+                    if (!this.children){this.children = [];this.value=[];}
+                    var nI=this.getValueInstance();
+                    if(val && typeof val!=null)
+                        nI.setValue(val);
+
+                    this.children.push(nI);
+                    this.value.push(val);
+                    this.valueSet = true;
+                    this.onChange();
+                },
+                removeItem: function (position) {
+                    if(!this.value)
+                        return;
+                    this.children.splice(position, 1);
+                    this.value.splice(position,1);
+                    if(this.children.length==0)
+                        this.valueSet = false;
+                    this.onChange();
+                },
+                remove: function(item)
+                {
+                    if(!this.value)
+                        return;
+                    var position=0;
+                    for(var k=0;k<this.children.length;k++) {
+                        if(this.children[k]==item) {
+                            this.children.splice(position, 1);
+                            this.value.splice(position,1);
+                            break;
+                        }
+                        position++;
+                    }
+                    if(this.children.length==0)
+                        this.valueSet=false;
+                    this.onChange();
+                },
+                setItem: function (val, position) {
+                    if (!this.children){this.children = [];this.value=[];}
+                    var nI=this.getValueInstance();
+                    nI.validate(value);
+                    this.children[position] = nI;
+                    this.value[position]=val;
+                    this.valueSet=true;
+                    this.onChange();
+                },
+                addItem: function (value) {
+
+                    if (!this.children){this.children = [];this.value=[];}
+                    var nI=this.getValueInstance();
+                    nI.setValue(value);
+                    this.children.push(nI);
+                    this.value.push(value);
+                    this.valueSet=true;
+                    this.onChange();
+                    return nI;
+                },
+                hasSource: function()
+                {
+                    return Siviglia.isset(this.definition["SOURCE"]);
+                },
+                getSource:function(controller,params)
+                {
+                    var s=new Siviglia.Data.SourceFactory();
+                    return s.getFromSource(this.definition.SOURCE,controller,params);
+                },
+                getSourceLabel:function(){return "[[VALUE]]";},
+                getSourceValue:function(){return "[[VALUE]]";},
+                getValueInstance: function (value,key) {
+                    var factory=new Siviglia.types._TypeFactory();
+                    return this.factory.getType(this.definition["VALUETYPE"],null);
+                },
+                intersect:function(val)
+                {
+                    if (!this.valueSet)
+                        return val;
+                    if (val.length == 0)
+                        return val;
+                    var keys = this.getKeys()
+                    return array_compare(val, this.value, false);
+
+                }
+            }
+        },
+        /**
+         * ObjectArrayType
+         *
+         * @author ICSW (11/06/2012)
+         */
+        ObjectArray: {
+            inherits: 'BaseKeyContainerType',
+            construct: function (definition,value) {
+                this.value = [];
+                this.children = [];
+                this.BaseKeyContainerType("ObjectArray", definition, value);
+
+            },
+            methods: {
+                setValue:function(val)
+                {
+                    if(this.value.length > 0)
+                        this.value.map(function(i){i.destruct();});
+                    if(!Siviglia.isArray(val))
+                    {
+                        this.value=[this.getValueInstance(val)];
+                        this.valueSet=true;
+                        this.onChange();
+                        return;
+                    }
+                    this.value=[];
+                    var m=this;
+                    val.map(function(i){m.value.push(m.getValueInstance(i));})
+                    this.valueSet=true;
+                    this.onChange();
+                },
+                validate:function(val)
+                {
+                    var ins=this.getValueInstance(null);
+                    if(!Siviglia.isArray(val))
+                        val=[val];
+
+                    val.map(function(i){ins.validate(i)});
+                },
+                getValue:function()
+                {
+                    var v=[];
+                    this.value.map(function(i){v.push(i.getValue());});
+                },
+                getValueInstance: function (val) {
+                    return this.factory.getType(this.definition.VALUETYPE,val);
+                },
+                removeAt:function(pos)
+                {
+                    var rem=this.value.splice(pos,1);
+                    rem[0].destruct();
+                    this.onChange();
+                }
+            }
+        },
+
             PHPVariable:
             {
                 inherits:'BaseType',
@@ -1270,6 +1928,40 @@ Siviglia.Utils.buildClass(
 
                     return p;
                 },
+                getType:function(def,val)
+                {
+                    if(Siviglia.isString(def))
+                    {
+                        var parts=Siviglia.Utils.stringToContextAndObject(def,
+                            Siviglia.types._TypeFactory.prototype.namedTypes
+                        );
+                        if(typeof parts.context[parts.object]=="undefined")
+                            throw "Unknown type in getType::"+def;
+                        def=parts.context[parts.object];
+                    }
+
+                    var type=def['TYPE'];
+                    if(!Siviglia.types[def['TYPE']]) {
+                        throw "Unknown Type : "+def["TYPE"];
+                    }
+                    return new Siviglia.types[def['TYPE']](def,val);
+                },
+                /**
+                 * Este metodo sirve para soportar named types.Los named types se usan especialmente
+                 * para AutoUI, de forma que un container pueda especificar por nombre, un tipo compuesto,
+                 * que es una definicion de container, dictionary, etc.
+                 * @param name
+                 * @param def
+                 */
+                addNamedType:function(name,def)
+                {
+                    if(typeof Siviglia.types._TypeFactory.prototype.namedTypes=="undefined")
+                        Siviglia.types._TypeFactory.prototype.namedTypes={};
+                    var parts=Siviglia.Utils.stringToContextAndObject(name,
+                        Siviglia.types._TypeFactory.prototype.namedTypes
+                    );
+                    parts.context[parts.object]=def;
+                },
                 getTypeFromDef:function(def,val)
                 {
                     if(!('TYPE' in def)) 
@@ -1291,7 +1983,9 @@ Siviglia.Utils.buildClass(
                         return p;
                     }
                     var type=def['TYPE'];
-                    if(!Siviglia.types[def['TYPE']]) { console.debug("TIPO NO EXISTE");console.dir(def);}
+                    if(!Siviglia.types[def['TYPE']]) {
+                        throw "Unknown Type : "+def["TYPE"];
+                    }
                     return $.when(new Siviglia.types[def['TYPE']](def,val));
                 },
                 getModelField:function(model,field)
@@ -1348,7 +2042,11 @@ Siviglia.i18n.es.base.errors={
                 122:'La imagen debe tener un máximo de %max% píxeles de ancho',
                 123:'La imagen debe tener un mínimo de %min% píxeles de altura',
                 124:'La imagen debe tener un máximo de %max% píxeles de altura'
-        }                               
+        },
+        TypeSwitcher:
+            {
+                140:'Tipo no definido'
+            }
     };
 Siviglia.i18n.es.base.getErrorFromServerException=function(exName,exValue)
 {

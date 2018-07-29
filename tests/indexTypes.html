@@ -1,0 +1,56 @@
+<html>
+<head>
+    <script src="../jquery.min.js"></script>
+    <script src="../Siviglia.js"></script>
+    <script src="../SivigliaTypes.js"></script>
+    <script>
+        var t1={
+            "TYPE":"Container",
+            "FIELDS":{
+                "Uno":{
+                    "TYPE":"String",
+                    "MINLENGTH":4
+                },
+                "Dos":{
+                    "TYPE":"Integer",
+                    "MIN":10
+                }
+            }
+        };
+        var f=new Siviglia.types._TypeFactory();
+        var instance=f.getType(t1);
+        instance.set({"Uno":"lalas","Dos":12});
+        instance.validate({"Uno":"lalaa","Dos":15});
+        f.addNamedType("EXAMPLE",t1);
+        var ins=f.getType({"TYPE":"Dictionary","VALUETYPE":"EXAMPLE"});
+        debugger;
+        ins.set({
+            "Primera":{"Uno":"lalas","Dos":12},
+            "Segunda":{"Dos":22,"Uno":"wannn"}
+        });
+        ins.removeItem("Segunda");
+    </script>
+</head>
+<body>
+<div style="display:none">
+    <div sivWidget="Test.SimpleWidget" widgetParams="" widgetCode="Test.SimpleWidget">
+        <div sivValue="class|[%/*tres/{/*cuatro}%]">
+            <div style="" sivValue="Esto es [%/*myNull%] con dos [%/*uno/dos%]"></div>
+        </div>
+    </div>
+</div>
+<div sivView="Test.SimpleWidget"></div>
+
+
+<script>
+    var remoteRoot=new Siviglia.model.RemotePath("http://127.0.0.1/buscando");
+    var tmp=new Siviglia.UI.Dom.Expando.ExpandoManager(
+        //Siviglia.model.Root,
+        remoteRoot,
+        //Siviglia.model.Root.context
+        remoteRoot.context
+     );
+    tmp.parse($(document.body),null,null,true);
+</script>
+</body>
+</html>

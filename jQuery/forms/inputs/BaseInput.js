@@ -13,6 +13,11 @@ Siviglia.Utils.buildClass(
                     this.node.addClass("input");
                     this.tooltip=null;
                 },
+                destruct:function()
+                    {
+                        if(this.node)
+                            this.node.remove();
+                    },
                 methods:
                 {
                     sivInitialize:function(definition,value,params)
