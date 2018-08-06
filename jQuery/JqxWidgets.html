@@ -1,0 +1,1306 @@
+<style>
+    .remove, .NewItemString .add {
+        font-family:'IcoMoon'
+    }
+    .remove:before {
+
+    }
+    .description:empty {display:none}
+    .NewItemString .add {
+        margin-left: 5px;
+        margin-top: 6px;
+        color: green;
+    }
+    .add:before {
+        font-family:"Ionicons";
+        content: '\f359';
+        font-size: 20px;
+    }
+    .remove {
+        font-family: 'IcoMoon';
+    }
+    input[type=checkbox]{
+        width:15px !important;
+        height:15px !important;
+    }
+    .ContainerType {}
+
+    .ContainerType .ContainerType .containerLabel {
+        min-width:150px !important;
+        font-size:12px
+    }
+    .containerInput {
+        display: table-cell;
+    }
+    .dictionaryInput {
+        min-width:200px
+    }
+    .removebutton:after {
+        font-family:"Ionicons";
+        font-size: 16px;
+        content: "\f128";
+        color: darkred;
+        margin-top: 7px;
+        margin-left: 5px;
+    }
+    .navbar-form {
+        padding:0px !important;
+    }
+</style>
+<script>
+    Siviglia.Utils.buildClass(
+        {
+            context: 'Siviglia.inputs.jqwidgets',
+            classes: {
+                Factory:{
+                    methods:{
+                        getInput:function(type,params)
+                        {
+                            var stype=type.type;
+                            if(!Siviglia.isset(params))
+                                params={};
+                            if(Siviglia.isset(params.controller))
+                                type.setController(params.controller);
+                            var dv=$('<div></div>');
+                            var p=params || {};
+                            p.type=type;
+                            var instance=new Siviglia.inputs.jqwidgets[stype](
+                                "Siviglia.inputs.jqwidgets."+stype,
+                                p,
+                                {},
+                                dv,
+                                Siviglia.model.Root
+                            );
+                            return instance;
+                        }
+                    }
+                },
+                Form:{
+                  inherits:"Siviglia.UI.Widget,Factory",
+                  destruct:function(){
+                      if(this.__widgets)
+                      {
+                          for(var k in this.__widgets)
+                              this.__widgets.destruct();
+                      }
+                  }  ,
+                  methods:
+                      {
+                          preInitialize:function(params)
+                          {
+                              var definition=params.definition;
+                              var value=params.value;
+                              this.__types={};
+                              this.__widgets={};
+                              this.__typeFactory=new Siviglia.types._TypeFactory();
+                              value=Siviglia.issetOr(value,{});
+                              for(var k in definition)
+                              {
+                                  this[k]=this.__typeFactory.getType(definition[k],value[k]);
+                                  this[k].setController(this);
+                                  var p=Siviglia.issetOr(definition["INPUT"],{});
+                                  p.controller=this;
+                                  this.__widgets[k]=this.getInput(this[k],p);
+                              }
+                          }
+                      }
+                },
+                BaseInput: {
+                    inherits: "Siviglia.UI.Widget,Siviglia.Dom.EventManager",
+                    methods: {
+                        preInitialize: function (params) {
+                            this.errored = false;
+                            this.programaticallyChanging = false;
+                            this.controller = this.view.parentWidget;
+
+                            this.errorMessage = "";
+                            this.type = params.type;
+
+                            if(this.controller && this.controller.notifyPathListeners)
+                            {
+                                var self=this;
+                                this.type.addListener("CHANGE",null,function(p){
+                                    self.controller.notifyPathListeners();
+                                });
+                            }
+                            this.helpMessage = Siviglia.issetOr(this.type.definition.HELP, null);
+                            this.hasHelpMessage = (this.helpMessage != null ? true : false);
+                            this.inputParams = Siviglia.issetOr(params.inputParams, {});
+                        },
+                        initialize: function (params) {
+                            var opts = this.getDefaultInputOptions();
+                            for (var k in this.inputParams)
+                                opts[k] = this.inputParams[k];
+                            this.createInput(opts);
+                            this.inputNode[this.getJqxWidgetName()]('theme', 'light');
+                            var m = this;
+                            this.inputNode.on("change", function () {
+                                if (m.programaticallyChanging)
+                                    return;
+                                if (m.validate())
+                                    m.type.setValue(m.getValue());
+                            })
+                            if (this.type.is_set()) {
+                                var toSet = this.type.getValue();
+                                this._setInputValue(toSet);
+                            }
+                        },
+                        getDefaultInputOptions: function () {
+                            return {};
+                        },
+                        createInput: function (options) {
+
+                            return this.callInp(options)
+                        },
+                        _setInputValue: function (toSet) {
+                            this.programaticallyChanging = true;
+                            this.inputNode[this.getJqxWidgetName()]('val', toSet);
+                            this.programaticallyChanging = false;
+                        },
+                        getValue: function () {
+                            return this.inputNode[this.getJqxWidgetName()]('val');
+                        },
+                        validate: function () {
+                            var val = this.getValue();
+                            try {
+                                this.type.validate(val);
+                                this.clearErrors();
+                                return true;
+                            } catch (e) {
+                                this.showError(
+                                    Siviglia.i18n.es.base.getErrorFromJsException(e)
+                                );
+                            }
+                            return false;
+                        },
+                        showError: function (message) {
+                            var d = new Date();
+                            this.tooltip = this.inputNode.jqxTooltip(
+                                {
+                                    name: d + d.getMilliseconds(),
+                                    animationShowDelay: 'fast',
+                                    autoHide: false,
+                                    closeOnClick: false,
+                                    position: 'right'
+                                });
+                            this.inputNode.jqxTooltip({content: message});
+                            this.inputNode.jqxTooltip("open");
+                            this.inputNode.addClass("errored");
+                        },
+                        clearErrors: function () {
+                            if (this.tooltip)
+                                this.inputNode.jqxTooltip('destroy');
+                            this.inputNode.removeClass("errored");
+                            /*if(this.validator)
+                             ths.validator.hide();*/
+                        },
+                        getJqxWidgetName: function () {
+                            return "jqxInput";
+                        },
+                        callInp: function (obj) {
+                            return this.inputNode[this.getJqxWidgetName()](obj);
+                        },
+                        disable: function () {
+                            this.callInp({disabled: true});
+                        },
+                        enable: function () {
+                            this.callInp({disabled: false});
+                        },
+                        on:function(event,callback)
+                        {
+                            this.inputNode.on(event,callback);
+                        }
+                    }
+                },
+                String: {
+                    /*
+                     disabled	Boolean	false
+                     dropDownWidth	Number/String	null
+                     displayMember	String	""
+                     height	Number/String	null
+                     items	Number	8
+                     minLength	Number	1
+                     maxLength	Number	null
+                     opened	Boolean	false
+                     placeHolder	String	""
+                     popupZIndex	Number	20000
+                     query	String	""
+                     renderer	function	null
+                     rtl	Boolean	false
+                     searchMode	String	'default'
+                     source	Array, function	[]
+                     theme	String	''
+                     valueMember	String	""
+                     width
+                     */
+                    inherits: "Siviglia.inputs.jqwidgets.BaseInput",
+                    methods: {
+                        getDefaultInputOptions: function () {
+                            var d = this.type.definition;
+                            var opts = {};
+                            if (d.MINLENGTH)
+                                opts.minLength = d.MINLENGTH;
+                            if (d.MAXLENGTH)
+                                opts.maxLength = d.MAXLENGTH;
+                            return opts;
+                        }
+
+                    }
+                },
+                Enum: {
+                    inherits: 'BaseInput',
+                    methods: {
+                        getDefaultInputOptions: function () {
+                            var finalOpts = [];
+                            var d = this.type.definition;
+                            for (var k = 0; k < d.VALUES.length; k++) {
+                                var c = d.VALUES[k];
+                                var label, value;
+                                label = value = c;
+                                if (typeof c == "object") {
+                                    label = c.LABEL;
+                                    value = c.VALUE;
+                                }
+                                finalOpts.push(
+                                    {
+                                        html: '<div tabIndex=0 style="padding:1px">' + label + '</div>',
+                                        label: label,
+                                        value: value
+                                    }
+                                )
+                            }
+                            var opts = {
+                                source: finalOpts, //finalOpts,
+                                placeHolder: 'Seleccionar',
+                                autoComplete: false,
+                                height: 25,
+                                displayMember: "label",
+                                valueMember: "value",
+                                width: 200, minLength: 0
+                            };
+                            return opts;
+                        },
+                        getJqxWidgetName: function () {
+                            return "jqxComboBox";
+                        }
+                    }
+                },
+                Integer: {
+                    inherits: 'BaseInput',
+                    methods: {
+                        /* {value: null,
+                         decimal: 0,
+                         min: -99999999,
+                         max: 99999999,
+                         width: 200,
+                         validationMessage: "Invalid value",
+                         height: 25, textAlign: "right", readOnly: false,
+                         promptChar: "_",
+                         decimalDigits: 2,
+                         decimalSeparator: ".", groupSeparator: ",", groupSize: 3, symbol: "", symbolPosition: "left", digits: 8, negative: false, negativeSymbol: "-", disabled: false, inputMode: "advanced", spinButtons: false, spinButtonsWidth: 18, spinButtonsStep: 1, autoValidate: true, spinMode: "advanced", enableMouseWheel: true, touchMode: "auto", rtl: false, events: ["valueChanged", "textchanged", "mousedown", "mouseup", "keydown", "keyup", "keypress", "change"], aria: {"aria-valuenow": {name: "decimal", type: "number"}, "aria-valuemin": {name: "min", type: "number"}, "aria-valuemax": {name: "max", type: "number"}, "aria-disabled": {name: "disabled", type: "boolean"}}, invalidArgumentExceptions: ["invalid argument exception"]};
+                         */
+                        getDefaultInputOptions: function () {
+                            return {decimalDigits: 0};
+                        },
+                        getJqxWidgetName: function () {
+                            return "jqxNumberInput";
+                        }
+                    }
+                },
+                Decimal: {
+                    inherits: 'BaseInput',
+                    methods: {
+                        getDefaultInputOptions: function () {
+                            var d = this.type.definition;
+                            return {decimalDigits: d.NDECIMALS, digits: d.NINTEGERS};
+                        },
+                        getJqxWidgetName: function () {
+                            return "jqxNumberInput";
+                        }
+                    }
+                },
+                Text: {
+                    inherits: 'BaseInput',
+                    methods: {
+                        initialize: function (params) {
+                            var m = this;
+                            $(document).ready(function () {
+                                m.BaseInput$initialize(params);
+                            });
+                        },
+                        getDefaultInputOptions: function () {
+                            return {
+                                height: "400px",
+                                width: '800px'
+                            };
+                        },
+                        getJqxWidgetName: function () {
+                            return "jqxEditor";
+                        }
+
+                    }
+                },
+                AutoIncrement: {
+                    inherits: 'Siviglia.UI.Widget,Siviglia.Dom.EventManager',
+                    methods: {
+                        preInitialize: function (params) {
+                            this.value = params.type.getValue();
+                        },
+                        initialize: function (params) {
+                        },
+                        getValue: function () {
+                            return this.type.getValue();
+                        }
+                    }
+                },
+                Boolean: {
+                    inherits: 'BaseInput',
+                    methods: {
+                        getDefaultInputOptions: function () {
+                            return {width: 20, height: 20};
+                        },
+                        getJqxWidgetName: function () {
+                            return "jqxCheckBox";
+                        },
+                        _setInputValue: function (value) {
+                            if (value == null || value == "0" || value == "false" || value == false)
+                                this.inputNode.jqxCheckBox({checked: false});
+                            else
+                                this.inputNode.jqxCheckBox({checked: true});
+                        },
+                        getValue: function () {
+                            return this.node.val() ? "1" : "0";
+                        }
+                    }
+                },
+                ComboBox: {
+                    inherits: 'BaseInput',
+                    methods: {
+                        preInitialize: function (params) {
+                            this.preprocessParams(params);
+                            this.changingProgramatically = false;
+                            this.BaseInput$preInitialize(params);
+                        },
+                        initialize: function (params) {
+                            this.sourceParameters = Siviglia.issetOr(params.sourceParams, null);
+                            this.disabled = false;
+                            this.searchString = null;
+                            if (this.sourceParameters) {
+                                for (var k in this.sourceParameters) {
+                                    if (this.sourceParameters[k] === null ||
+                                        !Siviglia.isset(this.sourceParameters[k])) {
+                                        this.disabled = true;
+                                        this.type.unset();
+                                    }
+                                }
+                            }
+                            else {
+                                this.sourceParameters = {};
+                            }
+
+                            var opts = this.getDefaultInputOptions();
+                            for (var k in this.inputParams)
+                                opts[k] = this.inputParams[k];
+                            this.createInput(opts);
+                            this.inputNode[this.getJqxWidgetName()]('theme', 'light');
+                            var m = this;
+                            this.inputNode.on("select", function () {
+                                var idx = m.inputNode.jqxComboBox("selectedIndex");
+                                if (idx == null) {
+                                    m.type.setValue(null);
+                                    return;
+                                }
+                                if (m.validate())
+                                    m.type.setValue(m.getValue());
+                            })
+
+
+                            if (this.disabled) {
+
+                                this.disable();
+                                return;
+                            }
+                            else
+                                this.refresh();
+
+                        },
+                        preprocessParams: function (params) {
+                            this.searchField = params.inputParams.searchField;
+                            this.valueField = params.inputParams.valueField;
+                            delete params.inputParams.searchField;
+                            delete params.inputParams.valueField;
+
+                        },
+                        getValue: function () {
+                            var v = this.inputNode.jqxComboBox('val');
+                            if (v == '')
+                                v = null;
+                            return v;
+                        },
+                        getJqxWidgetName: function () {
+                            return "jqxComboBox";
+                        },
+                        getDefaultInputOptions: function () {
+                            var self = this;
+                            this.dataSource = {
+                                localdata: [],
+                                datatype: "array"
+                            };
+                            this.dataAdapter = new $.jqx.dataAdapter(self.dataSource);
+                            return {
+                                source: this.dataAdapter,
+                                openDelay: 200,
+                                autoComplete: true,
+                                autoBind: false,
+                                minLength: 1,
+                                remoteAutoComplete: true,
+                                displayMember: this.getSearchField(),
+                                valueMember: this.getValueField(),
+                                autoDropDownHeight: true,
+                                width: 200,
+                                height: 25,
+                                placeHolder:Siviglia.issetOr(this.inputParams["placeholder"],null),
+                                search: function (str) {
+                                    self.searchString = str;
+                                    self.refresh();
+                                }
+                            };
+                        },
+                        _setInputValue: function (toSet) {
+                            if (this.programaticallyChanging)
+                                return;
+                            this.programaticallyChanging = true;
+                            var item = this.inputNode.jqxComboBox('getItemByValue', toSet);
+                            if (item) {
+                                this.inputNode.jqxComboBox('selectItem', item);
+                                this.inputNode.jqxComboBox('val', item.label);
+                            }
+                            this.programaticallyChanging = false;
+                        },
+                        getSearchField: function () {
+                            return this.searchField;
+                        },
+                        getValueField: function () {
+                            return this.valueField;
+                        },
+                        buildParameters: function () {
+                            var obj = {
+                                "search": this.searchString
+                            };
+                            if (this.sourceParameters) {
+                                for (var k in this.sourceParameters) {
+                                    obj[k] = this.sourceParameters[k];
+                                }
+                            }
+                            return obj;
+                        },
+                        refresh: function () {
+                            if (this.disabled)
+                                return;
+                            var params = this.buildParameters();
+                            this.getSource(params);
+
+                        },
+                        getSource: function (params) {
+                            var self = this;
+                            this.inputNode.jqxComboBox('val', null);
+                            //this.type.clear();
+                            this.type.loadSource(params).then(function (s) {
+                                self.dataSource.localdata = s;
+                                self.dataAdapter.dataBind();
+                                if (self.type.is_set()) {
+                                    var toSet = self.type.getValue();
+                                    var it = self.inputNode.jqxComboBox('getItemByValue', toSet);
+                                    if (it) {
+                                        self._setInputValue(toSet);
+                                    }
+                                    else
+                                        self.type.unset();
+                                }
+                            });
+                        }
+
+                    }
+                },
+                FixedSelect:
+                    {
+                        inherits: 'ComboBox',
+                        methods:{
+                            getDefaultInputOptions:function()
+                            {
+                                var self = this;
+                                this.dataSource = {
+                                    localdata: [],
+                                    datatype: "array"
+                                };
+                                this.dataAdapter = new $.jqx.dataAdapter(self.dataSource);
+                                return {
+                                    source: this.dataAdapter,
+                                    autoBind: true,
+                                    displayMember: this.getSearchField(),
+                                    valueMember: this.getValueField(),
+                                    autoDropDownHeight: true,
+                                    width: 200,
+                                    height: 25,
+                                    placeHolder:Siviglia.issetOr(this.inputParams["placeholder"],null)
+                                };
+                            }
+                        }
+                    },
+                Relationship:{
+                    inherits:'ComboBox'
+                },
+                Date:{
+                    inherits:'BaseInput',
+                    methods:
+                        {
+                            getDefaultInputOptions: function () {
+                               return {};
+                            },
+                            getJqxWidgetName: function () {
+                                return "jqxDateTimeInput";
+                            },
+                            getValue:function()
+                            {
+                                var val = this.inputNode.jqxDateTimeInput('value');
+                                if (val != null)
+                                {
+                                    var v=val.getMonth()+1;
+                                    if(v<10)
+                                        v='0'+v;
+                                    var d=val.getDate();
+                                    if(d<10)
+                                        d='0'+d;
+                                    var tt= val.getFullYear() + "-" + v + "-" + d;
+                                    console.dir(tt);
+                                    return tt;
+                                }
+                                return null;
+                            }
+                        }
+                },
+                DateTime:{
+                    inherits:'Date',
+                    methods:
+                        {
+                            getValue: function () {
+                                var val = this.inputNode.jqxDateTimeInput('value');
+                                if (val != null)
+                                {
+                                    var v=val.getMonth()+1;
+                                    if(v<10)
+                                        v='0'+v;
+                                    var d=val.getDate();
+                                    if(d<10)
+                                        d='0'+d;
+                                    var h=val.getHours();
+                                    if(h<10)
+                                        h='0'+h;
+                                    var m=val.getMinutes();
+                                    if(m<10)
+                                        m='0'+m;
+                                    var s=val.getSeconds();
+                                    if(s<10)
+                                        s='0'+s;
+
+                                    return val.getFullYear() + "-" + v + "-" + d + " " + h + ":" + m + ":" + s;
+                                }
+                                return null;
+                            }
+                        }
+                },
+                Money:{
+                    inherits:'Decimal'
+                },
+                Password:{
+                    inherits:'String'
+                },
+                State:{
+                    inherits:'Enum'
+                },
+                Name:{
+                    inherits:'String'
+                },
+                Street:{
+                    inherits:'String'
+                },
+                City:{
+                    inherits:'String'
+                },
+                Phone:{
+                    inherits:'String'
+                },
+                UUID:{
+                    inherits:'String'
+                },
+                Dictionary:
+                    {
+                        inherits:'BaseInput',
+                        destruct:function()
+                        {
+                            this.BaseInput$destruct();
+                            if(this.currentWidget)
+                                this.currentWidget.destruct();
+                            this.currentWidget=null;
+                        },
+                        methods:
+                            {
+                                preInitialize:function(params)
+                                {
+                                    this.title="";
+                                    this.hasSimpleType=false;
+                                    this.description="";
+                                    this.BaseInput$preInitialize(params);
+                                    this.currentWidget=null;
+                                    this.currentKey=null;
+                                },
+                                initialize:function(params)
+                                {
+                                },
+                                buildNewItemWidget:function(node,params)
+                                {
+                                    if(this.newItemWidget) {
+                                        this.newItemWidget.destruct();
+                                    }
+                                    node.html("");
+                                    var pp=this.params;
+                                    pp.parent=this;
+                                    var tempNode=$("<div></div>");
+                                    this.newItemWidget=new Siviglia.inputs.jqwidgets.NewItem('Siviglia.inputs.jqwidgets.NewItem',
+                                        pp,
+                                        {},
+                                        tempNode,
+                                        Siviglia.model.Root
+                                    );
+                                    node.append(tempNode);
+                                },
+                                onLabelClicked:function(node, params)
+                                {
+                                    console.log("*****LABEL CLICKED*****");
+                                    this.currentKey=params.key;
+                                    this.notifyPathListeners();
+                                },
+                                getInputFor:function(node,params)
+                                {
+                                    if(this.currentWidget!=null) {
+                                        this.currentWidget.destruct();
+                                        this.currentWidget = null;
+                                        node.html("");
+                                    }
+                                    if(params.key==null)
+                                        return;
+
+                                    this.currentWidget=this.__getInputFor(params.key);
+
+                                    node.append(this.currentWidget.rootNode);
+                                },
+                                __getInputFor:function(key)
+                                {
+                                    var l;
+
+                                    var factory=new Siviglia.inputs.jqwidgets.Factory()
+                                    var instance=factory.getInput(this.type.children[key],{controller:this.type.controller});
+
+                                    this.curType=this.type.children[key];
+                                    if(this.curType.definition.LAYOUT)
+                                        l = this.curType.definition.LAYOUT;
+                                    else
+                                        l = "Siviglia.inputs.jqwidgets.DefaultLayout";
+
+                                    var s=Siviglia.Utils.stringToContextAndObject(l);
+                                    return new s.context[s.object](l,{name:key,input:instance},{},$('<div></div>'),Siviglia.model.Root);
+
+                                },
+                                getLabel:function(node,params,event)
+                                {
+                                    var curKey=params.key;
+                                    node.html(this.type.definition.FIELDS[curKey].LABEL || curKey);
+                                },
+                                onRemoveClicked:function(node,params,event)
+                                {
+                                    if(params.key==this.currentKey && this.currentWidget!=null)
+                                    {
+                                        this.currentWidget.destruct();
+                                    }
+                                    this.currentKey=null;
+                                    this.currentWidget=null;
+                                    this.type.removeItem(params.key);
+                                    this.notifyPathListeners();
+                                },
+                                addItem:function(val)
+                                {
+                                    this.type.addItem(val);
+                                    this.onLabelClicked(null,{key:val});
+                                }
+                            }
+                    },
+                Container:
+                    {
+                        inherits:'Dictionary',
+                        destruct:function(){
+                            for(var k in this.subwidgets)
+                                this.subwidgets[k].destruct();
+                            this.Dictionary$destruct();
+                        },
+                        methods: {
+                            preInitialize:function(params)
+                            {
+                                this.subwidgets={};
+                                this.Dictionary$preInitialize(params);
+                            },
+                            getInputFor: function (node, params) {
+
+                                this.subwidgets[params.key]=this.__getInputFor(params.key);
+                                node.append(this.subwidgets[params.key].rootNode);
+                            }
+                        }
+                    },
+                FixedDictionary:
+                    {
+                        inherits:'Dictionary',
+                        methods: {
+                            preInitialize: function (params) {
+                                this.BaseInput$preInitialize(params);
+                                this.currentWidget = null;
+                                this.currentKey = null;
+                            },
+                            buildNewItemWidget: function (node, params) {
+                                if (this.newItemSelector) {
+                                    this.title = "The title";
+                                    this.description = "The Description";
+                                    this.newItemSelector.destruct();
+                                    this.newItemSelector = null;
+                                }
+                                var uinode = this.params.type;
+                                var opts = uinode.getAvailableKeys();
+
+                                if (opts.length > 0) {
+                                    var tempType=new Siviglia.types.Enum({
+                                        "TYPE":"Enum",
+                                        "VALUES":opts
+                                    })
+                                    var factory=new Siviglia.inputs.jqwidgets.Factory();
+
+                                    this.newItemSelector = factory.getInput(tempType);
+
+                                    var m = this;
+                                    this.newItemSelector.on("change", function (ev) {
+                                        var curLabel = m.newItemSelector.getValue();
+                                        var tt = m.type.getPossibleKeys();
+                                        for (var k=0;k<tt.length;k++) {
+                                            if (tt[k] == curLabel) {
+                                                m.onChangeType(tt[k]);
+                                                m.buildNewItemWidget(node, {});
+                                            }
+                                        }
+                                    });
+                                    node.append(this.newItemSelector.node);
+                                }
+
+                            },
+                            onChangeType: function (val) {
+                                this.type.addItem(val);
+                                this.onLabelClicked(null, {key: val});
+
+                            },
+                            onRemoveClicked: function (node, params, event) {
+                                this.DictionaryPainter$onRemoveClicked(node, params, event);
+                                this.buildNewItemWidget(this.newItemNode);
+                            }
+                        }
+
+                    },
+                Array:
+                    {
+                        inherits:'BaseInput',
+                        methods:
+                            {
+                                preInitialize:function(params)
+                                {
+                                    this.BaseInput$preInitialize(params);
+                                    this.values=params.type.getValue()
+                                },
+                                initialize:function(params)
+                                {
+
+                                },
+                                onRemoveClicked:function(node,params)
+                                {
+                                    this.type.remove(params.key);
+                                    this.notifyPathListeners();
+                                },
+                                buildNewItemWidget:function(node,params)
+                                {
+                                    if(this.newItemWidget) {
+                                        this.newItemWidget.destruct();
+                                    }
+                                    node.html("");
+                                    var pp=this.params;
+                                    pp.parent=this;
+                                    var tempNode=$("<div></div>");
+                                    this.newItemWidget=new Siviglia.inputs.jqwidgets.NewItem('Siviglia.inputs.jqwidgets.NewItem',
+                                        pp,
+                                        {},
+                                        tempNode,
+                                        Siviglia.model.Root
+                                    );
+                                    node.append(tempNode);
+                                }
+                            }
+                    },
+                ObjectArray: {
+                    inherits:'BaseInput',
+                    methods: {
+                        preInitialize:function(params)
+                        {
+                            this.BaseInput$preInitialize(params);
+                            this.currentWidget=null;
+                            this.currentKey=null;
+                            this.keyDirection="HORIZONTAL";
+                        },
+                        initialize:function(params)
+                        {
+
+                            this.nElems=this.type.children.length;
+                            this.widgetContainer=$('.currentWidget',this.rootNode);
+                        },
+                        onLabelClicked:function(node, params)
+                        {
+                            if(this.currentWidget)
+                                this.currentWidget.destruct();
+                            this.currentKey=params.index;
+                            var factory=new Siviglia.inputs.jqwidgets.Factory();
+                            this.newItemSelector = factory.getInput(tempType);
+
+                            this.currentWidget=this.painterFactory.factory(this.uinode.children[params.index], this.uinode.parent,{});
+                            this.widgetContainer.append(this.currentWidget.rootNode);
+                        },
+                        getLabel:function(node,params,event)
+                        {
+                            if(typeof this.uinode.definition.VALUELABEL!="undefined")
+                                node.html(this.uinode.getValue()[params.index][this.uinode.definition.VALUELABEL]);
+                            else
+                                node.html(params.index);
+                        },
+                        onRemoveClicked:function(node,params,event)
+                        {
+                            this.uinode.removeItem(params.index);
+                            if(params.index==this.currentKey)
+                            {
+                                this.currentWidget.destruct();
+                            }
+                        },
+                        addItem:function(node)
+                        {
+                            var val=this.uinode.addItem(null);
+                            this.onLabelClicked(null,{index:this.uinode.children.length-1});
+                        },
+                        reload:function(event)
+                        {
+                            this.nElems=this.uinode.children.length;
+                            this.BasePainter$reload(event);
+                        }
+
+                    }
+                },
+                DefaultLayout:
+                    {
+                        inherits: "Siviglia.UI.Widget",
+                        destruct:function()
+                        {
+                            this.Widget$destruct();
+                            this.input.destruct();
+                        },
+                        methods:
+                            {
+                                preInitialize:function(params)
+                                {
+                                    this.label=params.name;
+                                    this.input=params.input;
+                                    if(this.input.type.definition.LABEL)
+                                        this.label=this.input.type.definition.LABEL;
+                                },
+                                initialize:function(params)
+                                {
+                                    this.inputNode.append(this.input.rootNode)
+                                }
+                            }
+                    },
+                NewItem:
+                    {
+                        inherits:"Siviglia.UI.Widget,Siviglia.Dom.EventManager",
+                        methods:
+                            {
+                                preInitialize:function(params)
+                                {
+                                    this.type=params.type;
+                                    this.parent=params.parent;
+                                    this.subType=null;
+                                    this.subInput=null;
+                                    this.params=params;
+
+                                },
+                                initialize:function()
+                                {
+                                    this.type.addListener("CHANGE",this,"paintInput");
+                                    var m=this;
+                                    if (this.type.hasSource()) {
+                                        var source=this.type.getSource(this.type.controller.view,{});
+                                        source.addListener("CHANGE", null, function (ev,data) {
+                                            m.paintInput(data?data.data:null);
+                                        });
+                                        source.fetch();
+                                    }
+                                    else
+                                        this.paintInput(null);
+                                },
+                                paintInput:function(data)
+                                {
+
+                                    var factory=new Siviglia.inputs.jqwidgets.Factory();
+
+                                    if(this.subType)
+                                        this.subType.destruct();
+
+                                    if(this.subInput)
+                                        this.subType.destruct();
+
+                                    if (this.type.hasSource()) {
+
+
+                                        var mapped=[];
+                                        var dataLabel=this.type.getSourceLabel();
+                                        var dataValue=this.type.getSourceValue();
+                                        /*if(data) {
+
+                                            for (var k = 0; k < data.length; k++) {
+                                                var obj = {};
+                                                obj["LABEL"] = (dataLabel == "[[VALUE]]") ? data[k] : data[k][dataLabel];
+                                                obj["VALUE"] = (dataValue == "[[KEY]]") ? k : data[k];
+                                                mapped.push(obj);
+                                            }
+                                        }*/
+                                        if(!data)
+                                            data=[];
+                                        data=this.type.intersect(data);
+                                        this.subType=new Siviglia.types.Enum({
+                                           "TYPE":"Enum",
+                                            "VALUES":data
+                                        });
+                                    }
+                                    else {
+                                        this.subType=new Siviglia.types.String({
+                                            "TYPE":"String"
+                                        });
+                                    }
+                                    this.subInput=factory.getInput(this.subType,{controller:this.parent.type.controller});
+                                    this.inputNode.html('');
+                                    this.inputNode.append(this.subInput.rootNode);
+                                },
+                                onAdd: function () {
+                                    var val=this.subInput.getValue();
+                                    if (val == "") return;
+                                    this.params.type.addItem(val);
+                                    this.parent.notifyPathListeners();
+                                    this.parent.type.controller.notifyPathListeners();
+                                }
+                            }
+                    }
+            }
+        }
+    )
+
+
+</script>
+
+<div style="display:none">
+    <div sivWidget="Siviglia.inputs.jqwidgets.String" widgetParams="type,inputParams"
+         widgetCode="Siviglia.inputs.jqwidgets.String">
+        <input type="text" sivId="inputNode"></input>
+    </div>
+    <div sivWidget="Siviglia.inputs.jqwidgets.Enum" widgetParams="type,inputParams"
+         widgetCode="Siviglia.inputs.jqwidgets.Enum">
+        <div sivId="inputNode"></div>
+    </div>
+    <div sivWidget="Siviglia.inputs.jqwidgets.Integer" widgetParams="type,inputParams"
+         widgetCode="Siviglia.inputs.jqwidgets.Integer">
+        <input sivId="inputNode"></input>
+    </div>
+    <div sivWidget="Siviglia.inputs.jqwidgets.Decimal" widgetParams="type,inputParams"
+         widgetCode="Siviglia.inputs.jqwidgets.Decimal">
+        <input sivId="inputNode"></input>
+    </div>
+    <div sivWidget="Siviglia.inputs.jqwidgets.Text" widgetParams="type,inputParams"
+         widgetCode="Siviglia.inputs.jqwidgets.Text">
+        <textarea sivId="inputNode"></textarea>
+    </div>
+    <div sivWidget="Siviglia.inputs.jqwidgets.Boolean" widgetParams="type,inputParams"
+         widgetCode="Siviglia.inputs.jqwidgets.Boolean">
+        <div sivId="inputNode"></div>
+    </div>
+    <div sivWidget="Siviglia.inputs.jqwidgets.ComboBox" widgetParams="type,inputParams,sourceParams"
+         widgetCode="Siviglia.inputs.jqwidgets.ComboBox">
+        <div sivId="inputNode"></div>
+    </div>
+    <div sivWidget="Siviglia.inputs.jqwidgets.FixedSelect" widgetParams="type,inputParams,sourceParams"
+         widgetCode="Siviglia.inputs.jqwidgets.FixedSelect">
+        <div sivId="inputNode"></div>
+    </div>
+    <div sivWidget="Siviglia.inputs.jqwidgets.Relationship" widgetParams="type,inputParams,sourceParams"
+         widgetCode="Siviglia.inputs.jqwidgets.Relationship">
+        <div sivId="inputNode"></div>
+    </div>
+    <div sivWidget="Siviglia.inputs.jqwidgets.Date" widgetParams="type,inputParams"
+         widgetCode="Siviglia.inputs.jqwidgets.Date">
+        <div sivId="inputNode"></div>
+    </div>
+    <div sivWidget="Siviglia.inputs.jqwidgets.Money" widgetParams="type,inputParams"
+         widgetCode="Siviglia.inputs.jqwidgets.Money">
+        <div sivId="inputNode"></div>
+    </div>
+    <div sivWidget="Siviglia.inputs.jqwidgets.Password" widgetParams="type,inputParams"
+         widgetCode="Siviglia.inputs.jqwidgets.Password">
+        <div sivId="inputNode"></div>
+    </div>
+    <div sivWidget="Siviglia.inputs.jqwidgets.State" widgetParams="type,inputParams"
+         widgetCode="Siviglia.inputs.jqwidgets.Date">
+        <div sivId="inputNode"></div>
+    </div>
+    <div sivWidget="Siviglia.inputs.jqwidgets.Name" widgetParams="type,inputParams"
+         widgetCode="Siviglia.inputs.jqwidgets.Date">
+        <div sivId="inputNode"></div>
+    </div>
+    <div sivWidget="Siviglia.inputs.jqwidgets.Street" widgetParams="type,inputParams"
+         widgetCode="Siviglia.inputs.jqwidgets.Street">
+        <div sivId="inputNode"></div>
+    </div>
+    <div sivWidget="Siviglia.inputs.jqwidgets.City" widgetParams="type,inputParams"
+         widgetCode="Siviglia.inputs.jqwidgets.City">
+        <div sivId="inputNode"></div>
+    </div>
+    <div sivWidget="Siviglia.inputs.jqwidgets.Phone" widgetParams="type,inputParams"
+         widgetCode="Siviglia.inputs.jqwidgets.Phone">
+        <div sivId="inputNode"></div>
+    </div>
+    <div sivWidget="Siviglia.inputs.jqwidgets.UUID" widgetParams="type,inputParams"
+         widgetCode="Siviglia.inputs.jqwidgets.UUID">
+        <div sivId="inputNode"></div>
+    </div>
+    <div sivWidget="Siviglia.inputs.jqwidgets.DefaultLayout" widgetParams="name,input" widgetCode="Siviglia.inputs.jqwidgets.DefaultLayout">
+        <div class="container">
+            <div class="row">
+                <div class="col col-sm-2" sivValue="/*label"></div>
+                <div class="col-sm-10" sivId="inputNode"></div>
+            </div>
+        </div>
+    </div>
+
+    <div sivWidget="Siviglia.inputs.jqwidgets.Dictionary" widgetParams="type,inputParams" widgetCode="Siviglia.inputs.jqwidgets.Dictionary"
+         class="DictionaryType ContainerType">
+        <div class="panel panel-primary">
+            <div class="panel-heading" sivValue="/*title" class="title"></div>
+            <div class="panel-body">
+                <!--<div class="container-fluid">-->
+                <p class="text-info description" sivValue="/*description"></p>
+                <div sivIf="/*hasSimpleType == false">
+                    <div class="row" style="margin-left:0px">
+                        <div style="display:flex">
+                            <div class="containerLabel" width="150px">
+                                <div class="well">
+                                    <ul  class="nav nav-stacked" sivLoop="/*type/getKeys" contextIndex="current">
+                                        <li role="presentation">
+                                            <button class="btn btn-primary" sivValue="/@current" sivEvent="click" sivCallback="onLabelClicked" sivParams='{"key":"/@current"}'></button>
+                                            <span class="removebutton" style="float:right" sivEvent="click" sivCallback="onRemoveClicked" sivParams='{"key":"/@current"}'></span>
+                                        </li>
+                                    </ul>
+                                </div>
+                                <div class="newItemWidget" sivCall="buildNewItemWidget"></div>
+                            </div>
+                            <div sivIf="/*currentKey != null">
+                                <div class="containerInput dictionaryInput">
+                                    <div class="currentWidget" sivCall="getInputFor" sivParams='{"key":"/*currentKey"}'>
+                                    </div>
+                                </div>
+                            </div>
+
+                        </div>
+
+                    </div>
+                </div>
+                <div sivIf="/*hasSimpleType == true" >
+
+                    <div  sivLoop="/*type/getKeys" contextIndex="current">
+
+                        <div style="display:flex">
+                            <div>
+                                <span class="label label-primary" sivValue="/@current"></span>
+                            </div>
+                            <div>
+                                <span sivCall="getInputFor" sivParams='{"key":"/@current"}'></span>
+                            </div>
+                            <div>
+                                <span class="removebutton" style="float:right" sivEvent="click" sivCallback="onRemoveClicked" sivParams='{"key":"/@current"}'></span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="newItemWidget" sivCall="buildNewItemWidget"></div>
+                </div>
+
+                <!--</div>-->
+            </div>
+            <div class="actions">
+                <div class="addItem" sivId="newItemNode"></div>
+                <div style="float:right" class="saveNode" sivId="saveNode">
+                    <input type="button" value="Guardar" sivEvent="click" sivCallback="doSave">
+                </div>
+                <div style="clear:both"></div>
+            </div>
+        </div>
+    </div>
+<!--
+    ----------------------------------------------------------------------------------------
+-->
+    <div sivWidget="Siviglia.inputs.jqwidgets.Container" widgetParams="type,inputParams" widgetCode="Siviglia.inputs.jqwidgets.Container"
+         class="ContainerType">
+        <div class="panel panel-primary">
+            <!--<div class="panel-heading" sivValue="/*title" class="title"></div>-->
+            <div class="panel-body">
+                <p class="text-info description" sivValue="/*description"></p>
+                <div class="inputs container" sivLoop="/*type/getKeys" contextIndex="current">
+                    <div class="row">
+                        <div class="col col-sm-1 col-md-1">
+                            <label class="text-primary"  class="control-label" sivCall="getLabel" sivParams='{"key":"/@current"}'></label>
+                        </div>
+                        <div class="col col-sm-11 col-md-11">
+
+                                <div sivCall="getInputFor" sivParams='{"key":"/@current"}'></div>
+
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+<!--
+    --------------------------------------------------------------------------------------------
+-->
+
+
+        <div sivWidget="Siviglia.inputs.jqwidgets.FixedDictionary" widgetParams="type,inputParams" widgetCode="Siviglia.inputs.jqwidgets.FixedDictionary"
+             class="DictionaryType ContainerType">
+            <div class="panel panel-primary">
+                <div class="panel-heading" sivValue="/*title" class="title"></div>
+                <div class="panel-body">
+                    <p class="text-info description" sivValue="/*description"></p>
+
+                    <div class="row" style="margin-bottom:10px;margin-left:0px">
+                        <div class="containerLabel well" style="margin-right:5px">
+
+                            <ul  class="nav nav-stacked" sivLoop="/*type/getKeys" contextIndex="current">
+                                <li role="presentation">
+                                    <button class="btn btn-primary" sivValue="/@current" sivEvent="click" sivCallback="onLabelClicked" sivParams='{"key":"/@current"}'></button>
+                                    <span class="removebutton" style="float:right" sivEvent="click" sivCallback="onRemoveClicked" sivParams='{"key":"/@current"}'></span>
+                                </li>
+                            </ul>
+
+                            <div class="newItemWidget" sivId="newItemNode" sivCall="buildNewItemWidget" ></div>
+                        </div>
+                        <div class="containerInput dictionaryInput" style="padding-right:10px;padding-left:10px">
+                            <div class="currentWidget" sivCall="getInputFor" sivParams='{"key":"/*currentKey"}'>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="actions">
+                        <div class="addItem" sivId="newItemNode"></div>
+                        <div style="clear:both"></div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+<!--
+    ------------------------------------------------------------------------------------------------------
+    -->
+
+            <div sivWidget="Siviglia.inputs.jqwidgets.Array" widgetParams="parentObject,parentNode,value" widgetCode="Siviglia.inputs.jqwidgets.Array" class="ArrayType">
+                <p class="text-info description" sivValue="/*description"></p>
+
+                <div sivLoop="/*type/children" contextIndex="current" class="arrayValues" style="min-height:20px;margin-bottom:5px">
+                    <span class="label label-primary" style="margin-right:4px;font-size:14px">
+                        <span sivValue="/@current/value"></span>
+                        <span class="remove ion-close-circled " style="color:red;padding-left:5px" sivEvent="click" sivCallback="onRemoveClicked" sivParams='{"key":"/@current"}'></span>
+                    </span>
+                </div>
+
+                <div sivCall="buildNewItemWidget"></div>
+            </div>
+    <!--
+    ------------------------------------------------------------------------------------------------------
+    -->
+                <div sivWidget="Siviglia.inputs.jqwidgets.ObjectArray" widgetParams="parentObject,parentNode,value" widgetCode="Siviglia.inputs.jqwidgets.ObjectArray" class="ArrayType">
+                    <p class="text-info description" sivValue="/*description"></p>
+                    <div class="row" style="margin-left:0px">
+
+                        <div sivIf="/*keyDirection == VERTICAL">
+                            <div style="display:flex">
+                                <div class="well">
+                                    <ul  class="nav nav-stacked" sivLoop="/*type/children" contextIndex="current">
+                                        <li role="presentation">
+                                            <button class="btn btn-primary" sivCall="getLabel" sivValue="/@current" sivEvent="click" sivCallback="onLabelClicked" sivParams='{"index":"/@current-index"}'></button>
+                                            <span class="removebutton" style="float:right" sivEvent="click" sivCallback="onRemoveClicked" sivParams='{"key":"/@current-index"}'></span>
+                                        </li>
+                                    </ul>
+                                    <div class="newItemWidget" sivId="newItemNode">
+                                        <input type="button" sivEvent="click" sivCallback="addItem">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div sivIf="/*keyDirection == HORIZONTAL">
+                            <div>
+                                <span class="newItemWidget add" sivId="newItemNode" sivEvent="click" sivCallback="addItem">
+                                </span>
+                                <span  sivLoop="/*type/children" contextIndex="current">
+                                    <span class="label label-primary" style="display:inline-block;margin-right:4px;font-size:14px">
+                                        <span sivCall="getLabel"  sivEvent="click" sivCallback="onLabelClicked" sivParams='{"index":"/@current-index"}'></span>
+                                        <span class="removebutton" sivEvent="click" sivCallback="onRemoveClicked" sivParams='{"key":"/@current-index"}'></span>
+                                    </span>
+                                </span>
+                            </div>
+                        </div>
+                        <div class="containerInput dictionaryInput">
+                            <div class="currentWidget">
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+     <!--
+            ---------------------------------------------------------------------------------------
+            -->
+    <div sivWidget="Siviglia.inputs.jqwidgets.NewItem" widgetParams="parentObject,parentNode" widgetCode="Siviglia.inputs.jqwidgets.NewItem" class="NewItem">
+            <div style="display:table-row">
+                <div style="display:table-cell" sivId="inputNode">
+                </div>
+                <div style="display:table-cell;vertical-align: top;line-height: 1.0;font-size: 20px;"><div sivEvent="click" sivCallback="onAdd" class="add"></div></div>
+            </div>
+    </div>
+    <!--
+    <div sivWidget="AUTOPAINTER_TypeSwitcher" widgetParams="parentObject,parentNode" widgetCode="Siviglia.AutoUI.Painter.TypeSwitchPainter" class="TypeSwitchType">
+        <div class="panel panel-primary">
+
+            <div class="panel-body">
+                <div sivId="fieldContainer"></div>
+                <div class="typeChanger">
+                    <div sivId="typeSwitchSelector">
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+-->
+
+</div>
+
