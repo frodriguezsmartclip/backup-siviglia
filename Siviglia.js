@@ -154,7 +154,7 @@ Siviglia.Utils.stringToContextAndObject = function (str, startContext,defContext
     var l = contexts.length;
     if (l == 1 && defContext)return {
         context: defContext,
-        object: str        
+        object: str
     };
 
     if(!startContext)
@@ -245,14 +245,14 @@ Siviglia.Utils.buildClass = function (definition) {
                 if (i == 0) {
                     var parts=inherits[i].split(".");
                     var baseClassName;
-                    if(parts.length==1) 
+                    if(parts.length==1)
                          baseClassName=context+"."+inherits[i];
                     else
                         baseClassName=inherits[i];
 
                     baseClass = c.object;
                     var curBaseClass=c.context[c.object];
-                    if(Siviglia.isset(definition.classes[k].construct))                     
+                    if(Siviglia.isset(definition.classes[k].construct))
                         contextObj[k]=definition.classes[k].construct;
                     else
                         eval(context+"."+k+"=function(){"+baseClassName+".apply(this,arguments);};");
@@ -340,7 +340,7 @@ Element.prototype.prependChild = function (child) {
 };
 
 /*
- Sistema de gestion de ventos (listeners) 
+ Sistema de gestion de ventos (listeners)
 
  */
 Siviglia.Utils.buildClass({
@@ -634,11 +634,11 @@ Siviglia.Utils.buildClass(
                         this.pathListeners.concat(this.newListeners);
                         this.notifying=false;
                     }
-                    
+
                 }
 
             }
-        },                
+        },
     }
 )
 /**
@@ -682,7 +682,7 @@ Siviglia.Utils.buildClass(
                         }
                         return true;
                     },
-                    reset: function () {
+                    reset: 7function () {
                     }
                 }
             }
@@ -1386,7 +1386,7 @@ Siviglia.Utils.buildClass(
                         }
                         if(this.oManager)
                             this.oManager.destruct();
-                        //this.oManager=new Siviglia.UI.Dom.Expando.ExpandoManager(nodeManager.pathRoot,nodeManager.contextObj);                                               
+                        //this.oManager=new Siviglia.UI.Dom.Expando.ExpandoManager(nodeManager.pathRoot,nodeManager.contextObj);
                         this.oManager = new Siviglia.UI.Dom.Expando.ExpandoManager(pathRoot, contextObj);
                         this.oManager.setOwner(this);
                         this.context = contextObj;
@@ -1481,7 +1481,7 @@ Siviglia.Utils.buildClass(
                     if(!Siviglia.isset(Siviglia.__expandoCount))
                         Siviglia.__expandoCount=0;
                     this.eid=Siviglia.__expandoCount;
-                    
+
 
                     if(typeof this.__proto__.counter=="undefined") {
                         this.__proto__.counter = 0;
@@ -1499,7 +1499,7 @@ Siviglia.Utils.buildClass(
                     this.pathRoot = null;
                     this.expandos = null;
                     this.destroyed=true;
-                    
+
                     delete this.__proto__.store[this.__objid__];
                     this.__proto__.nObjs--;
                 },
@@ -1650,7 +1650,7 @@ Siviglia.Utils.buildClass(
                         this.context = contextObj;
                         this.pathRoot = pathRoot;
                         node.removeAttr("sivWidget");
-                        //node[0].parentNode.removeChild(node[0]);                        
+                        //node[0].parentNode.removeChild(node[0]);
                         //this.Expando$initialize(node,nodeManager,pathRoot,contextObj,caller);
                         return false;
                     },
@@ -1866,12 +1866,12 @@ Siviglia.Utils.buildClass(
                                 this.resultPromise=result;
                         }
                         var m=this;
-                        
+
                         this.resultPromise.then(
                             function(v){
                                 if(m.destroyed)
                                     return;
-                                
+
                                 m.afterPreInitialize(widgetInstance,caller, node, params, widgetParams, pathRoot, contextObj);
                                 if (m.viewObject && m.viewObject.initialize) {
                                     m.viewObject.initialize(m.params);
@@ -1936,7 +1936,7 @@ Siviglia.Utils.buildClass(
 
 
 /*
- Instalacion de gestores de expandos 
+ Instalacion de gestores de expandos
 
  */
 
@@ -2628,7 +2628,7 @@ Siviglia.Utils.buildClass(
                 methods: {
                     parseString:function(str,tag,listener)
                     {
-                        if(str.toString().substr(0,1)!="/") 
+                        if(str.toString().substr(0,1)!="/")
                             return str;
                         return this.getPath(str, listener, this.context);
 
@@ -2882,8 +2882,8 @@ String.prototype.cTrim=function( characters) {
     }
     // Characters is set at this point forward
     // Validate characters just in case there are invalid usages
-    var escaped = characters.replace(/([.*+?^=!:${}()|\[\]\/\\])/g, '\\$1');    
-    var target = new RegExp('^[' + escaped + ']+|[' + escaped + ']+$',"g");    
+    var escaped = characters.replace(/([.*+?^=!:${}()|\[\]\/\\])/g, '\\$1');
+    var target = new RegExp('^[' + escaped + ']+|[' + escaped + ']+$',"g");
     // Remove the characters from the string
     return this.replace(target, '');
 };
@@ -3119,7 +3119,7 @@ Siviglia.Utils.buildClass({
         ParametrizableStringException:{
             construct:function(message)
             {
-                this.message=message;                
+                this.message=message;
             }
         },
         ParametrizableString:
@@ -3151,7 +3151,7 @@ Siviglia.Utils.buildClass({
                     var params=Siviglia.issetOr(this.params,{});
                     var str=this.str;
                     var m=this,r=this.BASEREGEXP,res,f=str;
-                    while(res=r.exec(str)) 
+                    while(res=r.exec(str))
                         f=f.replace(res[0], this.parseTopMatch(res,params));
                     this.parsing=false;
                     return f;
@@ -3159,7 +3159,7 @@ Siviglia.Utils.buildClass({
                 parseTopMatch:function(match,params)
                 {
                     // Match simple
-                    
+
                     if(typeof match[1]!=="undefined")
                     {
                         try {
@@ -3176,7 +3176,7 @@ Siviglia.Utils.buildClass({
                     {
                         var paramName=t;
                         var negated=(t.substr(0,1)=="!");
-                        if(negated) 
+                        if(negated)
                             paramName=t.substr(1);
                         try
                         {
@@ -3189,10 +3189,10 @@ Siviglia.Utils.buildClass({
                     else
                         mustInclude=this.parseComplexTag(t1,params);
                     if(mustInclude)
-                    {                        
+                    {
                         var reg=new RegExp(this.BODYREGEXP);
                         var m=this,bodyMatch,replacements=[];
-                        
+
                         while(bodyMatch=reg.exec(match[4])) {
                             var replacement=this.parseBody(bodyMatch,params);
                             replacements.push({s:bodyMatch[0],r:replacement});
@@ -3207,7 +3207,7 @@ Siviglia.Utils.buildClass({
                 },
                 getValue:function(path,params)
                 {
-                    if(path.substr(0,1)=="/") 
+                    if(path.substr(0,1)=="/")
                         return this.getPath(path);
                     try
                     {
@@ -3266,7 +3266,7 @@ Siviglia.Utils.buildClass({
 
                     var r=this.PARAMREGEXP,res;
                     while(res= r.exec(match[3]))
-                    {                    
+                    {
                         var func=typeof res[1]=="undefined"?null:res[1];
                         var args=typeof res[2]=="undefined"?null:res[2];
                         if(func=="default" && cVal==null)
@@ -3282,7 +3282,7 @@ Siviglia.Utils.buildClass({
                             }
                             cVal=this.controller[func](cVal);
                             continue;
-                            
+
                         }
                         /* //this.SUBPARAMREGEXP=/('[^']*')|([^ ]+)/g; */
                         var r2=new RegExp(this.SUBPARAMREGEXP);
@@ -3291,7 +3291,7 @@ Siviglia.Utils.buildClass({
                         var cur;
                         while(cRes=r2.exec(args)) {
                             cur=Siviglia.isset(cRes[0])?cRes[0].cTrim("'"):cRes[1];
-                            pars.push(cur=="@@"?cVal:this.getPath(cur));                            
+                            pars.push(cur=="@@"?cVal:this.getPath(cur));
                         }
                         cVal=this.controller[func].apply(this.controller,pars);
                     }
@@ -3304,13 +3304,13 @@ Siviglia.Utils.buildClass({
                         var c=parts[k];
                         var sparts=c.split(" ");
                         var negated=(sparts[0].substr(0,1)=='!');
-                        if(negated) 
+                        if(negated)
                             tag=sparts[0].substr(1);
                         else
                             tag=sparts[0];
                         if(sparts.length==1) {
-                            if(negated) 
-                                if(Siviglia.isset(params[tag])) 
+                            if(negated)
+                                if(Siviglia.isset(params[tag]))
                                     return false;
                                 continue;
                         }
@@ -3320,10 +3320,10 @@ Siviglia.Utils.buildClass({
                             curValue=this.getValue(tag,params);
                         }catch (e){
                             throw new Siviglia.Utils.ParametrizableStringException("Parameter not found:"+param);
-                        }                        
-                            
+                        }
+
                         var result=false;
-                        
+
                         switch(sparts[1]) {
                             case "is":{
                                 result=Siviglia["is"+sparts[2].ucfirst()](curValue);
@@ -3363,7 +3363,7 @@ Siviglia.Utils.buildClass({
                 return r;
             }
             if(Siviglia.isPlainObject(object)) {
-                var r={};                
+                var r={};
                 for(var k in object) {
                     r[k]=this.applyRecursive(object[k],params);
                 }
