@@ -462,7 +462,14 @@ Siviglia.Utils.buildClass({
                     this.notifying = true;
                     var k;
                     var obj;
-                    for (k = 0; k < this.listeners[evType].length; k++) {
+                    // Hay que capturar aqui cuantos listeners de este tipo hay, y hacer el bucle sobre
+                    // esos elementos, evitando los listeners de este mismo tipo que se puedan añadir durante
+                    // la ejecución del bucle.
+                    var nListeners=this.listeners[evType].length;
+                    console.log("NOTIFY: "+evType+" LENGTH:"+nListeners);
+                    if(nListeners > 2)
+                        debugger;
+                    for (k = 0; k < nListeners; k++) {
                         obj = this.listeners[evType][k];
                         if (obj.obj) {
                             if(typeof obj.obj=="function")
@@ -487,6 +494,7 @@ Siviglia.Utils.buildClass({
                     }
                 },
                 fireEvent: function (event, data, target) {
+                    if (!this.listeners)return;
                     if(data!==null) {
                         if (typeof data != "undefined")
                             data.target = target;
@@ -568,7 +576,7 @@ Siviglia.Utils.buildClass(
                         // NotifyPathListeners se ha complicado con los paths anidados dinamicos:
                         // Supongamos 1 widget con un path anidado, ej /*a/{/*b}, y con datos a:{"uno":1,"dos":2} y b:"uno"
                         // Esa expresion debe dar como resultado "1"
-                        // Pueden pasar dos cosas: que cambie "b" (por ejemplo, a 2) y que cambie a.uno , a 2.
+                        // Pueden pasar dos cosas: que cambie "b" (por ejemplo, a "dos") y que cambie a.uno , a 2.
                         // Si cambia b, el listener que debe notificar es el anidado.
                         // Si se cambia a.uno, el listener que debe notificar es el padre del anidado, es decir, el externo.
                         // Esto significa que ambos objetos deben ser listeners del widget. Y que el listener anidado, si al cambiar, llama al
@@ -682,7 +690,7 @@ Siviglia.Utils.buildClass(
                         }
                         return true;
                     },
-                    reset: 7function () {
+                    reset: function () {
                     }
                 }
             }
@@ -1662,7 +1670,8 @@ Siviglia.Utils.buildClass(
                     getControllerInstance: function (view) {
                         if (this.widgetCode) {
                             var c = Siviglia.Utils.stringToContextAndObject(this.widgetCode);
-
+                            if(typeof c.context[c.object]=="undefined")
+                                console.log(this.widgetCode);
                             return new c.context[c.object](view.widgetName, view.params, view.nodeParams, null, view.pathRoot, view);
                         }
                         return null;
@@ -2329,9 +2338,10 @@ Siviglia.Utils.buildClass(
                     },
                     getPath: function (str, listener, context) {
 
-                        if (str.substr(0, 1) != '/') return listener.setValue(str);
+                        if (str.substr(0, 1) != '/')
+                            return listener.setValue(str);
                         // Se buscan subPaths dinamicos.
-                        var stack=this.__getSubPaths(str,listener);
+                        //var stack=this.__getSubPaths(str,listener);
                         str=listener.getEffectivePath(str);
 
                         // Se buscan los subPaths.Estos subPaths NO son dinamicos.Se resuelven estaticamente.

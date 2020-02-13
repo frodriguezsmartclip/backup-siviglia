@@ -48,6 +48,7 @@
     }
 </style>
 <script>
+
     Siviglia.Utils.buildClass(
         {
             context: 'Siviglia.inputs.jqwidgets',
@@ -110,18 +111,14 @@
                     methods: {
                         preInitialize: function (params) {
                             this.errored = false;
-                            this.programaticallyChanging = false;
                             this.controller = this.view.parentWidget;
-
+                            this.changing=false;
                             this.errorMessage = "";
                             this.type = params.type;
 
                             if(this.controller && this.controller.notifyPathListeners)
                             {
-                                var self=this;
-                                this.type.addListener("CHANGE",null,function(p){
-                                    self.controller.notifyPathListeners();
-                                });
+                                this.type.addListener("CHANGE",this,"notifyParent");
                             }
                             this.helpMessage = Siviglia.issetOr(this.type.definition.HELP, null);
                             this.hasHelpMessage = (this.helpMessage != null ? true : false);
@@ -135,14 +132,29 @@
                             this.inputNode[this.getJqxWidgetName()]('theme', 'light');
                             var m = this;
                             this.inputNode.on("change", function () {
-                                if (m.programaticallyChanging)
+                                if (m.changing)
                                     return;
-                                if (m.validate())
-                                    m.type.setValue(m.getValue());
+                                m.changing=true;
+                                try {
+                                    if (m.validate())
+                                        m.type.setValue(m.getValue());
+                                }catch(e)
+                                {
+
+                                }
+                                m.changing=false;
                             })
                             if (this.type.is_set()) {
                                 var toSet = this.type.getValue();
                                 this._setInputValue(toSet);
+                            }
+                        },
+                        notifyParent:function()
+                        {
+                            if(!this.changing) {
+                                debugger;
+                                console.log("--------------NOTIFY PARENT-----------------");
+                                 this.controller.notifyPathListeners();
                             }
                         },
                         getDefaultInputOptions: function () {
@@ -153,9 +165,9 @@
                             return this.callInp(options)
                         },
                         _setInputValue: function (toSet) {
-                            this.programaticallyChanging = true;
+                            this.changing = true;
                             this.inputNode[this.getJqxWidgetName()]('val', toSet);
-                            this.programaticallyChanging = false;
+                            this.changing = false;
                         },
                         getValue: function () {
                             return this.inputNode[this.getJqxWidgetName()]('val');
@@ -300,6 +312,7 @@
                          decimalSeparator: ".", groupSeparator: ",", groupSize: 3, symbol: "", symbolPosition: "left", digits: 8, negative: false, negativeSymbol: "-", disabled: false, inputMode: "advanced", spinButtons: false, spinButtonsWidth: 18, spinButtonsStep: 1, autoValidate: true, spinMode: "advanced", enableMouseWheel: true, touchMode: "auto", rtl: false, events: ["valueChanged", "textchanged", "mousedown", "mouseup", "keydown", "keyup", "keypress", "change"], aria: {"aria-valuenow": {name: "decimal", type: "number"}, "aria-valuemin": {name: "min", type: "number"}, "aria-valuemax": {name: "max", type: "number"}, "aria-disabled": {name: "disabled", type: "boolean"}}, invalidArgumentExceptions: ["invalid argument exception"]};
                          */
                         getDefaultInputOptions: function () {
+
                             return {decimalDigits: 0};
                         },
                         getJqxWidgetName: function () {
@@ -369,7 +382,7 @@
                                 this.inputNode.jqxCheckBox({checked: true});
                         },
                         getValue: function () {
-                            return this.node.val() ? "1" : "0";
+                            return this.inputNode.val() ? "1" : "0";
                         }
                     }
                 },
@@ -378,40 +391,37 @@
                     methods: {
                         preInitialize: function (params) {
                             this.preprocessParams(params);
-                            this.changingProgramatically = false;
+                            this.source=null;
+                            this.dataBinding=false;
                             this.BaseInput$preInitialize(params);
                         },
                         initialize: function (params) {
-                            this.sourceParameters = Siviglia.issetOr(params.sourceParams, null);
-                            this.disabled = false;
-                            this.searchString = null;
-                            if (this.sourceParameters) {
-                                for (var k in this.sourceParameters) {
-                                    if (this.sourceParameters[k] === null ||
-                                        !Siviglia.isset(this.sourceParameters[k])) {
-                                        this.disabled = true;
-                                        this.type.unset();
-                                    }
-                                }
-                            }
-                            else {
-                                this.sourceParameters = {};
-                            }
 
                             var opts = this.getDefaultInputOptions();
-                            for (var k in this.inputParams)
-                                opts[k] = this.inputParams[k];
+                          //  for (var k in this.inputParams)
+                          //      opts[k] = this.inputParams[k];
                             this.createInput(opts);
                             this.inputNode[this.getJqxWidgetName()]('theme', 'light');
                             var m = this;
-                            this.inputNode.on("select", function () {
-                                var idx = m.inputNode.jqxComboBox("selectedIndex");
-                                if (idx == null) {
-                                    m.type.setValue(null);
-                                    return;
+                            this.inputNode.on("select", function (ev) {
+                                if(!m.dataBinding) {
+                                    if (ev.args) {
+                                        m.changing = true;
+                                        var newVal = ev.args.item.value;
+                                        if (newVal == -1) {
+                                            m.type.setValue(null);
+
+                                        } else {
+                                            if (m.validate())
+                                                m.type.setValue(m.getValue());
+                                        }
+                                        m.changing = false;
+                                    }
                                 }
-                                if (m.validate())
-                                    m.type.setValue(m.getValue());
+                                else
+                                {
+                                    m._setInputValue(null);
+                                }
                             })
 
 
@@ -425,11 +435,9 @@
 
                         },
                         preprocessParams: function (params) {
-                            this.searchField = params.inputParams.searchField;
-                            this.valueField = params.inputParams.valueField;
-                            delete params.inputParams.searchField;
-                            delete params.inputParams.valueField;
-
+                            var s=this.type.getSource();
+                            this.labelField = s.getLabelField();
+                            this.valueField = s.getValueField();
                         },
                         getValue: function () {
                             var v = this.inputNode.jqxComboBox('val');
@@ -454,12 +462,12 @@
                                 autoBind: false,
                                 minLength: 1,
                                 remoteAutoComplete: true,
-                                displayMember: this.getSearchField(),
+                                displayMember: this.getLabelField(),
                                 valueMember: this.getValueField(),
                                 autoDropDownHeight: true,
                                 width: 200,
                                 height: 25,
-                                placeHolder:Siviglia.issetOr(this.inputParams["placeholder"],null),
+                                placeHolder:Siviglia.issetOr(this.inputParams["placeholder"],"--Select"),
                                 search: function (str) {
                                     self.searchString = str;
                                     self.refresh();
@@ -467,18 +475,28 @@
                             };
                         },
                         _setInputValue: function (toSet) {
-                            if (this.programaticallyChanging)
+                            if (this.changing)
                                 return;
-                            this.programaticallyChanging = true;
-                            var item = this.inputNode.jqxComboBox('getItemByValue', toSet);
-                            if (item) {
-                                this.inputNode.jqxComboBox('selectItem', item);
-                                this.inputNode.jqxComboBox('val', item.label);
+                            this.changing = true;
+                            if(toSet==null)
+                            {
+
+                                this.inputNode.jqxComboBox('selectItem',-1);
+                                this.inputNode.jqxComboBox('val','');
+                                this.type.setValue(null);
+
                             }
-                            this.programaticallyChanging = false;
+                            else {
+                                var item = this.inputNode.jqxComboBox('getItemByValue', toSet);
+                                if (item) {
+                                    this.inputNode.jqxComboBox('selectItem', item);
+                                    this.inputNode.jqxComboBox('val', item.label);
+                                }
+                            }
+                            this.changing = false;
                         },
-                        getSearchField: function () {
-                            return this.searchField;
+                        getLabelField: function () {
+                            return this.labelField;
                         },
                         getValueField: function () {
                             return this.valueField;
@@ -502,22 +520,45 @@
 
                         },
                         getSource: function (params) {
-                            var self = this;
-                            this.inputNode.jqxComboBox('val', null);
-                            //this.type.clear();
-                            this.type.loadSource(params).then(function (s) {
-                                self.dataSource.localdata = s;
-                                self.dataAdapter.dataBind();
-                                if (self.type.is_set()) {
-                                    var toSet = self.type.getValue();
-                                    var it = self.inputNode.jqxComboBox('getItemByValue', toSet);
-                                    if (it) {
-                                        self._setInputValue(toSet);
-                                    }
-                                    else
-                                        self.type.unset();
+                            if(this.source==null) {
+                                //this.type.clear();
+                                var plainCtx = new Siviglia.Path.BaseObjectContext(this.controller, "*");
+                                var s = this.type.getSource();
+                                s.addContext(plainCtx);
+                                s.addListener("CHANGE", this, "onSourceChanged");
+
+                                this.source=s;
+                            }
+                            this.source.fetch();
+                            return this.source;
+
+                        },
+                        onSourceChanged:function(evName,data)
+                        {
+                            var self=this;
+                            var s=this.type.source.getValueField();
+                            self.dataSource.localdata = data.value==null?[]:data.value;
+                            // La llamada a dataBind genera un problema en select anidados:
+                            // Si existen dos select anidados, S1 y S2, ocurre lo siguiente:
+                            // Inicialmente, S1 y S2 están en blanco. Se selecciona un item de S1. S2 sigue en blanco.
+                            // Se selecciona ahora un valor de S2.
+                            // Posteriormente, se cambia el valor de S1. El valor de S2 ahora deberia ponerse en blanco,
+                            // ya que su valor dependia del valor antiguo de S1.
+                            // En vez de eso, lo que ocurre es que al llamar a dataBind, se genera un evento "select", y se
+                            // autoselecciona el primer valor del nuevo set de datos asignado a S2.
+                            // Por eso, se marca que estamos haciendo el databind, para controlarlo en el gestor de eventos.
+                            this.dataBinding=true;
+                            self.dataAdapter.dataBind()
+                            this.dataBinding=false;
+                            if (self.type.is_set()) {
+                                var toSet = self.type.getValue();
+                                var it = self.inputNode.jqxComboBox('getItemByValue', toSet);
+                                if (it) {
+                                    self._setInputValue(toSet);
                                 }
-                            });
+                                else
+                                    self.type.unset();
+                            }
                         }
 
                     }
@@ -653,6 +694,7 @@
                                     this.BaseInput$preInitialize(params);
                                     this.currentWidget=null;
                                     this.currentKey=null;
+                                    this.params=params;
                                 },
                                 initialize:function(params)
                                 {
@@ -699,9 +741,9 @@
                                     var l;
 
                                     var factory=new Siviglia.inputs.jqwidgets.Factory()
-                                    var instance=factory.getInput(this.type.children[key],{controller:this.type.controller});
+                                    var instance=factory.getInput(this.type["_"+key],{controller:this.type.controller});
 
-                                    this.curType=this.type.children[key];
+                                    this.curType=this.type["_"+key];
                                     if(this.curType.definition.LAYOUT)
                                         l = this.curType.definition.LAYOUT;
                                     else
@@ -745,6 +787,7 @@
                         methods: {
                             preInitialize:function(params)
                             {
+                                debugger;
                                 this.subwidgets={};
                                 this.Dictionary$preInitialize(params);
                             },
@@ -835,8 +878,10 @@
                                         this.newItemWidget.destruct();
                                     }
                                     node.html("");
-                                    var pp=this.params;
-                                    pp.parent=this;
+                                    if(typeof params=="undefined")
+                                        params={};
+                                    var pp={parent:this}
+
                                     var tempNode=$("<div></div>");
                                     this.newItemWidget=new Siviglia.inputs.jqwidgets.NewItem('Siviglia.inputs.jqwidgets.NewItem',
                                         pp,
@@ -967,19 +1012,6 @@
 
                                     if (this.type.hasSource()) {
 
-
-                                        var mapped=[];
-                                        var dataLabel=this.type.getSourceLabel();
-                                        var dataValue=this.type.getSourceValue();
-                                        /*if(data) {
-
-                                            for (var k = 0; k < data.length; k++) {
-                                                var obj = {};
-                                                obj["LABEL"] = (dataLabel == "[[VALUE]]") ? data[k] : data[k][dataLabel];
-                                                obj["VALUE"] = (dataValue == "[[KEY]]") ? k : data[k];
-                                                mapped.push(obj);
-                                            }
-                                        }*/
                                         if(!data)
                                             data=[];
                                         data=this.type.intersect(data);
@@ -1000,9 +1032,8 @@
                                 onAdd: function () {
                                     var val=this.subInput.getValue();
                                     if (val == "") return;
-                                    this.params.type.addItem(val);
+                                    this.params.type[val]=null;
                                     this.parent.notifyPathListeners();
-                                    this.parent.type.controller.notifyPathListeners();
                                 }
                             }
                     }
@@ -1024,11 +1055,11 @@
     </div>
     <div sivWidget="Siviglia.inputs.jqwidgets.Integer" widgetParams="type,inputParams"
          widgetCode="Siviglia.inputs.jqwidgets.Integer">
-        <input sivId="inputNode"></input>
+        <div sivId="inputNode"></div>
     </div>
     <div sivWidget="Siviglia.inputs.jqwidgets.Decimal" widgetParams="type,inputParams"
          widgetCode="Siviglia.inputs.jqwidgets.Decimal">
-        <input sivId="inputNode"></input>
+        <div sivId="inputNode"></div>
     </div>
     <div sivWidget="Siviglia.inputs.jqwidgets.Text" widgetParams="type,inputParams"
          widgetCode="Siviglia.inputs.jqwidgets.Text">
@@ -1169,6 +1200,7 @@
                 <div class="inputs container" sivLoop="/*type/getKeys" contextIndex="current">
                     <div class="row">
                         <div class="col col-sm-1 col-md-1">
+                            <span>aaaa</span>
                             <label class="text-primary"  class="control-label" sivCall="getLabel" sivParams='{"key":"/@current"}'></label>
                         </div>
                         <div class="col col-sm-11 col-md-11">

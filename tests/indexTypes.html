@@ -1,8 +1,12 @@
 <html>
 <head>
-    <script src="../jquery.min.js"></script>
+
+    <script src="/node_modules/jquery/dist/jquery.js"></script>
     <script src="../Siviglia.js"></script>
     <script src="../SivigliaTypes.js"></script>
+    <script src="../SivigliaPaths.js"></script>
+    <script src="../SivigliaStore.js"></script>
+    <script src="../Model.js"></script>
     <script>
         var t1={
             "TYPE":"Container",
@@ -17,18 +21,22 @@
                 }
             }
         };
-        var f=new Siviglia.types._TypeFactory();
-        var instance=f.getType(t1);
+        var f=Siviglia.types.TypeFactory;
+        var instance=f.getType(null,t1);
         instance.set({"Uno":"lalas","Dos":12});
         instance.validate({"Uno":"lalaa","Dos":15});
-        f.addNamedType("EXAMPLE",t1);
-        var ins=f.getType({"TYPE":"Dictionary","VALUETYPE":"EXAMPLE"});
+        //f.addNamedType("EXAMPLE",t1);
+        var ins=f.getType(null,{"TYPE":"Dictionary","VALUETYPE":t1});
         debugger;
         ins.set({
             "Primera":{"Uno":"lalas","Dos":12},
             "Segunda":{"Dos":22,"Uno":"wannn"}
         });
-        ins.removeItem("Segunda");
+        ins["_[[KEYS]]"].addListener("CHANGE",function(evName,data){
+            console.dir(data.value);
+        })
+        v=ins.getValue();
+        delete v["Segunda"];
     </script>
 </head>
 <body>
@@ -54,3 +62,4 @@
 </script>
 </body>
 </html>
+

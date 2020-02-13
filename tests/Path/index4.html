@@ -1,0 +1,63 @@
+<html>
+<head>
+    <script src="/node_modules/jquery/dist/jquery.min.js"></script>
+    <script src="../../Siviglia.js"></script>
+    <script src="../../SivigliaPaths.js"></script>
+    <style type="text/css">
+        .estilo1 {color:red}
+        .estilo2 {color:blue}
+    </style>
+    <script src="../../SivigliaTypes.js"></script>
+    <script>
+
+        var sampleObj={
+
+            c:"z",
+            d:{
+                q:1,
+                h:2
+            },
+            e:{
+                "z":"q",
+                "p":"h"
+            }
+        }
+        var sampleObj2={
+            x:{
+                y:"q"
+            }
+        };
+
+        var str="La cadena es [%/d/{@x/y}%]";
+        var stack=new Siviglia.Path.ContextStack();
+        var plainCtx=new Siviglia.Path.BaseObjectContext(sampleObj,"",stack);
+        var plain2=new Siviglia.Path.BaseObjectContext(sampleObj2,"@",stack);
+        var pString=new Siviglia.Path.ParametrizableString(str,stack);
+        pString.addListener("CHANGE",null,function(ev,params){
+            console.log("CAMBIO:"+params.value);
+        })
+        console.log(pString.parse());
+        setTimeout(function(){sampleObj2.x.y="h";},2000);
+        setTimeout(function(){sampleObj2.x.y=null;},4000);
+        setTimeout(function(){
+            debugger;
+            sampleObj2.x.y="q";
+            },5000);
+
+    </script>
+</head>
+<body>
+
+
+<script>
+    var remoteRoot=new Siviglia.model.RemotePath("http://127.0.0.1/buscando");
+    var tmp=new Siviglia.UI.Dom.Expando.ExpandoManager(
+        //Siviglia.model.Root,
+        remoteRoot,
+        //Siviglia.model.Root.context
+        remoteRoot.context
+     );
+    tmp.parse($(document.body),null,null,true);
+</script>
+</body>
+</html>

@@ -31,7 +31,213 @@ array_intersect = function (total, partial) {
     if (!partial)return [];
     return array_compare(total, partial, true);
 }
+Siviglia.Utils.buildClass(
+    {
+        context:'Siviglia.model',
+        classes:{
+            BaseTypedObject:{
+                inherits:'Siviglia.Dom.EventManager',
+                construct:function(defOrUrl,value)
+                {
+                    this.__type__="BaseTypedObject";
+                    this.__definedPromise=$.Deferred();
+                    this.__fields={};
+                    this.parent=null;
+                    if(typeof value=="undefined")
+                        this.__value={};
+                    else
+                        this.__value=value;
+                    if(typeof defOrUrl!="string")
+                        this.__loadDefinition(defOrUrl);
+                    else
+                    {
+                        var Cache=Siviglia.globals.Cache;
+                        var cacheKey="Definition."+defOrUrl;
+                        var cached=Cache.get(cacheKey);
 
+                        if(typeof cached!="undefined") {
+                            this.__loadDefinition(cached);
+                        }
+                        else
+                        {
+                            var m = this;
+                            $.getJSON(defOrUrl).then(function (r) {
+                                Cache.add(cacheKey,r);
+                                m.__loadDefinition(r);
+                            });
+                        }
+
+                    }
+                },
+                destruct: function () {
+                    for(var k in this.__fields)
+                        this.__fields[k].destruct();
+                    this.EventManager$destruct();
+                },
+                methods:{
+                    __loadDefinition:function(d)
+                    {
+                        this.__definition=d;
+                        var m=this;
+
+                        this.__iterateOnFieldDefinitions(function(name,def){
+                            m.__addField(name,def,m.__value!=null?m.__value[name]:null);
+                        });
+                        m.__definedPromise.resolve(m);
+
+                    },
+                    setParent:function(obj)
+                    {
+                        this.parent=obj;
+                    },
+                    getParent:function()
+                    {
+                        return this.parent;
+                    },
+                    ready:function()
+                    {
+                        return this.__definedPromise;
+                    },
+
+                    __iterateOnFieldDefinitions:function(cb)
+                    {
+                        for(var k in this.__definition["FIELDS"])
+                        {
+                            cb.apply(this,[k,this.__definition.FIELDS[k]]);
+                        }
+                    },
+                    __iterateOnFields:function(cb)
+                    {
+                        for(var k in this.__fields)
+                        {
+                            cb.apply(this,[k,this.__fields[k]]);
+                        }
+                    },
+                    // OJO
+                    // Aqui no podemos hacer lo "esperable" de crear un objeto,
+                    // iterar sobre los campos, e ir pidiendo getValue a cada campo..
+                    // Si hicieramos eso, el __getValue retornaria un objeto distinto
+                    // al que se uso para hacer el __setValue, por lo que tendríamos 2 objetos js
+                    // diferentes, y se quiere evitar eso.
+                    getValue:function()
+                    {
+                        return this.__value;
+                    },
+                    setValue:function(v)
+                    {
+                        var m=this;
+                        // Limpiamos el valor interno.
+                        this.__value=v;
+                        this.__iterateOnFields(function(name,field)
+                        {
+                            if(Siviglia.isset(v[name]))
+                                m[name] = v[name];
+                            else
+                                m[name] = null;
+                        });
+                        this.valueSet=true;
+                    },
+                    __validate:function(val)
+                    {
+                        for(var k in this.__definition.FIELDS)
+                        {
+                            var cd=this.__definition.FIELDS[k];
+                            var c=this.__fields[k];
+                            if(cd.REQUIRED && (typeof val[k]=="undefined" || val[k]==null))
+                                throw new Siviglia.types.BaseTypeException(ERR_UNSET,{field:k});
+                            c.validate(val[k]);
+                        }
+                        return true;
+                    },
+                    __onChange:function()
+                    {
+                        this.fireEvent("CHANGE",{data:this});
+                    },
+
+                    __addField:function(name,def,value)
+                    {
+                        var m=this;
+                        var instance=Siviglia.types.TypeFactory.getType(this,def,value);
+
+                            // CREAR EL GETTER Y EL SETTER PARA LA INSTANCIA DEL TIPO.
+                            m.__fields[name]=new Siviglia.model.ModelField(m,name,instance)
+                            m.__onChange();
+                    },
+                    __removeField:function(name)
+                    {
+                        this.__fields[name].destruct();
+                        delete this.__fields[name];
+                        delete this.__value[name];
+                        delete this[name];
+                        delete this["_"+name];
+                        this.__onChange();
+                    },
+                    __fieldExists:function(name)
+                    {
+                        return typeof this.__fields[name]!=="undefined";
+                    },
+                    __getField:function(name)
+                    {
+                        return this.__fields[name];
+                    },
+                    __isEmpty:function()
+                    {
+                        return this.__value==null;
+                    }
+                }
+            },
+            ModelField:
+                {
+                    construct:function(parent,name,typeInstance)
+                    {
+                        this.__type__="ModelField";
+                        this.parent=parent;
+                        Object.defineProperty(this,"parent",{enumerable:false});
+                        this.name=name;
+                        this.type=typeInstance;
+                        var m=this;
+                        if(parent.__isEmpty())
+                            parent.setValue({});
+
+                        var propSpec={
+                            set: function (x) {
+                                m.type.setValue(x)
+                              //  m.parent.__onChange();
+                            },
+                            get: function () {
+                                return m.type.getValue();
+                            },
+                            enumerable: true,
+                            configurable: true
+                        };
+                        Object.defineProperty(this.parent, name, propSpec);
+                        Object.defineProperty(this.parent.__value, name, propSpec);
+                        Object.defineProperty(this.parent, "_"+name, {
+                            get: function () {
+                                return m.type;
+                            },
+                            enumerable: false,
+                            configurable: true
+                        });
+                    },
+                    destruct:function()
+                    {
+                        this.type.destruct();
+                    },
+                    methods:{
+                        validate:function(v)
+                        {
+                            return this.type.validate(v);
+                        },
+                        getType:function()
+                        {
+                            return this.type;
+                        }
+                    }
+                }
+        }
+    }
+);
 
 Siviglia.Utils.buildClass(
 {
@@ -47,10 +253,10 @@ Siviglia.Utils.buildClass(
                 ERR_INCOMPLETE_TYPE:4,
                 ERR_SERIALIZER_NOT_FOUND:7,
                 ERR_TYPE_NOT_EDITABLE:8
-            },       
+            },
             construct:function(code,params,type)
             {
-                this.type=type || 'BaseException';                
+                this.type=type || 'BaseException';
                 this.code=code;
                 this.params=params;
             },
@@ -73,12 +279,14 @@ Siviglia.Utils.buildClass(
             inherits:'Siviglia.Dom.EventManager',
             construct:function(type,def,val)
             {
+                this.__type__="BaseType";
                 this.type=type;
                 this.definition=def;
                 this.definition["TYPE"]=type;
-
+                this.parent=null;
                 this.valueSet=false;
                 this.flags=0;
+                this.source=null;
                 this.sourceFactory=null;
                 if(val)this.setValue(val);
             },
@@ -94,6 +302,21 @@ Siviglia.Utils.buildClass(
             },
             methods:
             {
+                // Los tipos por defecto solo devuelven una promesa resuelta.
+
+                getParent:function()
+                {
+                    return this.parent;
+                },
+                setParent:function(parent)
+                {
+                    this.parent=parent;
+                },
+                ready:function(){
+                   var d=$.Deferred();
+                   d.resolve();
+                   return d;
+                },
                 setFlags:function(flags){this.flags|=flags;},
                 getFlags:function(){return this.flags;},
                 setValue:function(val){
@@ -101,17 +324,31 @@ Siviglia.Utils.buildClass(
                         return;
                     if(this.isNull(val))
                     {
-                        this.valueSet=false;this.value=null;
+                        this.valueSet=false;
+                        this.value=null;
+                        this.onChange()
+                        return;
                     }
-                    else
-                    {this.valueSet=true;this.value=val}
-                    this.onChange()
+                    try{
+                        if(this.validate(val)) {
+                            this._setValue(val);
+                            this.valueSet = true;
+                            this.onChange()
+                        }
+                    }catch(e)
+                    {
+                        throw e;
+                    }
+                },
+                _setValue:function(v)
+                {
+                    this.value=v;
                 },
                 validate:function(val)
                 {
                     return true;
                 },
-                localValidate:function(val){return this.validate(val);},                
+                localValidate:function(val){return this.validate(val);},
                 postValidate:function(val){return true;},
                 hasValue:function(){
                    return (this.valueSet &&  typeof this.value!="undefined" && this.value!==null) || this.hasDefaultValue() || this.flags & this.TYPE_SET_ON_SAVE || this.flags & this.TYPE_SET_ON_ACCESS;
@@ -162,19 +399,7 @@ Siviglia.Utils.buildClass(
                 },
                 __rawSet:function(val){this.value=val;this.valueSet=(val!==null);},
                 set:function(val){
-                    if(val == this.value)
-                        return;
-                    if(val===null)
-                    {
-                        this.unset();
-                        this.onChange();
-                        return;
-                    }
-                    if(typeof val=="object" && val!==null)
-                    {
-                        return this.copy(val);
-                    }
-                    this.validate(val);
+
                     return this.setValue(val);
                 },
                 is_set:function(){
@@ -197,7 +422,7 @@ Siviglia.Utils.buildClass(
                 },
                 getValue:function(){
                     if(this.valueSet) return this.value;
-                    if(this.hasDefaultValue()) 
+                    if(this.hasDefaultValue())
                         return this.getDefaultValue();
                     return null;
                 },
@@ -216,17 +441,45 @@ Siviglia.Utils.buildClass(
                 },
                 hasSource:function()
                 {
-                    return false;
+                    return typeof this.definition["SOURCE"]!=="undefined";
+
                 },
                 getSource:function()
                 {
                     if(!this.hasSource())
                         return null;
+                    if(this.source!==null)
+                        return this.source;
+                    var factory=new Siviglia.Data.SourceFactory();
+                    var stack=new Siviglia.Path.ContextStack();
+                    var plainCtx=new Siviglia.Path.BaseObjectContext(this,"#",stack);
+
+
+                    this.source=factory.getFromSource(this.definition["SOURCE"],
+                        this,
+                        stack
+                        );
+                    return this.source;
+
                 },
-                getSourceLabel:function(){return null;},
-                getSourceValue:function(){return null;},
+                getSourceLabel:function(){
+                    var s=this.getSource();
+                    if(s==null)
+                        throw "No source";
+                    return s.getSource().getLabelField();},
+                getSourceValue:function(){
+                    var s=this.getSource();
+                    if(s==null)
+                        throw "No source";
+                    return s.getSource().getValueField();
+                    },
                 intersect:function(val){
                     return val;
+                },
+                getField:function(f)
+                {
+                    // Un campo basico no tiene subcampos:
+                    throw "Cant get field "+f+" from simple type.";
                 }
             }
         },
@@ -260,20 +513,12 @@ Siviglia.Utils.buildClass(
                         return this.getDefaultValue();
                     return null;
                 },
-                setValue:function(val){
-                    if(this.isNull(val))
-                    {
-                        this.valueSet=false;this.value=null;
-                    }
-                    else
-                    {
-                        this.valueSet=true;this.value=parseInt(val);
-                    }
-                    this.onChange()
+                _setValue:function(val){
+                    this.value=parseInt(val);
                 },
                 validate:function(val)
                 {
-                    
+
                     if((isNaN(val) || val===""))
                     {
                         if(this.definition.REQUIRED)
@@ -284,14 +529,14 @@ Siviglia.Utils.buildClass(
                             return true;
                         }
                     }
-                    if(Siviglia.types.isString(val)) 
+                    if(Siviglia.types.isString(val))
                         val=val.trim();
-                    
+
                     this.BaseType$validate(val);
                     var asStr=''+val;
-                    if(!asStr.match(/^\d+$/)) 
+                    if(!asStr.match(/^\d+$/))
                         throw new Siviglia.types.IntegerException(Siviglia.types.IntegerException.ERR_NOT_A_NUMBER);
-                    
+
                     if('MIN' in this.definition && val < parseInt(this.definition.MIN))
                             throw new Siviglia.types.IntegerException(Siviglia.types.IntegerException.ERR_TOO_SMALL);
                     if('MAX' in this.definition && val > parseInt(this.definition.MAX))
@@ -300,7 +545,7 @@ Siviglia.Utils.buildClass(
                     return true;
                 }
             }
-            
+
         },
         StringException:
         {
@@ -310,7 +555,7 @@ Siviglia.Utils.buildClass(
                 ERR_TOO_LONG:101,
                 ERR_INVALID_CHARACTERS:102
             },
-            construct:function(code,params){                
+            construct:function(code,params){
                 this.BaseException(code,params,'StringException');}
         },
         String:
@@ -336,10 +581,10 @@ Siviglia.Utils.buildClass(
                     val=''+val;
                     if(!this.BaseType$validate(val)) return false;
                     var c=val.length;
-                    if('MINLENGTH' in this.definition && c < this.definition["MINLENGTH"]) 
+                    if('MINLENGTH' in this.definition && c < this.definition["MINLENGTH"])
                         throw new Siviglia.types.StringException(Siviglia.types.StringException.ERR_TOO_SHORT,{min: this.definition['MINLENGTH'],cur:c});
 
-                    if('MAXLENGTH' in this.definition && c > this.definition["MAXLENGTH"]) 
+                    if('MAXLENGTH' in this.definition && c > this.definition["MAXLENGTH"])
                         throw new Siviglia.types.StringException(Siviglia.types.StringException.ERR_TOO_LONG,{max: this.definition['MAXLENGTH'],cur:c});
 
                     if('REGEXP' in this.definition) {
@@ -361,20 +606,11 @@ Siviglia.Utils.buildClass(
                     }
                     return true;
                 },
-                setValue:function(val)
+                _setValue:function(val)
                 {
-
-                    this.validate(val);
-                        if(this.definition.TRIM) 
-                            val=val.trim();
-                        //if(!('ALLOWHTML' in this.definition) || this.definition.ALLOWHTML==false)
-                        //    val=escape(val);
-
-                        if(val==='null' || val==='NULL')
-                            val = null;
-
-                    this.BaseType$setValue(val);
-                    
+                    if(this.definition.TRIM)
+                        val=val.trim();
+                    this.value=val;
                 }
             }
         },
@@ -401,16 +637,9 @@ Siviglia.Utils.buildClass(
             },
             methods:
             {
-                setValue:function(val)
+                _setValue:function(val)
                 {
-                    this.valueSet=true;
-                    if(val===true || val==="1" || val==="true")
-                    {
-                        this.value=true;
-                    }
-                    else
-                        this.value=false;
-                    this.onChange()
+                    this.value= (val===true || val==="1" || val==="true");
                 }
             }
         },
@@ -437,26 +666,26 @@ Siviglia.Utils.buildClass(
                 },
             methods:
             {
-                
+
                     getValue:function()
                     {
-                        if(this.valueSet)                        
+                        if(this.valueSet)
                         {
                             if(this.dateValue)
                                 return this.dateValue;
                             this.dateValue=new Date(Date.parse(this.value));
                             return this.dateValue;
                         }
-                        if('DEFAULT' in this.definition && this.definition['DEFAULT']=='NOW') 
+                        if('DEFAULT' in this.definition && this.definition['DEFAULT']=='NOW')
                         {
                             this.dateValue=new Date();
                             this.setValue(this.dateValue);
                         }
-                        return null;          
+                        return null;
                     },
                     validate:function(value)
                     {
-                        if(this.isNull(value) || value==="") 
+                        if(this.isNull(value) || value==="")
                             throw new Siviglia.types.BaseException(Siviglia.types.BaseException.ERR_UNSET);
 
                         var ex=Siviglia.types;
@@ -479,8 +708,8 @@ Siviglia.Utils.buildClass(
                             hour=odate.getHours(),
                             minute=odate.getMinutes(),
                             seconds=odate.getSeconds();
-                        
-                        if(isNaN(year)) 
+
+                        if(isNaN(year))
                         {
                             throw new ex.DateTimeException(ex.BaseException.ERR_INVALID);
                         }
@@ -496,17 +725,16 @@ Siviglia.Utils.buildClass(
                                     ex.DateTimeException.ERR_END_YEAR,
                                     {max:this.definition.ENDYEAR,cur:year});
                         cur=new Date();
-                        if('STRICTLYPAST' in this.definition && cur < odate) 
+                        if('STRICTLYPAST' in this.definition && cur < odate)
                             throw new ex.DateTimeException(
                                     ex.DateTimeException.ERR_STRICTLY_PAST);
-                        if('STRICTLYFUTURE' in this.definition && cur > odate) 
+                        if('STRICTLYFUTURE' in this.definition && cur > odate)
                             throw new ex.DateTimeException(
                                     ex.DateTimeException.ERR_STRICTLY_FUTURE);
                         return odate;
                     },
-                    setValue:function(val)
+                    _setValue:function(val)
                     {
-                        var c=this.validate(val);
                         this.dateValue=c;
                         // Y-m-D H:M:S
                         var M=c.getMonth()+1;
@@ -519,9 +747,7 @@ Siviglia.Utils.buildClass(
                         H=(H<10)?('0'+H):H;
                         m=(m<10)?('0'+m):m;
                         s=(s<10)?('0'+s):s;
-                        this.valueSet=true;
                         this.value=c.getFullYear()+'-'+M+'-'+D+' '+H+':'+m+':'+s;
-                        this.onChange()
                     },
                     serialize:function()
                     {
@@ -611,19 +837,15 @@ Siviglia.Utils.buildClass(
                             ex.DateTimeException.ERR_STRICTLY_FUTURE);
                     return odate;
                 },
-                setValue:function(val)
+                _setValue:function(val)
                 {
-                    var c=this.validate(val);
                     this.dateValue=c;
                     // Y-m-D H:M:S
                     var M=c.getMonth()+1;
                     var D=c.getDate();
-
                     M=(M<10)?('0'+M):M;
                     D=(D<10)?('0'+D):D;
-                    this.valueSet=true;
                     this.value=c.getFullYear()+'-'+M+'-'+D;
-                    this.onChange()
                 }
             }
         },
@@ -639,48 +861,36 @@ Siviglia.Utils.buildClass(
                 validate:function(val)
                 {
                     var v=this.definition.VALUES;
-                    if(this.isNull(val) || val==="") 
+                    if(this.isNull(val) || val==="")
                         throw new Siviglia.types.BaseException(Siviglia.types.BaseException.ERR_UNSET);
-                    
+
                     if(Siviglia.types.isString(val) && val!=parseInt(val)) {
                         var idx=this.findIndexOf(val);
                         if(idx>-1) return true;
                     }
                     else
-                    {                       
-                        if(val<v.length && val>=0) 
+                    {
+                        if(val<v.length && val>=0)
                             return true;
                     }
 
-                    throw new Siviglia.types.BaseException(Siviglia.types.BaseException.ERR_INVALID,{val:val});                    
+                    throw new Siviglia.types.BaseException(Siviglia.types.BaseException.ERR_INVALID,{val:val});
                 },
-                setValue:function(val)
+                _setValue:function(val)
                 {
-                    this.validate(val);
-                    if(this.isNull(val)) 
-                    {
-                        this.valueSet=false;
-                        this.value=null;
-                        return;
-                    }          
-                    this.valueSet=true;
                     if(Siviglia.types.isString(val) && val!=parseInt(val))
                     {
-
                         this.value=this.findIndexOf(val);
                     }
                     else
                         this.value=parseInt(val);
-
-                    this.onChange()
-
                 },
                 findIndexOf:function(str)
                 {
                     var v=this.definition.VALUES;
-                    for(var k=0;k<v.length;k++) 
+                    for(var k=0;k<v.length;k++)
                     {
-                        if(v[k]==str) 
+                        if(v[k]==str)
                             return k;
                     }
                     return -1;
@@ -693,13 +903,13 @@ Siviglia.Utils.buildClass(
                 getDefaultValue:function()
                 {
                     if('DEFAULT' in this.definition)
-                        return this.findIndexOf(this.definition.DEFAULT);                        
+                        return this.findIndexOf(this.definition.DEFAULT);
                     return null;
                 },
                 getLabel:function()
                 {
                     if(!this.hasOwnValue()) {
-                        if('DEFAULT' in this.definition) 
+                        if('DEFAULT' in this.definition)
                             return this.definition.defaultCharset;
                         return null;
                     }
@@ -714,8 +924,6 @@ Siviglia.Utils.buildClass(
                     var s=new Siviglia.Data.SourceFactory();
                     return s.getFromSource(this.definition,controller,{});
                 },
-                getSourceLabel:function(){return "[[KEY]]";},
-                getSourceValue:function(){return "[[VALUE]]";}
 
             }
          },
@@ -759,21 +967,21 @@ Siviglia.Utils.buildClass(
                 {
                     localValidate:function(val)
                     {
-                        if(this.isNull(val) || val==="") 
+                        if(this.isNull(val) || val==="")
                             throw new Siviglia.types.BaseException(Siviglia.types.BaseException.ERR_UNSET);
 
                         if ( window.File && window.FileList && window.FileReader) {
                             size=val.fileSize;
-                            if('MINSIZE' in this.definition && size/1024 < this.definition.MINSIZE) 
+                            if('MINSIZE' in this.definition && size/1024 < this.definition.MINSIZE)
                                 throw new Siviglia.types.FileException(Siviglia.types.FileException.ERR_FILE_TOO_SMALL,
                                                                        {min:this.definition.MINSIZE,cur:size});
-                            if('MAXSIZE' in this.definition && size/1024 > this.definition.MAXSIZE ) 
+                            if('MAXSIZE' in this.definition && size/1024 > this.definition.MAXSIZE )
                                 throw new Siviglia.types.FileException(Siviglia.types.FileException.ERR_FILE_TOO_BIG,
                                                                        {max:this.definition.MAXSIZE,cur:size});
                             if('EXTENSIONS' in this.definition) {
                                 var reg=".*\\.("+this.definition.EXTENSIONS.join('|')+")";
                                 var c=new RegExp(reg);
-                                if(!val.fileName.match(reg)) 
+                                if(!val.fileName.match(reg))
                                     throw new Siviglia.types.FileException(Siviglia.types.FileException.ERR_INVALID_FILE,
                                                                            {allowed:this.definition.EXTENSIONS}
                                                                            );
@@ -785,12 +993,10 @@ Siviglia.Utils.buildClass(
                     {
                         this.localValue=val;
                     },
-                    setValue:function(val)
+                    _setValue:function(val)
                     {
-                        this.localValidate(val);                        
-                        this.valueSet=true;
+                        this.localValidate(val);
                         this.value=val;
-                        this.onChange()
                     }
                 }
             },
@@ -857,13 +1063,13 @@ Siviglia.Utils.buildClass(
                 {
                     this.BaseException(code,param,'ImageException');
                 }
-            },            
+            },
             Image:
             {
                 inherits:'File',
                 construct:function(def,val)
                 {
-                    if(!('EXTENSIONS' in def)) 
+                    if(!('EXTENSIONS' in def))
                         def.EXTENSIONS=['jpg','gif','jpeg','png'];
                     this.File(def,val);
                 },
@@ -871,7 +1077,7 @@ Siviglia.Utils.buildClass(
                 {
                     localValidate:function(val)
                     {
-                        if(this.isNull(val) || val==="") 
+                        if(this.isNull(val) || val==="")
                             throw new Siviglia.types.BaseException(Siviglia.types.BaseException.ERR_UNSET);
 
                         if ( window.File && window.FileList && window.FileReader && window.Blob ) {
@@ -887,7 +1093,7 @@ Siviglia.Utils.buildClass(
                     getDescription:function(){return this.definition.DESCRIPTION;},
                     getThumbnailPath:function(){
                         var prefix='th_';
-                        if('PREFIX' in this.definition.THUMBNAIL) 
+                        if('PREFIX' in this.definition.THUMBNAIL)
                             prefix=this.definition.THUMBNAIL.PREFIX;
                         var parts=this.value.split('/');
                         parts[parts.length-1]=prefix+parts[parts.length-1];
@@ -909,14 +1115,14 @@ Siviglia.Utils.buildClass(
                 construct:function(def,val)
                 {
                     this.String({'TYPE':'Login','MINLENGTH':4,'MAXLENGTH':15,'REGEXP':'^[a-zA-Z\d_]{3,15}$/i','TRIM':true},val);
-                }                 
+                }
             },
             /* aaa */
             Decimal:
             {
-                /* 
-                Api basica de Big : cmp,div,minus,mod, plus, pow, round, sqrt, times, toExponential, toFixed, 
-                toPrecision, toString, valueOf */                 
+                /*
+                Api basica de Big : cmp,div,minus,mod, plus, pow, round, sqrt, times, toExponential, toFixed,
+                toPrecision, toString, valueOf */
                 inherits:'BaseType',
                 construct:function(def,val)
                 {
@@ -925,25 +1131,14 @@ Siviglia.Utils.buildClass(
                 },
                 methods:
                 {
-                    setValue:function(val)
+                    _setValue:function(val)
                     {
-                        if(val===null)
-                        {
-                            this.value=null;
-                            this.valueSet=false;
-                            this.onChange();
-                            return;
-                        }
-
-                        this.validate(val);
                         if(Siviglia.types.isObject(val)) {
                             // Se supone que es un Big.
                             val=val.toString();
                         }
-                        this.BaseType$setValue(val);                        
-                        if(this.valueSet) 
-                            this.innerValue=new Big(val);
-                        this.onChange();
+                        this.value=val;
+
                     }
                 }
             },
@@ -998,7 +1193,7 @@ Siviglia.Utils.buildClass(
                             target=this.definition['FIELD'];
                         else
                             target=this.definition['FIELDS'][0];
-                        return Siviglia.types.TypeFactory.getRelationFieldTypeInstance(obj,target);                        
+                        return Siviglia.types.TypeFactory.getRelationFieldTypeInstance(obj,target);
                     },
                     hasSource:function()
                     {
@@ -1056,7 +1251,7 @@ Siviglia.Utils.buildClass(
                 {
                     this.DateTime({TYPE:'Timestamp',DEFAULT:'NOW'},value);
                     this.flags|=Siviglia.types.BaseType.TYPE_NOT_EDITABLE;
-                }                 
+                }
             },
             UUID:
             {
@@ -1076,89 +1271,102 @@ Siviglia.Utils.buildClass(
             methods: {
                 isContainer: function () {
                     return true;
-                },
-                getKeys: function () {
-                    if(!this.is_set())
-                        return [];
-                    var res=[];
-                    for (var k in this.children) res.push(k);
-                    return res;
-                },
-                getValueFromKey: function (k) {
-                    if(this.definition["VALUEFIELD"])
-                    {
-                        if(this.definition["VALUEFIELD"]=="[#KEY#]")
-                            return k;
-                        return this.value[k][this.definition["VALUEFIELD"]];
-                    }
-
-                    return this.value[k];
                 }
             }
         },
             Container:{
-              inherits:'BaseKeyContainerType',
+              inherits:'BaseType',
                 construct:function(def,value)
                 {
-                    this.definition=def;
-                    this.factory=new Siviglia.types._TypeFactory();
-                    this.children={};
-                    this.initializeTypes();
-                    this.BaseKeyContainerType('Container',def,value)
+
+                    this.innerBaseTypedObject=new Siviglia.model.BaseTypedObject(def,value);
+                    this.innerBaseTypedObject.setParent(this);
+                    this.keysHolder=new Siviglia.Dom.EventManager();
+                    var m=this;
+                    for(var k1 in def["FIELDS"])
+                    {
+                        (function(k){
+                        Object.defineProperty(m,"_"+k,{
+                            get:function()
+                            {
+                                return m.innerBaseTypedObject.__getField(k).getType();
+                            },
+                            set:function(v){},
+                            enumerable:false,
+                            configurable:true
+                        });
+                        // Al ser un container, la propiedad _[[KEYS]],en teoria, no cambia.
+                        // Otra cosa es que queramos que, por ejemplo, en el array de KEYS solo
+                        // aparezcan las claves que no son null.En ese caso si que serian dinamicos
+                        // Es por eso
+                        Object.defineProperty(m,k,{
+                            get:function()
+                            {
+                                return m.innerBaseTypedObject[k];
+                            },
+                            set:function(v){
+                                m.innerBaseTypedObject[k]=v;
+                                return v;
+                            },
+                            enumerable:true,
+                            configurable:true
+                        });
+                        })(k1);
+                    }
+
+
+                    Object.defineProperty(this,"[[KEYS]]",{
+                        get:function()
+                        {
+                            return m.getKeys();
+                        },
+                        set:function(v){},
+                        enumerable:false,
+                        configurable:true
+                    });
+                    // Al ser un container, la propiedad _[[KEYS]],en teoria, no cambia.
+                    // Otra cosa es que queramos que, por ejemplo, en el array de KEYS solo
+                    // aparezcan las claves que no son null.En ese caso si que serian dinamicos
+                    // Es por eso
+                    Object.defineProperty(this,"_[[KEYS]]",{
+                        get:function()
+                        {
+                            return m.keysHolder;
+                        },
+                        set:function(v){},
+                        enumerable:false,
+                        configurable:true
+                    });
+
+                    this.BaseType('Container',def,value)
                 },
                 methods:{
-                    initializeTypes:function()
+                    ready:function()
                     {
-                        for(var k in this.definition.FIELDS)
-                            this.children[k]=this.factory.getType(this.definition["FIELDS"][k],null);
+                        return this.innerBaseTypedObject.ready();
                     },
                     getKeys: function () {
                         var res=[];
-                        for (var k in this.children) res.push(k);
+                        for (var k in this.definition["FIELDS"]){
+                                res.push(k);
+                        }
                         return res;
                     },
                     validate:function(val)
                     {
-                        for(var k in this.definition.FIELDS)
-                        {
-                            var cd=this.definition.FIELDS[k];
-                            var c=this.children[k];
-                            if(cd.REQUIRED && (typeof val[k]=="undefined" || val[k]==null))
-                                throw new Siviglia.types.BaseTypeException(ERR_UNSET,{field:k});
-                            c.validate(val[k]);
-                        }
-                        return true;
+                       return this.innerBaseTypedObject.__validate(val);
                     },
                     getValue:function()
                     {
-                        var res={};
-                        for(var k in this.definition.FIELDS) {
-                            res[k] = this.children[k].getValue();
-                            if(res[k] == null)
-                            {
-                                if(!this.definition.PRESERVE_NULL_KEYS)
-                                    delete res[k];
-                            }
-                        }
-                        return res;
+                        if(!this.valueSet)
+                            return null;
+                        return this.innerBaseTypedObject.getValue();
                     },
-                    copy:function(val)
+                    _setValue:function(val)
                     {
-                        this.setValue(val);
-                    },
-                    setValue:function(val)
-                    {
-                        for(var k in this.definition.FIELDS) {
-                            if(Siviglia.isset(val[k]))
-                                this.children[k].set(val[k]);
-                        }
-                        this.valueSet=true;
-                        this.onChange()
-                    },
-                    setItem:function(key,value)
-                    {
-                        this.children[key].set(value);
-                        this.onChange()
+
+                        this.innerBaseTypedObject.setValue(val);
+
                     }
                 }
             },
@@ -1166,16 +1374,47 @@ Siviglia.Utils.buildClass(
                 inherits:'BaseKeyContainerType',
                 construct:function(def,value)
                 {
-                    this.children={};
+                    this.sampleType=Siviglia.types.TypeFactory.getType(this,def["VALUETYPE"],null);
+                    this.innerBaseTypedObject=new Siviglia.model.BaseTypedObject({"FIELDS":{}},{});
+                    this.innerBaseTypedObject.setParent(this);
+                    this.keysHolder=new Siviglia.Dom.EventManager();
+                    var m=this;
+                    Object.defineProperty(this,"[[KEYS]]",{
+                        get:function()
+                        {
+                            return m.getKeys();
+                        },
+                        set:function(v){},
+                        enumerable:false,
+                        configurable:true
+                    });
+                    // Al ser un container, la propiedad _[[KEYS]],en teoria, no cambia.
+                    // Otra cosa es que queramos que, por ejemplo, en el array de KEYS solo
+                    // aparezcan las claves que no son null.En ese caso si que serian dinamicos
+                    // Es por eso
+                    Object.defineProperty(this,"_[[KEYS]]",{
+                        get:function()
+                        {
+                            return m.keysHolder;
+                        },
+                        set:function(v){},
+                        enumerable:false,
+                        configurable:true
+                    });
+                    this.buildProxy({});
                     this.BaseKeyContainerType('Dictionary',def,value)
                 },
                 methods:{
+                    ready:function()
+                    {
+                        return this.sampleType.ready();
+                    },
+
                     validate:function(val)
                     {
-                        var ins=this.getValueInstance();
                         for(var k in val)
                         {
-                            ins.validate(val);
+                            this.sampleType.validate(val);
                         }
                         return true;
                     },
@@ -1183,46 +1422,75 @@ Siviglia.Utils.buildClass(
                     {
                         this.setValue(val);
                     },
-                    setValue:function(val)
-                    {
-                        this.children={};
-                        for(var k in val) {
-                            this.children[k] = this.getValueInstance(val[k]);
+                    getKeys: function () {
+                        var res=[];
+                        for (var k in this.proxy){
+                                res.push(k);
                         }
-                        this.valueSet=true
-                        this.onChange()
+                        return res;
+                    },
+                    _setValue:function(val)
+                    {
+                        if(this.innerBaseTypedObject)
+                            this.innerBaseTypedObject.destruct();
+                        this.innerBaseTypedObject = new Siviglia.model.BaseTypedObject({"FIELDS": {}}, {});
+                        this.innerBaseTypedObject.setParent(this);
+                        this.buildProxy(val);
+                    },
+                    buildProxy:function(val)
+                    {
+                        var m=this;
+
+                        this.proxy=new Proxy(val,{
+
+                            get:function(target,prop,receiver)
+                            {
+                                return m.innerBaseTypedObject[prop];
+                            },
+                            set:function(target,prop,value)
+                            {
+                                if(!m.innerBaseTypedObject.__fieldExists(prop)) {
+                                    m.innerBaseTypedObject.__addField(prop, m.definition.VALUETYPE, value);
+                                    Object.defineProperty(target,prop,{
+                                        get:function()
+                                        {
+                                            return m.innerBaseTypedObject[prop];
+                                        },
+                                        set:function(v){m.innerBaseTypedObject[prop]=v;},
+                                        enumerable:true,
+                                        configurable:true
+                                    });
+
+                                    m.onChange();
+
+                                    m.keysHolder.fireEvent("CHANGE",{value:m.getKeys()});
+                                }
+                                else {
+                                    m.innerBaseTypedObject[prop] = value;
+                                    m.onChange();
+                                }
+                            },
+                            deleteProperty:function(target,prop)
+                            {
+                                m.innerBaseTypedObject.__removeField(prop);
+                                delete target[prop];
+                                m.keysHolder.fireEvent("CHANGE",{value:m.getKeys()});
+                                m.onChange();
+                            }
+                        })
+                        for(var k in val)
+                            this.proxy[k]=val[k];
+
                     },
                     getValue:function()
                     {
-                        var v={};
-                        for(var k in this.children)
-                        {
-                            v[k]=this.children[k].getValue();
-                        }
-                        return v;
+                        if(!this.valueSet)
+                            return null;
+                        return this.proxy;
                     },
                     getValueInstance:function(val)
                     {
-                        return this.factory.getType(this.definition["VALUETYPE"],Siviglia.issetOr(val,null));
-                    },
-                    setItem:function(key,value)
-                    {
-                        this.children[key].set(value);
-                        this.onChange()
-                    },
-                    addItem:function(key)
-                    {
-                        this.valueSet=true;
-                        this.children[key]=this.getValueInstance();
-                        this.onChange()
-                    },
-                    removeItem:function(key)
-                    {
-                        this.children[key].destruct();
-                        delete this.children[key];
-                        if(this.getKeys().length==0)
-                            this.valueSet=false;
-                        this.onChange()
+                        return this.factory.getType(null,this.definition["VALUETYPE"],Siviglia.issetOr(val,null));
                     },
                     intersect:function(val) {
                         if (!this.valueSet)
@@ -1234,90 +1502,7 @@ Siviglia.Utils.buildClass(
                     }
                 }
             },
-        /*
-         Un FixedDictionary, solo puede tener un cierto set de claves; Cada una de las claves, tiene un tipo asociado.
-         Por ejemplo, esto sirve como una configuracion de plugins: Cada clave del diccionario es un plugin.No puede haber mas
-         de una instancia de cada plugin, y la key tiene un tipo de dato asociado (la configuracion del plugin).
-         */
 
-        FixedDictionary:{
-            inherits: 'Dictionary',
-            construct: function (definition, value) {
-                this.children={};
-                this.BaseKeyContainerType('FixedDictionary',definition,value)
-            },
-            methods:
-                {
-                    setValue: function(val)
-                    {
-                        this.children={};
-                        this.value=val;
-                        for(var k in this.value)
-                        {
-                            var childType=this.definition.KEYMAP[k]["TYPE"];
-                            this.children[k]=this.factory.getType(childType,value[k]);
-                        }
-                        this.valueSet=true;
-                        this.onChange();
-                    },
-                    addItem: function (key) {
-                        this.children[key] = this.getValueInstance(null,key);
-                        this.valueSet=true;
-                        this.onChange();
-                        return this.children[key];
-
-                    },
-                    removeItem: function(key)
-                    {
-                        this.children[key].destruct();
-                        delete this.children[key];
-                        this.valueSet=false;
-                        for(var k in this.children)
-                        {
-                            this.valueSet=true;
-                            break;
-                        }
-                        this.onChange();
-                    },
-                    getPossibleKeys: function()
-                    {
-                        var res=[];
-                        for(var k in this.definition.KEYMAP)
-                            res.push(k);
-                        return res;
-                    },
-                    getAvailableKeys:function()
-                    {
-                        var res=[]
-                        for(var k in this.definition.KEYMAP)
-                        {
-                            if(this.children && this.children[k])
-                                continue;
-                            res.push(k);
-                        }
-                        return res;
-                    },
-                    getValueInstance:function(val,key)
-                    {
-                        var type=Siviglia.issetOr(this.definition.KEYMAP[key],null);
-                        if(type==null)
-                            return null;
-                        return this.factory.getType(this.definition.KEYMAP[key],val);
-
-                    },
-                    hasSource:function()
-                    {
-                        return true;
-                    },
-                    getSource:function(controller,params)
-                    {
-                        var s=new Siviglia.Data.SourceFactory();
-                        return s.getFromSource(this.definition.KEYMAP,controller,params);
-                    },
-                    getSourceLabel:function(){return "[[KEY]]";},
-                    getSourceValue:function(){return "[[VALUE]]";}
-                }
-        },
         TypeSwitcherException:{
             inherits:'BaseException',
             constants: {
@@ -1341,20 +1526,63 @@ Siviglia.Utils.buildClass(
                 this.subNode.destruct();
             },
             methods: {
-                setValue: function (val) {
+                _setValue: function (val) {
                     this.receivedValue = val;
                     if (this.subNode)
                         this.subNode.destruct();
                     var subType=this.getTypeFromValue(val);
                     this.currentType = subType;
-                    var subdefinition={"TYPE": subType};
-                    if(Siviglia.issetOr(this.definition,"ALLOWED_TYPE_DEFINITIONS",null))
+                    var m=this;
+                    var def={
+                        set:function(value)
+                        {
+                            var curType;
+                            var target=value;
+                            if(value==null)
+                                target=m.definition.IMPLICIT_TYPE;
+                            curType=Siviglia.types.TypeFactory.getType(this,m.definition.ALLOWED_TYPES[target], null)
+                            if(m.subNode!==null)
+                                m.subNode.destruct();
+                            m.subNode=curType;
+                            m.currentType=target;
+
+                            if(m.value!==null)
+                            {
+                                if(m.definition.CONTENT_FIELD)
+                                    m.value[m.definition.CONTENT_FIELD]=m.subNode;
+                                else
+                                    m.value=m.subNode;
+                            }
+
+                            m.onChange();
+                        },
+                        get:function()
+                        {
+                            return m.currentType;
+                        }
+                    };
+                    Object.defineProperty(val,this.definition.TYPE_FIELD,def);
+                    this.subNode=Siviglia.types.TypeFactory.getType(this,m.definition.ALLOWED_TYPES[this.currentType], null);
+                    this.value=val;
+                    var target=val;
+                    if(this.definition.CONTENT_FIELD)
                     {
-                        subdefinition=this.definition.ALLOWED_TYPE_DEFINITIONS[subType=="String"?"_String":subType];
+                        target=val[this.definition.CONTENT_FIELD];
+                        Object.defineProperty(val,this.definition.CONTENT_FIELD,{
+                            get:function()
+                            {
+                                return m.subNode.getValue();
+                            }
+                        });
+                        Object.defineProperty(val,"_"+this.definition.CONTENT_FIELD,{
+                            get:function()
+                            {
+                                return m.subNode;
+                            }
+                        });
+
                     }
-                    this.subNode =(new Siviglia.types._TypeFactory()).getType(subdefinition, val);
-                    this.valueSet=true;
-                    this.onChange();
+                    this.subNode.setValue(target);
                 },
                 validate:function(val)
                 {
@@ -1372,21 +1600,15 @@ Siviglia.Utils.buildClass(
                 {
                     var typeField = Siviglia.issetOr(this.definition.TYPE_FIELD,null);
                     if(typeField!=null)
-                        return val[typeField];;
+                        return val[typeField];
+                    if(this.definition.IMPLICIT_TYPE)
+                        return this.definition.IMPLICIT_TYPE;
                     throw new Siviglia.types.TypeSwitcherException(Siviglia.types.TypeSwitcherException.ERR_INVALID_TYPE);
                 },
                 getValue: function () {
-                    if (this.subNode && this.subNode.is_set())
-                        return this.subNode.getValue();
-                    return null;
-                },
-
-                setType: function (typeName) {
-                    if(Siviglia.isset(this.definition.TYPE_FIELD)) {
-                        var c = {};
-                        c[this.definition.TYPE_FIELD] = typeName;
-                    }
-                    this.setValue(c);
+                    if(!this.valueSet)
+                        return null;
+                    return this.value;
                 },
                 isValidType:function(v)
                 {
@@ -1423,114 +1645,99 @@ Siviglia.Utils.buildClass(
                         return this.receivedValue[typeField];
                     }
                         return this.currentType;
-                },
-                getSubNode: function () {
-                    return this.subNode;
                 }
             }
         },
         Array: {
             inherits: 'BaseType',
             construct: function (definition, value) {
-                this.children=null;
-                this.value=null;
-                this.factory=new Siviglia.types._TypeFactory();
+                var m=this;
+                this.children=[];
                 this.BaseType("Array", definition, value);
             },
             methods: {
-                setValue: function (val) {
+                _setValue: function (val) {
+                  var m=this;
+                  this.value=val;
+                  if(this.value!==null) {
+                      this.proxy = new Proxy(val, {
+                          apply: function (target, thisArg, argumentsList) {
+                              var curVal = JSON.stringify(target);
+                              var out=target.apply(thisArg, argumentsList);
+                              var newVal = JSON.stringify(target);
+                              if (curVal != newVal) {
+                                  try {
+                                      m.updateChildren(target);
+                                  } catch (e) {
+
+                                  }
+                              }
+                              return out;
+                          },
+                          get:function(target,prop,receiver)
+                          {
+
+                              if(prop=="length")
+                                  return val.length;
+                              if(!isNaN(prop)) {
+                                  prop=parseInt(prop);
+                                  return m.children[prop].getValue();
+                              }
+                              return val[prop];
+                          },
+                          set:function(target,prop,value,receiver)
+                          {
+
+                              if(prop=="length")
+                              {
+                                  val.length=value;
+                                  return value;
+                              }
+                              if(!isNaN(prop)) {
+                                  prop = parseInt(prop);
+                                  if(typeof m.children[prop]==undefined)
+                                  {
+                                      instance = m.getValueInstance();
+                                      instance.setValue(value);
+                                      m.children.push(instance);
+                                      val.push(value);
+                                  }
+                                  else {
+                                      m.children[prop].setValue(value);
+                                      val[prop]=value;
+                                  }
+                              }
+                          }
+
+                      });
+                      this.value=val;
+                      this.updateChildren(val);
+                  }
+                },
+                updateChildren:function(val)
+                {
                     if (this.children) {
                         for (var k = 0; k < this.children.length; k++)
                             this.children[k].destruct();
-
                     }
-                    this.value = val;
                     this.children = [];
                     var instance;
                     for (var k = 0; k < val.length; k++) {
                         instance = this.getValueInstance();
-                        instance.setValue(val);
+                        instance.setValue(val[k]);
                         this.children.push(instance);
                     }
-                    this.valueSet=true;
                     this.onChange();
                 },
                 getValue:function()
                 {
-                    if(this.children==null)
-                        return null;
-                    var fNulls=Siviglia.issetOr(this.definition.REMOVE_NULLS,true);
-                    var res=[];
-                    for(var k=0;k<this.children.length;k++)
-                    {
-                        if(this.children[k].is_set())
-                            res.push(this.children[k].getValue());
-                    }
-                    return res;
+                    return this.proxy;
                 },
                 getKeys: function () {
                     if (!this.children) return [];
                     var res = [];
                     for (var k = 0; k < this.children.length; k++) res.push(k);
                     return res;
-                },
-                add: function (val) {
-
-                    if (!this.children){this.children = [];this.value=[];}
-                    var nI=this.getValueInstance();
-                    if(val && typeof val!=null)
-                        nI.setValue(val);
-
-                    this.children.push(nI);
-                    this.value.push(val);
-                    this.valueSet = true;
-                    this.onChange();
-                },
-                removeItem: function (position) {
-                    if(!this.value)
-                        return;
-                    this.children.splice(position, 1);
-                    this.value.splice(position,1);
-                    if(this.children.length==0)
-                        this.valueSet = false;
-                    this.onChange();
-                },
-                remove: function(item)
-                {
-                    if(!this.value)
-                        return;
-                    var position=0;
-                    for(var k=0;k<this.children.length;k++) {
-                        if(this.children[k]==item) {
-                            this.children.splice(position, 1);
-                            this.value.splice(position,1);
-                            break;
-                        }
-                        position++;
-                    }
-                    if(this.children.length==0)
-                        this.valueSet=false;
-                    this.onChange();
-                },
-                setItem: function (val, position) {
-                    if (!this.children){this.children = [];this.value=[];}
-                    var nI=this.getValueInstance();
-                    nI.validate(value);
-                    this.children[position] = nI;
-                    this.value[position]=val;
-                    this.valueSet=true;
-                    this.onChange();
-                },
-                addItem: function (value) {
-
-                    if (!this.children){this.children = [];this.value=[];}
-                    var nI=this.getValueInstance();
-                    nI.setValue(value);
-                    this.children.push(nI);
-                    this.value.push(value);
-                    this.valueSet=true;
-                    this.onChange();
-                    return nI;
                 },
                 hasSource: function()
                 {
@@ -1544,8 +1751,8 @@ Siviglia.Utils.buildClass(
                 getSourceLabel:function(){return "[[VALUE]]";},
                 getSourceValue:function(){return "[[VALUE]]";},
                 getValueInstance: function (value,key) {
-                    var factory=new Siviglia.types._TypeFactory();
-                    return this.factory.getType(this.definition["VALUETYPE"],null);
+
+                    return Siviglia.types.TypeFactory.getType(this,this.definition["VALUETYPE"],null);
                 },
                 intersect:function(val)
                 {
@@ -1559,61 +1766,7 @@ Siviglia.Utils.buildClass(
                 }
             }
         },
-        /**
-         * ObjectArrayType
-         *
-         * @author ICSW (11/06/2012)
-         */
-        ObjectArray: {
-            inherits: 'BaseKeyContainerType',
-            construct: function (definition,value) {
-                this.value = [];
-                this.children = [];
-                this.BaseKeyContainerType("ObjectArray", definition, value);
 
-            },
-            methods: {
-                setValue:function(val)
-                {
-                    if(this.value.length > 0)
-                        this.value.map(function(i){i.destruct();});
-                    if(!Siviglia.isArray(val))
-                    {
-                        this.value=[this.getValueInstance(val)];
-                        this.valueSet=true;
-                        this.onChange();
-                        return;
-                    }
-                    this.value=[];
-                    var m=this;
-                    val.map(function(i){m.value.push(m.getValueInstance(i));})
-                    this.valueSet=true;
-                    this.onChange();
-                },
-                validate:function(val)
-                {
-                    var ins=this.getValueInstance(null);
-                    if(!Siviglia.isArray(val))
-                        val=[val];
-
-                    val.map(function(i){ins.validate(i)});
-                },
-                getValue:function()
-                {
-                    var v=[];
-                    this.value.map(function(i){v.push(i.getValue());});
-                },
-                getValueInstance: function (val) {
-                    return this.factory.getType(this.definition.VALUETYPE,val);
-                },
-                removeAt:function(pos)
-                {
-                    var rem=this.value.splice(pos,1);
-                    rem[0].destruct();
-                    this.onChange();
-                }
-            }
-        },
 
             PHPVariable:
             {
@@ -1804,7 +1957,7 @@ Siviglia.Utils.buildClass(
                 }
             }
         }
-    
+
 
 });
 
@@ -1815,48 +1968,6 @@ Siviglia.Utils.buildClass(
 {
     context:'Siviglia.types',
     classes:{
-        DefinedObject:{
-            construct:function(definition,value)
-            {
-                this.mainPromise=$.Deferred();
-                this.typePromises=[];
-                this.__definition=definition;
-                this.__value=Siviglia.issetOr(value,null);
-                this.fields={};
-                var m=this;
-                if(Siviglia.isset(definition.FIELDS))
-                {
-                    var factory=new Siviglia.types._TypeFactory();
-                    for(var k in definition.FIELDS)
-                    {
-                        this.typePromises[k]=factory.getTypeFromDef(definition.FIELDS[k],this.__value?Siviglia.issetOr(this.__value[k],null):null);
-
-                        (function(l){
-                            m.typePromises[l].then(function(obj){
-                                m[l]=obj;
-                                m.fields[l]=m[l];
-                        })
-                        })(k);
-                    }
-                }
-                $.when.apply(this.typePromises).then(function(){m.mainPromise.resolve();},function(){m.mainPromise.reject()})
-            },
-            methods:
-            {
-                then:function(f)
-                {
-                    this.mainPromise.then(f);
-                },
-                getPromise:function()
-                {
-                    return this.mainPromise;
-                },
-                getInputFor:function(field,node)
-                {
-
-                }
-            }
-        },
         _TypeFactory:{
             construct:function(config,callback)
             {
@@ -1864,138 +1975,28 @@ Siviglia.Utils.buildClass(
             },
             methods:
             {
-                loadModels:function(models)
+                // Si el tipo es custom, su namespace es:
+                // Siviglia.types.model.web.User.MiTipo
+
+                getType:function(parent,def,val)
                 {
-                    var p= $.Deferred();
-                    Siviglia.Model.metaLoader.getMultiple(models).then(function(f){p.resolve(f);})
-                    return p;
-                },
-                getTypeNames:function(fields)
-                {
-                    var p= $.Deferred();
-
-                    // Nos tenemos que asegurar de que todas las dependencias se cargan primero.
-                    var requiredModels={};
-                    var result={};
-                    var pendingFields=[];
-                    for(var k in fields)
-                    {
-                        result[k]=fields[k];
-                        var q=fields[k]["MODEL"] || fields[k]["MODEL"];
-                        if(!q)
-                        {
-                                continue;
-                        }
-                        pendingFields.push(k);
-                        if(requiredModels[q])
-                            continue;
-                        requiredModels[q]={type:'Model',model:q};
-                    }
-
-                    var reqs=[];
-                    for(var k in requiredModels)
-                        reqs.push(requiredModels[k]);
-
-                    if(reqs.length == 0)
-                    {
-                        p.resolve(result);
-                        return p;
-                    }
-                    this.loadModels(reqs).then(function(m){
-                        var mi={};
-                        for(var k=0;k< m.length;k++)
-                            mi[m[k].model]=m[k];
-
-                        for(var k=0;k<pendingFields.length;k++)
-                        {
-                            var cf=pendingFields[k];
-                            var pM=fields[cf]["MODEL"] || fields[cf]["MODEL"];
-                            var pF=fields[cf]["FIELD"];
-                            if(!pF && fields[cf]["FIELDS"])
-                            {
-                                // TODO : Daria problemas con relaciones de varios campos.
-                                for(var j in fields[cf]["FIELDS"])
-                                    pF=fields[cf]["FIELDS"][j];
-                            }
-                            var def=mi[pM].definition["FIELDS"][pF];
-                            if(fields[cf].TYPE && fields[cf].TYPE=="Relationship")
-                                result[cf]["RELATED_TYPE"]=def;
-                            else
-                                result[cf]=def;
-                        }
-                        p.resolve(result);
-                    });
-
-                    return p;
-                },
-                getType:function(def,val)
-                {
-                    if(Siviglia.isString(def))
-                    {
-                        var parts=Siviglia.Utils.stringToContextAndObject(def,
-                            Siviglia.types._TypeFactory.prototype.namedTypes
-                        );
-                        if(typeof parts.context[parts.object]=="undefined")
-                            throw "Unknown type in getType::"+def;
-                        def=parts.context[parts.object];
-                    }
-
+                    var typePromise=$.Deferred();
                     var type=def['TYPE'];
-                    if(!Siviglia.types[def['TYPE']]) {
+                    if(type[0]=="/")
+                        type=type.substr(1);
+                    var typeDotted=type.replace(/[\\|/]/g,".");
+                    var fullTypeDotted="Siviglia.types."+typeDotted;
+                    var ctx=Siviglia.Utils.stringToContextAndObject(fullTypeDotted);
+                    if(!ctx.object)
+                    {
+                        // Se mira si es un tipo custom definido por un paquete.En ese caso, el nombre
+                        // tendria la forma /models/xxx/types/yyyy
+
                         throw "Unknown Type : "+def["TYPE"];
                     }
-                    return new Siviglia.types[def['TYPE']](def,val);
-                },
-                /**
-                 * Este metodo sirve para soportar named types.Los named types se usan especialmente
-                 * para AutoUI, de forma que un container pueda especificar por nombre, un tipo compuesto,
-                 * que es una definicion de container, dictionary, etc.
-                 * @param name
-                 * @param def
-                 */
-                addNamedType:function(name,def)
-                {
-                    if(typeof Siviglia.types._TypeFactory.prototype.namedTypes=="undefined")
-                        Siviglia.types._TypeFactory.prototype.namedTypes={};
-                    var parts=Siviglia.Utils.stringToContextAndObject(name,
-                        Siviglia.types._TypeFactory.prototype.namedTypes
-                    );
-                    parts.context[parts.object]=def;
-                },
-                getTypeFromDef:function(def,val)
-                {
-                    if(!('TYPE' in def)) 
-                    {
-                        var p= $.Deferred();
-                        if(('MODEL' in def) && ('FIELD' in def))
-                        {
-                            var m=this;
-                            this.getModelField(def['MODEL'],def['FIELD']).then(function(d){
-                                p.resolve(m.getTypeFromDef(def,val));
-                            });
-                        }
-                        else
-                        {
-                            console.debug("Campo no encontrado");
-                            console.dir(def);
-                            p.resolve(null);
-                        }
-                        return p;
-                    }
-                    var type=def['TYPE'];
-                    if(!Siviglia.types[def['TYPE']]) {
-                        throw "Unknown Type : "+def["TYPE"];
-                    }
-                    return $.when(new Siviglia.types[def['TYPE']](def,val));
-                },
-                getModelField:function(model,field)
-                {
-                    var m=new Siviglia.Model.Model(model);
-                    var p= $.Deferred();
-                    p.getDefinition().then(function(d){
-                        p.resolve(d.FIELDS[field]);
-                    })
-                    return p;
+                    var newType=new ctx.context[ctx.object](def,val);
+                    newType.setParent(parent);
+                    return newType;
                 },
                 getRelationFieldTypeInstance:function(model,field)
                 {
@@ -2007,7 +2008,7 @@ Siviglia.Utils.buildClass(
         }
     }
 });
-
+Siviglia.types.TypeFactory= new Siviglia.types._TypeFactory();
 Siviglia.i18n=(Siviglia.i18n || {});
 Siviglia.i18n.es=(Siviglia.i18n.es || {});
 Siviglia.i18n.es.base=(Siviglia.i18n.es.base || {});

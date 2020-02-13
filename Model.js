@@ -1,12 +1,6 @@
-/*
-    config:
-    baseUrl
-    namespaces:['backoffice','web']
-    defaultNamespace:backoffice
-    jsFramework:'dojo','jquery'
- */
-// Nombres de modelos: App.<layer>.<objetoPadre>.Model
 
+// Nombres de modelos: App.<layer>.<objetoPadre>.Model
+Siviglia.globals={};
 Siviglia.Utils.buildClass({
     context:"Siviglia",
     classes:{
@@ -36,6 +30,7 @@ Siviglia.Utils.buildClass({
     }
 );
 var Cache=new Siviglia.Cache();
+Siviglia.globals.Cache=Cache;
 
 Siviglia.Utils.buildClass(
     {
@@ -129,7 +124,7 @@ Siviglia.Utils.buildClass(
                 construct:function(config)
                 {
                     this.config=config;
-                    $.getScript(config.baseUrl+'/'+Siviglia.Model.mapper.getCommonJSPrefix()+'jqwidgets/globalization/globalize.culture.'+config.locale+'.js');
+                    $.getScript(config.staticsUrl+'/'+Siviglia.Model.mapper.getCommonJSPrefix()+'jqwidgets/globalization/globalize.culture.'+config.locale+'.js');
                 },
                 methods:
                 {
@@ -192,17 +187,14 @@ Siviglia.Utils.buildClass(
 
 Siviglia.Model.initialize=function(config)
 {
-    
+
     Siviglia.Model.config=config;
     var nn={};
-    for(var k=0;k<config.namespaces.length;k++)
-    {
-        nn[config.namespaces[k]]=1;
-    }
+
     Siviglia.Model.mapper=new Siviglia.Model[config.mapper](config);
     Siviglia.Model.loader=new Siviglia.Model.Loader();
     Siviglia.Model.metaLoader=new Siviglia.Model.MetaLoader();
-    config.namespaces=nn;
+
     switch(config.jsFramework)
     {
         case 'jquery':
@@ -308,7 +300,7 @@ Siviglia.Utils.buildClass({
                 getModel:function(spec)
                 {
                     var m=new Siviglia.Model.ModelName(spec);
-                    return this.config.baseUrl+"/js/dojo/"+ this.getObjectPath(m)+"/Model.js";
+                    return this.config.baseUrl+"/js/"+config.jsFramework+"/"+ this.getObjectPath(m)+"/Model.js";
                 },
                 getObjectPath:function(model)
                 {
@@ -323,7 +315,11 @@ Siviglia.Utils.buildClass({
                 },
                 getDatasourceUrl:function(model,datasource,id,params)
                 {
-                    var query=$.param(params);
+                    var query="";
+                    if(params!==null) {
+                        for(var k in params)
+                            query+=(k+"="+params[k]+"&");
+                    }
                     var baseUrl = this.config.baseUrl;
                     var datasourcePrefix = '';
                     if (this.config.datasourcePrefix !== undefined) {
@@ -334,15 +330,15 @@ Siviglia.Utils.buildClass({
                 },
                 getJSModelPath:function(model)
                 {
-                    return this.config.baseUrl+"/js/"+ this.getObjectPath(model)+"/Model.js";
+                    return this.config.baseUrl+"/js/"+config.jsFramework+"/"+this.getObjectPath(model)+"/Model.js";
                 },
                 getActionUrl:function(model,actionName)
                 {
-                    return this.config.baseUrl+'/action.php';
+                    return this.config.baseUrl+'/action';
                 },
                 getCommonJSPrefix:function()
                 {
-                    return "js/";
+                    return "packages/";
                 }
 
             }
@@ -382,7 +378,6 @@ Siviglia.Utils.buildClass({
                                     if(okcallback)
                                         return okcallback(response);
                                     return;
-
                                 }
                                 h.reject(response);
                                 if(response.error==2)
@@ -522,7 +517,6 @@ Siviglia.Utils.buildClass({
                 getMultiple:function(spec)
                 {
                     var defer= $.Deferred();
-                    var self=this;
                     var param=JSON.stringify(spec);
                     this.transport.doGet(Siviglia.Model.mapper.getMetaPath('multi='+param),
                         function(response){
@@ -733,6 +727,7 @@ Siviglia.Utils.buildClass({
                 {
                     return Siviglia.Model.metaLoader.getMultiple(dependencies);
                 }
+
             }
         },
         Model:

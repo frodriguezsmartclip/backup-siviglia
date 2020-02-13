@@ -1,19 +1,24 @@
 <html>
 <head>
-    <script src="../jquery.min.js"></script>
-    <script src="../Siviglia.js"></script>
-    <script src="../SivigliaTypes.js"></script>
-    <script src="../jqwidgets/jqx-all.js"></script>
-    <script src="../Model.js"></script>
-    <script src="../SivigliaStore.js"></script>
-    <link rel="stylesheet" href="../jqwidgets/styles/jqx.base.css">
-    <link rel="stylesheet" href="../jqwidgets/styles/jqx.light.css">
+    <script src="/node_modules/jquery/dist/jquery.js"></script>
+    <script src="../../Siviglia.js"></script>
+    <script src="../../SivigliaPaths.js"></script>
+    <script src="../../SivigliaStore.js"></script>
+    <script src="../../Model.js"></script>
+    <style type="text/css">
+        .estilo1 {color:red}
+        .estilo2 {color:blue}
+    </style>
+    <script src="../../SivigliaTypes.js"></script>
+
     <script>
         Siviglia.Utils.buildClass(
             {
                 context:"Test",
                 classes:
                     {
+
+
                         "SimpleWidget":{
                             inherits: "Siviglia.UI.Widget,Siviglia.Dom.EventManager",
                             methods: {
@@ -23,8 +28,10 @@
                                     var curlocation=document.location.href.split("/");
                                     curlocation.pop();
                                     var curDir=curlocation.join("/");
+                                    var stack=new Siviglia.Path.ContextStack();
+                                    var plainCtx=new Siviglia.Path.BaseObjectContext(this,"*",stack);
 
-                                    this.remoteDs=new Siviglia.Data.RemoteDataSource({url:curDir+"/data/[%/*a%].json"},this.view);
+                                    this.remoteDs=new Siviglia.Data.RemoteDataSource({url:curDir+"/data/[%/*a%].json"},this.view,stack);
                                     var p=$.Deferred();
                                     var m=this;
                                     this.initialized=false;
@@ -52,8 +59,14 @@
     </script>
 </head>
 <body>
-<?php include_once("../jQuery/JqxWidgets.html");?>
+<?php
+//include_once("../../jQuery/JqxWidgets.html");
+?>
 <div style="display:none">
+
+
+
+
     <div sivWidget="Test.SimpleWidget" widgetParams="" widgetCode="Test.SimpleWidget">
         <div sivLoop="/*data" contextIndex="current">
             <div>
@@ -65,9 +78,12 @@
 </div>
 <div sivView="Test.SimpleWidget"></div>
 
+
+
+
+
 <script>
     $(document).ready(function(){
-    //var remoteRoot=new Siviglia.model.RemotePath("http://127.0.0.1/buscando");
     var tmp=new Siviglia.UI.Dom.Expando.ExpandoManager(
         Siviglia.model.Root,
         //remoteRoot,
