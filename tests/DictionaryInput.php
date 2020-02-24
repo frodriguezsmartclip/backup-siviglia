@@ -45,10 +45,10 @@
 <?php include_once("../jQuery/JqxWidgets.html");?>
 <div style="display:none">
     <div sivWidget="Test.SimpleWidget" widgetParams="" widgetCode="Test.SimpleWidget">
-        <div sivId="inputHolder"></div>
+        <div data-sivId="inputHolder"></div>
     </div>
 </div>
-<div sivView="Test.SimpleWidget"></div>
+<div data-sivView="Test.SimpleWidget"></div>
 
 <script>
     $(document).ready(function(){

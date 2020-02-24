@@ -21,7 +21,7 @@ Siviglia.Utils.buildClass({
 
          */
         'SimplePaginatedDataSource': {
-            inherits: 'Siviglia.UI.Widget,Siviglia.Dom.EventManager',
+            inherits: 'Siviglia.UI.Expando.View,Siviglia.Dom.EventManager',
             methods: {
                 preInitialize: function (params) {
                     var h = $.Deferred();
@@ -191,7 +191,7 @@ Siviglia.Utils.buildClass({
          */
         'SimpleDataView':
         {
-            inherits:'Siviglia.UI.Widget,Siviglia.Dom.EventManager',
+            inherits:'Siviglia.UI.Expando.View,Siviglia.Dom.EventManager',
             methods:{
                 preInitialize:function(params)
                 {
@@ -295,7 +295,7 @@ Siviglia.Utils.buildClass({
              a las paginas.
              Espera a que el controlador sea capaz de lanzar un evento 'DATA_LOADED', y dispara eventos 'GOTO_PAGE'
              */
-            inherits:'Siviglia.UI.Widget,Siviglia.Dom.EventManager',
+            inherits:'Siviglia.UI.Expando.View,Siviglia.Dom.EventManager',
             methods:
             {
                 preInitialize:function(params)
@@ -477,7 +477,7 @@ Siviglia.Utils.buildClass({
         },
         SimpleGridHeaderCell:
         {
-            inherits:'Siviglia.UI.Widget',
+            inherits:'Siviglia.UI.Expando.View',
             methods:
             {
                 preInitialize:function(params)

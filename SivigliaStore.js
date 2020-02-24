@@ -55,6 +55,7 @@ Siviglia.Utils.buildClass(
                             this.stack=stack;
                             this.controller=controller;
                             this.pstring=null;
+                            this.EventManager();
                         },
                         destruct:function()
                         {

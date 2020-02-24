@@ -4,7 +4,7 @@ Siviglia.Utils.buildClass({
         {
             DataSourceView:
             {
-                inherits:"Siviglia.UI.Widget",
+                inherits:"Siviglia.UI.Expando.View",
                 methods:
                 {
                     preInitialize:function(params)

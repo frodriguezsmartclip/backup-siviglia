@@ -1,4 +1,3 @@
-
 if (typeof Siviglia === 'undefined') {
     Siviglia = {};
 }
@@ -36,29 +35,25 @@ if (!Array.prototype.forEach) {
     };
 }
 
-Siviglia.isset = function(value)
-{
-    return typeof value!=="undefined";
+Siviglia.isset = function (value) {
+    return typeof value !== "undefined";
 };
-Siviglia.issetOr = function (value,defValue)
-{
-    return Siviglia.isset(value)?value:defValue;
+Siviglia.issetOr = function (value, defValue) {
+    return Siviglia.isset(value) ? value : defValue;
 };
-Siviglia.issetPathOr=function(value,path,defaultV)
-{
-    var parts=path.split(".");
-    var c=value;
-    for(var k=0;k<parts.length;k++)
-    {
-        if(typeof c[parts[k]]=="undefined")
+Siviglia.issetPathOr = function (value, path, defaultV) {
+    var parts = path.split(".");
+    var c = value;
+    for (var k = 0; k < parts.length; k++) {
+        if (typeof c[parts[k]] == "undefined")
             return defaultV;
-        c=c[parts[k]];
+        c = c[parts[k]];
     }
     return c;
 };
 Siviglia.typeOf = function (value) {
 
-    if(value===null)
+    if (value === null)
         return "null";
     return Object.prototype.toString.call(value).match(/\s([a-zA-Z]+)/)[1].toLowerCase()
 
@@ -67,11 +62,11 @@ Siviglia.type = function (obj) {
     var checker = {};
     var types = "Boolean Number String Function Array Date RegExp Object".split(" ");
     for (var i in types) {
-        checker[ "[object " + types[i] + "]" ] = types[i].toLowerCase();
+        checker["[object " + types[i] + "]"] = types[i].toLowerCase();
     }
     return obj == null ?
         String(obj) :
-        checker[ Object.prototype.toString.call(obj) ] || "object";
+        checker[Object.prototype.toString.call(obj)] || "object";
 }
 Siviglia.isFunction = function (obj) {
     return Siviglia.type(obj) === "function";
@@ -80,7 +75,7 @@ Siviglia.isString = function (obj) {
     return Siviglia.type(obj) === "string";
 }
 Siviglia.isInt = function (obj) {
-    return Siviglia.type(obj) === "number" && obj==parseInt(obj);
+    return Siviglia.type(obj) === "number" && obj == parseInt(obj);
 }
 
 Siviglia.isPlainObject = function (obj) {
@@ -122,17 +117,16 @@ Siviglia.Utils = Siviglia.Utils || {};
  */
 Siviglia.Utils.stringToContext = function (str, defContext) {
     var contexts = str.split(".");
-    if (contexts.length == 1)
-    {
-        if(typeof defContext[contexts[0]]=="undefined")
-            defContext[contexts[0]]={};
+    if (contexts.length == 1) {
+        if (typeof defContext[contexts[0]] == "undefined")
+            defContext[contexts[0]] = {};
         return defContext[contexts[0]];
     }
 
-    if(!defContext)
+    if (!defContext)
         curContext = window;
     else
-        curContext= defContext;
+        curContext = defContext;
     var k;
     for (k = 0; k < contexts.length; k++) {
         if (!curContext[contexts[k]])
@@ -149,23 +143,23 @@ Siviglia.Utils.stringToContext = function (str, defContext) {
 
  */
 
-Siviglia.Utils.stringToContextAndObject = function (str, startContext,defContext,throwException) {
+Siviglia.Utils.stringToContextAndObject = function (str, startContext, defContext, throwException) {
     var contexts = str.split(".");
     var l = contexts.length;
-    if (l == 1 && defContext)return {
+    if (l == 1 && defContext) return {
         context: defContext,
         object: str
     };
 
-    if(!startContext)
+    if (!startContext)
         curContext = window;
     else
-        curContext= startContext;
+        curContext = startContext;
 
     var k;
     for (k = 0; k < l - 1; k++) {
         if (!curContext[contexts[k]]) {
-            if(typeof throwException!=="undefined" && throwException)
+            if (typeof throwException !== "undefined" && throwException)
                 throw "Not found";
             curContext[contexts[k]] = {};
         }
@@ -195,8 +189,7 @@ Siviglia.Utils.buildClass = function (definition) {
     if (!context) {
         context = "window";
         contextObj = window;
-    }
-    else
+    } else
         var contextObj = Siviglia.Utils.stringToContext(context, window);
 
     var k, j, i, h, inherits;
@@ -218,8 +211,9 @@ Siviglia.Utils.buildClass = function (definition) {
         // Si no hereda y no especifica, hay que crearle uno dummy
 
 
-        if(!inherits)
-            contextObj[k] = Siviglia.issetOr(definition.classes[k].construct,function(){});
+        if (!inherits)
+            contextObj[k] = Siviglia.issetOr(definition.classes[k].construct, function () {
+            });
 
         var baseClass;
 
@@ -231,7 +225,7 @@ Siviglia.Utils.buildClass = function (definition) {
             // Se copian los prototype de otras clases.
             for (i = 0; i < inherits.length; i++) {
 
-                var c = Siviglia.Utils.stringToContextAndObject(inherits[i], null,contextObj);
+                var c = Siviglia.Utils.stringToContextAndObject(inherits[i], null, contextObj);
 
                 inheritClasses.push(c.object);
 
@@ -243,48 +237,48 @@ Siviglia.Utils.buildClass = function (definition) {
                 }
 
                 if (i == 0) {
-                    var parts=inherits[i].split(".");
+                    var parts = inherits[i].split(".");
                     var baseClassName;
-                    if(parts.length==1)
-                         baseClassName=context+"."+inherits[i];
+                    if (parts.length == 1)
+                        baseClassName = context + "." + inherits[i];
                     else
-                        baseClassName=inherits[i];
+                        baseClassName = inherits[i];
 
                     baseClass = c.object;
-                    var curBaseClass=c.context[c.object];
-                    if(Siviglia.isset(definition.classes[k].construct))
-                        contextObj[k]=definition.classes[k].construct;
+                    var curBaseClass = c.context[c.object];
+                    if (Siviglia.isset(definition.classes[k].construct))
+                        contextObj[k] = definition.classes[k].construct;
                     else
-                        eval(context+"."+k+"=function(){"+baseClassName+".apply(this,arguments);};");
-                    constructor=contextObj[k];
-                    contextObj[k].prototype = (function(st){
-                        var c = Siviglia.Utils.stringToContextAndObject(st, null,contextObj);
-                        return Object.create(c.context[c.object].prototype)})(inherits[i]);
+                        eval(context + "." + k + "=function(){" + baseClassName + ".apply(this,arguments);};");
+                    constructor = contextObj[k];
+                    contextObj[k].prototype = (function (st) {
+                        var c = Siviglia.Utils.stringToContextAndObject(st, null, contextObj);
+                        return Object.create(c.context[c.object].prototype)
+                    })(inherits[i]);
                 }
 
                 contextObj[k].prototype[c.object] = curClass.prototype.__construct;
                 contextObj[k].prototype[c.object].__className = c.object;
                 contextObj[k].prototype[c.object + "$destruct"] = curClass.prototype.__destruct;
 
-                if (i == 0)continue;
+                if (i == 0) continue;
 
                 for (h in curClass.prototype) {
                     //if(h.indexOf("__")>-1 || h.indexOf("destruct")==0)continue;
-                    if (h.indexOf("destruct") == 0)continue;
+                    if (h.indexOf("destruct") == 0) continue;
 
                     if ((definition.classes[k].methods && definition.classes[k].methods[h]) ||
                         contextObj[k].prototype[h]) {
                         contextObj[k].prototype[c.object + "$" + h] = curClass.prototype[h];
-                    }
-                    else {
+                    } else {
                         contextObj[k].prototype[h] = curClass.prototype[h];
                     }
                 }
             }
         }
 
-        contextObj[k].prototype.__construct=contextObj[k];
-        contextObj[k].prototype.constructor=contextObj[k];
+        contextObj[k].prototype.__construct = contextObj[k];
+        contextObj[k].prototype.constructor = contextObj[k];
         contextObj[k].prototype.destruct = function (ignoreInherit) {
             this.__destruct();
             this.__commonDestruct(ignoreInherit);
@@ -332,8 +326,6 @@ Siviglia.Utils.buildClass = function (definition) {
 }
 
 
-Siviglia.Dom = {};
-
 /* Add prepend capabilities function */
 Element.prototype.prependChild = function (child) {
     this.insertBefore(child, this.firstChild);
@@ -343,159 +335,168 @@ Element.prototype.prependChild = function (child) {
  Sistema de gestion de ventos (listeners)
 
  */
+
+Siviglia.Dom = {
+    listenerCounter: 0,
+    managerCounter: 0,
+    existingManagers: {},
+    existingListeners: {},
+    eventStack: [],
+    dumpEventStack: function () {
+        for (var k = 0; k < Siviglia.Dom.eventStack.length; k++) {
+            var el = Siviglia.Dom.eventStack[k];
+            console.log("id:" + el.id + " -- " + el.description);
+        }
+    }
+
+};
+
 Siviglia.Utils.buildClass({
     context: 'Siviglia.Dom',
     classes: {
         EventManager: {
 
             construct: function () {
+                this._ev_id = Siviglia.Dom.managerCounter;
+                Siviglia.Dom.existingManagers[this._ev_id] = this;
+                Siviglia.Dom.managerCounter++;
+                this._ev_firing = null;
+                this._ev_listeners = null;
             },
             destruct: function () {
-                if (this.runningListeners) {
-                    this.runningListeners.map(function (i) {
-                        i.target.removeListeners(this);
-                    })
-                }
+
                 // If this destructor was called while this object was notifying its listeners,
                 // simply set a flag and return.
-                if (this.notifying) {
-                    this.mustDestruct = true;
+                if (this._ev_notifying) {
+                    this._ev_mustDestruct = true;
                     return;
                 }
-                this.runningListeners = null;
-                this.listeners = null;
+                this.destroyListeners();
+
 
             },
             methods: {
-                addListener: function (evType, object, method, param, target) {
-                    if (!this.listeners)this.listeners = {};
-                    if (!this.listeners[evType])
-                        this.listeners[evType] = [];
+                addListener: function (evType, object, method, description) {
+                    if (!this._ev_listeners) this._ev_listeners = {};
+                    if (!this._ev_listeners[evType])
+                        this._ev_listeners[evType] = [];
 
                     var k;
-                    for (k = 0; k < this.listeners[evType].length; k++) {
-                        if (this.listeners[evType][k].obj == object && this.listeners[evType][k].method == method) {
+                    for (k = 0; k < this._ev_listeners[evType].length; k++) {
+                        if (this._ev_listeners[evType][k].obj == object && this._ev_listeners[evType][k].method == method) {
                             return;
                         }
                     }
-                    this.listeners[evType].push({
+                    var newListener = {
                         obj: object,
                         method: method,
-                        param: param,
-                        target: target
-                    });
+                        id: Siviglia.Dom.listenerCounter,
+                        description: description
+                    }
+                    Siviglia.Dom.listenerCounter++;
+                    this._ev_listeners[evType].push(newListener);
+                    Siviglia.Dom.existingListeners[newListener.id] = newListener;
+                },
 
 
-                    if (object && object.addRunningListener) {
-                        object.addRunningListener(this);
-                    }
-                },
-                addRunningListener: function (obj) {
-                    if (!this.runningListeners) {
-                        this.runningListeners = [
-                            {
-                                target: obj,
-                                nListeners: 1
-                            }
-                        ];
-                        return;
-                    }
-                    for (var k = 0; k < this.runningListeners.length; k++) {
-                        if (this.runningListeners[k].target == obj) {
-                            this.runningListeners[k].nListeners++;
-                            return;
-                        }
-                    }
-                    this.runningListeners.push({
-                        target: obj,
-                        nListeners: 1
-                    });
-                },
-                removeRunningListener: function (obj) {
-                    if (!this.runningListeners)return;
-                    for (var k = 0; k < this.runningListeners.length; k++) {
-                        if (this.runningListeners[k].target == obj) {
-                            this.runningListeners[k].nListeners--;
-                            if (this.runningListeners[k].nListeners == 0)
-                                this.runningListeners.splice(k, 1);
-                            return;
-                        }
-                    }
-
-                },
                 removeListener: function (evType, object, method, target) {
-                    if (!this.listeners)return;
-                    if (!this.listeners[evType])return;
+                    if (!this._ev_listeners) return;
+                    if (!this._ev_listeners[evType]) return;
                     var k, curL;
-                    for (k = 0; k < this.listeners[evType].length; k++) {
-                        curL = this.listeners[evType][k];
+                    for (k = 0; k < this._ev_listeners[evType].length; k++) {
+                        curL = this._ev_listeners[evType][k];
                         if (curL.obj == object && (!method || (method == curL.method))) {
                             if (target) {
                                 if (curL.target != target)
                                     continue;
                             }
-                            this.listeners[evType].splice(k, 1);
-                            if (object && object.removeRunningListener) {
-                                object.removeRunningListener(this);
-                            }
+                            console.debug("Removing listener " + curL.id);
+                            delete Siviglia.Dom.existingListeners[curL.id];
+                            this._ev_listeners[evType].splice(k, 1);
                             return;
                         }
                     }
                 },
                 removeListeners: function (object) {
-                    if (!this.listeners)return;
+                    if (!this._ev_listeners) return;
                     var k, j;
-                    for (k in this.listeners) {
-                        for (j = 0; j < this.listeners[k].length; j++) {
-                            if (this.listeners[k][j].obj == object) {
-                                this.listeners[k].splice(j, 1);
+                    for (k in this._ev_listeners) {
+                        for (j = 0; j < this._ev_listeners[k].length; j++) {
+                            if (this._ev_listeners[k][j].obj == object) {
+                                console.debug("Removing listener " + this._ev_listeners[k][j].id);
+                                delete Siviglia.Dom.existingListeners[this._ev_listeners[k][j].id];
+                                this._ev_listeners[k].splice(j, 1);
                                 j--;
                             }
                         }
                     }
                 },
-                notify: function (evType, data, target) {
-                    if (!this.listeners)return;
-                    if (!this.listeners[evType]) {
+                _ev_notify: function (evType, data, target) {
+                    if (!this._ev_listeners) return;
+                    if (!this._ev_listeners[evType]) {
                         return;
                     }
-                    this.notifying = true;
+                    this._ev_notifying = true;
                     var k;
                     var obj;
                     // Hay que capturar aqui cuantos listeners de este tipo hay, y hacer el bucle sobre
                     // esos elementos, evitando los listeners de este mismo tipo que se puedan añadir durante
                     // la ejecución del bucle.
-                    var nListeners=this.listeners[evType].length;
-                    console.log("NOTIFY: "+evType+" LENGTH:"+nListeners);
-                    if(nListeners > 2)
-                        debugger;
-                    for (k = 0; k < nListeners; k++) {
-                        obj = this.listeners[evType][k];
-                        if (obj.obj) {
-                            if(typeof obj.obj=="function")
-                            {
-                                obj.obj(evType,data,obj.param,target);
+                    var nListeners = this._ev_listeners[evType].length;
+                    // Iteramos sobre una copia de los listeners.
+                    var copied = Array.from(this._ev_listeners[evType]);
+
+                    try {
+                        for (k = 0; k < nListeners; k++) {
+                            // Si en algun momento los listeners estan a nulo, es que este objeto
+                            // se ha destruido.
+
+                            if (this._ev_listeners == null)
+                                break;
+                            // Pero el listener en si, lo cogemos de la copia.
+                            obj = copied[k];
+                            Siviglia.Dom.eventStack.push(obj);
+                            console.debug("NOTIFY: " + this._ev_id + " --> " + evType + " : " + obj.id);
+                            if (obj.obj) {
+                                if (typeof obj.obj == "function") {
+                                    obj.obj(evType, data, obj.param, target);
+                                } else {
+                                    if (obj.obj[obj.method])
+                                        obj.obj[obj.method](evType, data, obj.param, target);
+                                }
+                            } else {
+                                obj.method(evType, data, obj.param, target);
                             }
-                            else {
-                                if (!obj.obj[obj.method])
-                                    continue;
-                                obj.obj[obj.method](evType, data, obj.param, target);
-                            }
+                            Siviglia.Dom.eventStack.pop();
                         }
-                        else {
-                            obj.method(evType, data, obj.param, target);
-                        }
+                    } catch (e) {
+                        console.log("Error:");
+                        console.dir(e);
                     }
                     // The following is a protection code; if marks this object as "notifying",so, if as part of the notification, this object
                     // is destroyed, it will not destroy the listeners, but set the mustDestroy flag to true.
-                    this.notifying = false;
-                    if (this.mustDestroy) {
-                        this.listeners = null;
+                    this._ev_notifying = false;
+                    if (this._ev_mustDestruct) {
+                        this.destroyListeners();
                     }
                 },
+                destroyListeners: function () {
+                    delete Siviglia.Dom.existingManagers[this._ev_id];
+                    for (var k in this._ev_listeners) {
+                        for (var j = 0; j < this._ev_listeners[k].length; j++) {
+                            console.debug("DELETING LISTENER " + this._ev_listeners[k][j].id);
+                            delete Siviglia.Dom.existingListeners[this._ev_listeners[k][j].id];
+                        }
+                    }
+                    this._ev_listeners = null;
+                },
                 fireEvent: function (event, data, target) {
-                    if (!this.listeners)return;
-                    if(data!==null) {
+                    if (this._ev_firing == event)
+                        return;
+                    if (!this._ev_listeners) return;
+                    if (!this._ev_listeners[event]) return;
+
+                    if (data !== null) {
                         if (typeof data != "undefined")
                             data.target = target;
                         else
@@ -504,1186 +505,1288 @@ Siviglia.Utils.buildClass({
                             };
                         data.src = this;
                     }
-                    this.notify(event, data, target);
+
+                    this._ev_notify(event, data, target);
+                    this._ev_firing = null;
                 }
             }
         }
     }
 });
 
-Siviglia.Utils.recurseHTML = function (node, applyFunc) {
-    if ($(node).attr("noparse"))
-        return;
 
 
-    var parseChildren = applyFunc(node);
-    if (!parseChildren) {
-        return;
-    }
-    var nNodes = node.childNodes.length;
-    for (var k = 0; k < nNodes; k++) {
-        if (node.childNodes[k].tagName)
-            Siviglia.Utils.recurseHTML(node.childNodes[k], applyFunc);
-    }
-}
-/**
- *
- * Pre-declaracion de PathListener
- */
 Siviglia.Utils.buildClass(
     {
-        context: 'Siviglia.model',
+        context: "Siviglia.Path",
         classes: {
-            PathListener: {
+            ContextStack: {
                 construct: function () {
-                    this.pathListeners = [];
-                    this.notifying=false;
-                    this.newListeners=[];
-                },
-                destruct: function () {
-                    if (!this.pathListeners)return;
-
-                    this.pathListeners.map(function (z) {
-                        z.destruct();
-                    });
+                    this.contextRoots={};
                 },
                 methods: {
-
-                    addPathListener: function (listener) {
-                        if(this.notifying)
-                        {
-                            this.newListeners.push(listener);
-                            return;
-                        }
-                        if (!this.pathListeners) {
-                            this.pathListeners = [];
-                        }
-                        this.pathListeners.push(listener);
+                    addContext: function (handler) {
+                        var prefix=handler.getPrefix();
+                        if(prefix==="")
+                            prefix="/";
+                        this.contextRoots[prefix]=handler;
+                        handler.setStack(this);
                     },
-                    removePathListener: function (listener) {
-                        var k;
-                        if (!this.pathListeners)return;
-
-                        for (k = 0; k < this.pathListeners.length; k++) {
-                            if (this.pathListeners[k] == listener) {
-                                this.pathListeners.splice(k, 1);
-                                listener.destruct();
-                                return;
-                            }
-                        }
+                    removeContext:function(handler)
+                    {
+                        var prefix=handler.getPrefix();
+                        if(prefix==="")
+                            prefix="/";
+                        if(!this.hasPrefix(prefix))
+                            throw "INVALID CONTEXT REQUESTED:"+prefix;
+                        var ctx=this.contextRoots[prefix];
+                        ctx.destruct();
+                        this.contextRoots[prefix]=null;
+                        delete this.contextRoots[prefix];
                     },
-                    notifyPathListeners: function () {
-                        // NotifyPathListeners se ha complicado con los paths anidados dinamicos:
-                        // Supongamos 1 widget con un path anidado, ej /*a/{/*b}, y con datos a:{"uno":1,"dos":2} y b:"uno"
-                        // Esa expresion debe dar como resultado "1"
-                        // Pueden pasar dos cosas: que cambie "b" (por ejemplo, a "dos") y que cambie a.uno , a 2.
-                        // Si cambia b, el listener que debe notificar es el anidado.
-                        // Si se cambia a.uno, el listener que debe notificar es el padre del anidado, es decir, el externo.
-                        // Esto significa que ambos objetos deben ser listeners del widget. Y que el listener anidado, si al cambiar, llama al
-                        // padre, el padre acabara siendo llamado dos veces: 1 desde el bucle de notifyPathListeners, y otra, desde el listener anidado.
-                        // Por otro lado, podria pasar que el listener padre y el hijo, no escucharan al mismo objeto:
-                        // Si el path es /a/{/*b} , el listener externo escucha en el path global, mientras el interno escucha en el path local.
-                        // Por esto, hay que partir notifyPathListeners en varias fases, para evitar la replicacion de llamadas, y notificar correctamente al
-                        // padre en caso
-                        var k;
-                        this.notifying=true;
-                        this.newListeners=[];
-                        if (!this.pathListeners) {
-                            this.pathListeners = [];
-                        }
-                        // La notificacion a los pathListeners se resuelve en 3 fases:
-                        // La primera, hace que localmente se recalculen los paths, sin notificar a los objetos
-                        // padre de los listeners.
-                        // Esto se hace desde el primer listener aniadido, al ultimo, de forma que si hay listeners anidados, primero
-                        // se resuelven los anidados, y luego los exteriores.Es decir, cuando se calculan los exteriores, todas las
-                        // dependencias ya se han resuelto.
-                        // No se llama dos veces al mismo padre?
-                        //var called=[];
-                        var changed=[];
-                        for (k = 0; k < this.pathListeners.length; k++) {
-                         //   if(called.indexOf(this.pathListeners[k].parentObject)<0) {
-                           //     called.push(this.pathListeners[k].parentObject);
-                                if(this.pathListeners[k].onChange(true))
-                                    changed.push(this.pathListeners[k]);
-                            //}
-                        }
-                        // Ahora, se comienza a notificar a los objetos padre de cada listener.Esto se hace a la inversa, de forma
-                        // que en caso de listeners anidados, primero se llama a los listeners externos, y, despues, a los internos.
-                        // Al notificar a los padres, los listeners se van marcando como notificados (hasNotified). De esta forma, si un
-                        // listener anidado (interno), al examinar al padre, éste no tiene hasNotified, es porque el padre era un listener de otro root.
-                        // En ese caso, ese listener padre aun no se ha actualizado.El listener hijo le pide que se actualice,(onChange), y que notifique.
-                        // En caso contrario, si el listener padre ya habia notificado, el listener hijo no tiene que hacer nada mas.
-                        // Por otro lado, no hay que notificar varias veces al mismo padre.Si se le notifica una vez, en teoria,
-                        // recogera los valores de sus listeners, y los aplicara, sin necesidad de que se le notifique por cada
-                        // listener que cambio.
-
-                        var notifiedParents=[];
-                        var s=changed;
-                        // var s=this.pathlisteners
-                        for(k=s.length - 1;k>=0;k--)
-                        {
-                            if(notifiedParents.indexOf(s[k].parentObject)<0) {
-                                console.log("--NOTIFYING OWNER--");
-                                s[k].notifyOwners();
-                                notifiedParents.push(s.parentObject);
-                                console.log("--END NOTIFYING OWNER--");
-                            }
-                        }
-                        // Se limpian las banderas de "hasNotified".Para borrarla, desde aqui se llama a todos los listeners que conoce este objeto.
-                        // Pero los listeners anidados tienen que asegurarse de que su elemento padre tambien se haya limpiado.
-                        // Si el elemento padre es listener de este mismo objeto, cuando se llegue al listener anidado, el elemento padre ya se habra
-                        // limpiado. En caso contrarioo (el listener padre no era listener de este objeto), el listener hijo debe llamar a endNotify del padre.
-                        for(k=s.length - 1;k>=0;k--)
-                        {
-                            s[k].endNotify();
-                            s[k].parentObject.__notified=false;
-                        }
-                        // Aniadimos los listeners que se han creado posteriormente.
-                        this.pathListeners.concat(this.newListeners);
-                        this.notifying=false;
+                    getContext: function (prefix) {
+                        if (typeof this.contextRoots[prefix] != "undefined")
+                            return this.contextRoots[prefix];
+                        throw new Exception("INVALID CONTEXT REQUESTED:"+prefix);
+                    },
+                    getRoot:function(str)
+                    {
+                        var prefix=str.substr(0, 1);
+                        var ctx=this.getContext(prefix);
+                        return ctx.getRoot();
+                    },
+                    hasPrefix:function(char)
+                    {
+                        return typeof this.contextRoots[char]!="undefined";
+                    },
+                    getCursor:function(prefix)
+                    {
+                        var cursor=new Siviglia.Path.BaseCursor(this.contextRoots[prefix].getRoot());
+                        cursor.setPrefix(prefix);
+                        return cursor;
+                    },
+                    getCopy:function()
+                    {
+                        var newContext=new Siviglia.Path.ContextStack();
+                        for(var k in this.contextRoots)
+                            newContext.addContext(this.contextRoots[k]);
+                        return newContext;
                     }
-
                 }
-
-            }
-        },
-    }
-)
-/**
- *
- *   Objetos expando para UI
- *
- */
-Siviglia.Utils.buildClass(
-    {
-        context: "Siviglia.UI.Dom.Expando",
-        classes: {
-            Expando: {
-                construct: function (expandoTag) {
-                    this.expandoTag = expandoTag;
-                    this.listeners=[];
+            },
+            Context:{
+                construct:function(prefix,stack)
+                {
+                    this.prefix=prefix;
+                    this.stack=stack;
+                    if(typeof stack!=="undefined" && stack!==null)
+                        stack.addContext(this);
                 },
-                destruct: function () {
-                    if (this.listener)
-                        this.listener.destruct();
-                  //  for(var k=0;k<this.listeners.length;k++)
-                  //      this.listeners[k].destruct();
-                    //console.debug("DESTROYING " + this.expandoTag);
-                    this.listener = null;
-                    if (this.node) {
-                        this.node.remove();
+                methods:
+                    {
+                        getPrefix:function(){return this.prefix;},
+                        setStack:function(stack){
+                            this.stack=stack;
+                        }
                     }
-                    this.node = null;
-                    this.destroyed=true;
+            },
+            BaseCursor:{
+                inherits:"Siviglia.Dom.EventManager",
+                construct:function(objRoot)
+                {
+                    this.objRoot=objRoot;
+                    this.pathStack=[];
+                    this.remListeners=[];
+                    this.__lastTyped=false;
+                    this.prefix=null;
+                    this.reset();
+                    this.EventManager();
+                },
+                destruct:function()
+                {
+                    console.log("DESTROYING "+this.id);
+                    this.cleanListeners();
+                },
+                methods:{
+                    setPrefix:function(p)
+                    {
+                        this.prefix=p;
+                    },
+                    getPrefix:function()
+                    {
+                        return this.prefix;
+                    },
+                    reset:function()
+                    {
+                        this.__lastTyped=null;
+                        this.pointer=this.objRoot;
+                    },
+                    moveTo:function(spec)
+                    {
+
+                        this.__lastTyped=false;
+                        if(spec===".." && typeof this.pointer.getParent==="function")
+                        {
+                            cVal=this.pointer.getParent();
+                            if(this.prefix!=='@') {
+                                cVal.addListener("CHANGE", this, "onChange", "BaseCursor:" + spec);
+                                this.remListeners.push(cVal);
+                            }
+                            this.pointer=cVal;
+                            return cVal.getValue()
+                        }
+                        else {
+                            var v=this.pointer[spec];
+                            if(typeof v==="undefined")
+                                throw "Unknown path "+spec;
+                            if(typeof v=="object" && v!==null)
+                            {
+                                if(v.hasOwnProperty("__type__"))
+                                {
+                                    if(this.prefix!="@") {
+                                        v.addListener("CHANGE", this, "onChange", "BaseCursor:" + spec);
+                                        this.remListeners.push(v);
+                                    }
+                                    this.__lastTyped=true;
+                                }
+                                else
+                                    this.addPathListener(this.pointer, spec);
+
+                            }
+                            else
+                                this.addPathListener(this.pointer,spec);
+                            this.pointer=this.pointer[spec];
+                        }
+                    },
+                    getValue:function()
+                    {
+                        //if(this.__lastTyped==true)
+                        //    return this.pointer.getValue();
+                        return this.pointer;
+                    },
+                    addPathListener:function(parent,propName)
+                    {
+                        if(this.prefix=='@')
+                            return;
+                        Siviglia.Path.eventize(parent,propName);
+                        var m=this;
+                        parent["_"+propName].addListener("CHANGE",this,"onChange","Basecursor:"+propName);
+                        this.remListeners.push(parent["_"+propName]);
+                    },
+                    // Algun elemento del path ha cambiado.Hay que notificar para que vuelvan a parsearlo todo.
+                    onChange:function()
+                    {
+                        this.fireEvent("CHANGE",null);
+                        // Una vez que se dispara un evento de CHANGE, eliminamos todos los listeners.
+
+                        this.cleanListeners();
+                    },
+                    cleanListeners:function()
+                    {
+                        for(var k=0;k<this.remListeners.length;k++)
+                            this.remListeners[k].removeListeners(this);
+                        this.remListeners=[];
+                    }
+                }
+            },
+            BaseObjectContext:{
+                inherits:"Context",
+                construct:function(objRoot,prefix,stack)
+                {
+                    this.objRoot=objRoot;
+                    this.Context(prefix,stack);
+                },
+                methods:{
+                    getRoot:function(){
+                        return this.objRoot;
+                    },
+                    getCursor:function(){
+                        return new Siviglia.Path.BaseObjectContainerCursor(this.objRoot);
+                    }
+                }
+            },
+            PathResolver: {
+                inherits: "Siviglia.Dom.EventManager",
+                construct: function (contexts,path) {
+                    this.contexts = contexts;
+                    this.remlisteners=[];
+                    // Los paths antiguos utilizan /* para marcar un contexto determinado.
+                    // Por compatibilidad, comprobamos si la cadena pasada tiene ese formato, y
+                    // si es asi, lo convertimos al actual (sin la "/")
+                    if((path[1]==="*" || path[1]==="@") && path[0]==="/")
+                        path=path.substr(1);
+                    this.path=path;
+                    this.cursors=[];
+                    this.valid=false;
+                    this.lastValue=null;
+                    this.firing=false;
+                    this.EventManager();
+                },
+                destruct:function()
+                {
+                    this.clearListeners();
                 },
                 methods: {
-                    _initialize: function (node, nodeManager, pathRoot, contextObj, caller) {
-                        this.node = node;
-                        this.unresolvedPaths = [];
-                        var attr = node[0].getAttribute(this.expandoTag);
-                        if (attr) {
-                            this.listener = new Siviglia.model.Listener(this, "value", caller, pathRoot, contextObj, attr);
-                            pathRoot.getPath(attr, this.listener, contextObj);
-                            this.node = node;
-                            this.node.data("listener", this.listener);
-                            this.node.data(this.expandoTag, this);
+                    buildTree: function (str) {
+                        var componentStack = [];
+                        var components = [];
+                        componentStack.push(components);
+                        var curExpr = null;
+                        var prefix="";
+                        var startingPath=true;
+                        for (var k = 0; k < str.length; k++) {
+                            var char = str[k];
+                            if(startingPath)
+                            {
+                                if(!this.contexts.hasPrefix(char))
+                                {
+                                    throw "INVALID PATH:"+this.path;
+                                }
+                                curExpr={"type":"pathElement",str:"",prefix:char}
+                                startingPath=false;
+                                continue;
+                            }
+                            switch (char) {
+                                case "/": {
+
+                                    if (curExpr != null)
+                                        components.push(curExpr);
+                                    curExpr = {type: "pathElement", str: ""};
+                                    // Si es el primer elemento del path, nos quedamos con el
+                                    // caracter siguiente del path, que determina el contexto en el que
+                                    // estamos buscando.
+                                    if(components.length==0) {
+
+                                        curExpr.prefix = prefix;
+                                    }
+                                    prefix="";
+                                }
+                                    break;
+                                case "{": {
+                                    var nextChar = str[k + 1];
+                                    var expr = curExpr != null ? curExpr : {};
+                                    expr.type = "subpath";
+                                    if (nextChar == "%") {
+                                        expr.subtype = "static";
+                                        k++;
+                                    } else {
+                                        expr.subtype = "dynamic";
+                                        expr.str = "";
+                                    }
+                                    components.push(expr);
+                                    expr.components = [];
+                                    componentStack.push(expr.components);
+                                    components = expr.components;
+                                    curExpr = null;
+                                    startingPath=true;
+                                }break;
+                                case "}": {
+                                    if (curExpr != null) {
+                                        var lastChar = curExpr.str.substr(-1, 1);
+                                        // Si el ultimo caracter de la expresion actual es un "%", se elimina
+                                        if (lastChar == "%")
+                                            curExpr.str = curExpr.str.substr(0, curExpr.str.length - 1);
+                                        components.push(curExpr);
+                                    }
+                                    componentStack.pop();
+                                    components=componentStack[componentStack.length-1];
+                                    curExpr=null;
+                                }break;
+                                default: {
+                                    curExpr.str += char;
+                                }
+                            }
                         }
-                        return true;
+                        if(curExpr && (curExpr.str.length>0 || curExpr.type=="subpath"))
+                            components.push(curExpr);
+                        if (componentStack.length > 1)
+                            throw "Invalid Path";
+                        return componentStack[0];
                     },
-                    reset: function () {
+                    isValid:function()
+                    {
+                        return this.valid;
+                    },
+                    getPath:function()
+                    {
+                        if(this.firing)
+                            return;
+                        var p=this.path[0];
+                        if(this.contexts.hasPrefix(p))
+                        {
+                            this.stack = this.buildTree(this.path);
+                            console.log("DESTRUYO CURSORES");
+                            this.clearListeners();
+                            this.valid = true;
+                            try {
+                                var newVal = this.parse(this.stack, true);
+                            }catch(e)
+                            {
+                                this.valid=false;
+                                newVal=null;
+                            }
+                        }
+                        else
+                        {
+                            this.valid=true;
+                            newVal=this.path;
+                        }
+                        this.firing=true;
+                        this.lastValue=newVal;
+                        this.fireEvent("CHANGE", {value: newVal,valid:this.valid});
+                        this.firing=false;
+                        return newVal;
+                    },
+                    getValue:function(){return this.lastValue;},
+                    parse:function(pathParts)
+                    {
+                        // TODO : Eliminar listeners.
+
+                        var root=this.contexts.getRoot(pathParts[0].prefix);
+                        var cursor=this.contexts.getCursor(pathParts[0].prefix);
+                        this.cursors.push(cursor);
+                        var m=this;
+                        if(pathParts[0].prefix!=='@') {
+                            cursor.addListener("CHANGE", this, "getPath", "PathResolver:" + this.path)
+                        }
+                        var lastPointer,lastLabel;
+
+                        for(var k=0;k<pathParts.length && this.valid ;k++)
+                        {
+                            var p=pathParts[k];
+                            switch(p.type)
+                            {
+                                case "pathElement":
+                                {
+                                    lastPointer=cursor.getValue();
+                                    lastLabel=p.str;
+                                    try {
+                                        cursor.moveTo(p.str);
+                                    }catch(e)
+                                    {
+                                        this.valid=false;
+                                    }
+                                }break;
+                                case "subpath":
+                                {
+                                    var val=this.parse(p.components,p.subtype=="static"?false:true);
+                                    if(this.valid) {
+                                        lastPointer = cursor.getValue();
+                                        lastLabel = val;
+                                        cursor.moveTo(val);
+                                    }
+                                }break;
+                            }
+                        }
+                        return cursor.getValue();
+                    },
+                    clearListeners:function(){
+                        for(var k=0;k<this.remlisteners.length;k++)
+                            this.remlisteners[k].removeListeners(this);
+
+                        for(var k=0;k<this.cursors.length;k++) {
+                            //      this.cursors[k].removeListeners(this);
+                            this.cursors[k].destruct();
+                        }
+                        this.cursors=[];
                     }
                 }
             }
         }
     });
-Siviglia.Utils.buildClass(
-    {
-        context: "Siviglia.UI.Dom.Expando",
-        classes: {
-            ValueExpando: {
-                inherits: "Expando",
-                construct: function () {
-                    this.Expando("sivValue");
 
-                    this.origValues={};
-                },
-                destruct: function () {
-                    if (this.listener)
-                        this.listener.destruct();
-                    //console.debug("DESTROYING " + this.expandoTag);
-                    this.listener = null;
-                    if (this.node) {
-                        this.node.remove();
-                    }
-                    for(var k=0;k<this.listeners.length;k++)
-                        this.listeners[k].listener.destruct();
-                    this.listeners=null;
-                    this.node = null;
-                    if(this.pstring)
-                        this.pstring.destruct();
-                },
-                methods: {
-                    _initialize: function (node, nodeManager, pathRoot, contextObj, caller) {
-                        this.node = node;
-                        this.unresolvedPaths = [];
-                        var attr = node[0].getAttribute(this.expandoTag);
-                        if (attr) {
-                            this.listener = new Siviglia.model.Listener(this, "value", caller, pathRoot, contextObj, attr);
-                            //pathRoot.getPath(attr, this.listener, contextObj);
-                            if(attr[0]!="/")
-                                this.pString=new Siviglia.Utils.ParametrizableString(caller,this.listener,attr,{});
-                            else
-                                pathRoot.getPath(attr, this.listener, contextObj);
-                            this.node = node;
-                            this.node.data("listener", this.listener);
-                            this.node.data(this.expandoTag, this);
-                        }
-                        return true;
+Siviglia.Utils.parametrizableStringCounter=0;
+Siviglia.Utils.buildClass({
+    context:'Siviglia.Path',
+    classes:
+        {
+            ParametrizableStringException:{
+                construct:function(message)
+                {
+                    this.message=message;
+                }
+            },
+            ParametrizableString:
+                {
+                    /*
+                        Si se quieren utilizar paths, controller debe ser una instancia de una clase derivada
+                        de Siviglia.model.PathRoot
+                    */
+                    inherits:"Siviglia.Dom.EventManager",
+                    construct:function(str,contextStack)
+                    {
+                        this._ps_id=Siviglia.Utils.parametrizableStringCounter;
+                        Siviglia.Utils.parametrizableStringCounter++;
+                        this.contextStack=contextStack;
+                        this.BASEREGEXP=/\[%(?:(?:([^: ,]*)%\])|(?:([^: ,]*)|([^:]*)):(.*?(?=%\]))%\])/g;
+                        this.BODYREGEXP=/\{%(?:([^%:]*)|(?:([^:]*):(.*?(?=%\}))))%\}/g;
+                        this.PARAMREGEXP=/([^|$ ]+)(?:\||$|(?: ([^|$]+)))/g;
+                        this.SUBPARAMREGEXP=/('[^']*')|([^ ]+)/g;
+                        this.paths={};
+                        this.str=str;
+                        this.valid=true;
+                        this.pathController=null;
+                        this.EventManager();
+
                     },
-                 /*   _initialize: function (node, nodeManager, pathRoot, contextObj, caller) {
-                        this.attr = node[0].getAttribute("sivValue");
+                    destruct:function()
+                    {
+                        this.removeAllPaths();
 
-                        this.node = node;
-                        this.unresolvedPaths = [];
-                        var attrs=this.attr.split(","),attribute='',path='';
-                        for(var k=0;k<attrs.length;k++)
+                    },
+                    methods:
                         {
-                            var subAttr=attrs[k].split(":");
-                            if(subAttr.length==1)
+                            parse:function()
                             {
-                                attribute='innerHTML';
-                                path=subAttr[0];
-                            }
-                            else
+                                this.parsing=true;
+                                this.valid=true;
+                                var str=this.str;
+                                var m=this,r=new RegExp(this.BASEREGEXP),res,f=str;
+                                try {
+                                    while (res = r.exec(str))
+                                        f = f.replace(res[0], this.parseTopMatch(res));
+                                    this.parsing = false;
+                                    this.fireEvent("CHANGE", {value: f});
+                                    return f;
+                                }catch(e)
+                                {
+                                    throw e;
+                                }
+                                return null;
+                            },
+                            parseTopMatch:function(match)
                             {
-                                attribute=subAttr[0];
-                                path=subAttr[1];
-                            }
-                            var p2=path.split(" ");
-                            // Si en el atributo existe mas de 1 path, es append siempre.
-                            var append=p2.length > 1?1:0;
+                                // Match simple
 
-
-
-                            if(attribute.substr(0,1)=='+') {
-                                attribute = attribute.substr(1);
-                                append = 1;
-                            }
-                            // Soporte para que 1 solo atributo tenga mas de 1 path, separado por espacios.
-                            // Ejemplo: className:/*a /*b,....
-                            for(var j=0;j<p2.length;j++) {
-                                this.origValues[attribute] = this.node[0][attribute];
-                                var newListener = new Siviglia.model.Listener(this, "value", caller, pathRoot, contextObj, p2[j]);
-                                this.listeners.push({attr: attribute, listener: newListener, append: append});
-                                pathRoot.getPath(p2[j], newListener, contextObj);
-                            }
-                        }
-                        var attr = node[0].getAttribute('SivigliaAlias');
-                        if (attr && caller.nodes) {
-                            caller.nodes[attr] = this;
-                        }
-                        return true;
-                    },*/
-                    onListener: function () {
-                        var c;
-                        var self=this;
-                        var val=this.listener.getValue();
-                        if(Siviglia.isString(val)) {
-                            var parts = val.split("::");
-                            for (var k = 0; k < parts.length; k++) {
-                                var p1 = parts[k].split("|")
-
-                                if (p1.length == 1)
-                                    this.node.html(p1[0]);
-                                else
-                                    this.node.attr(p1[0], p1[1]);
-                            }
-                        }
-                        else
-                            this.node.html(""+val);
-
-
-
-                    },
-                    reset: function () {
-                        for(var k in this.origValues)
-                            this.node[0][k] = this.origValues[k];
-
-                    }
-                }
-            },
-            CssExpando:{
-                inherits:"Expando",
-                construct:function(){
-                    this.Expando("sivCss");
-                },
-                methods:{
-                    _initialize:function(node,nodeManager,pathRoot,contextObj,caller)
-                    {
-                        this.cssProperty=node.attr("cssProperty");
-                        this.oldProperty=node[0].style[this.cssProperty];
-                        return this.Expando$initialize(node,nodeManager,pathRoot,contextObj,caller);
-                    },
-                    onListener:function()
-                    {
-                        this.node[0].style[this.cssProperty]=this.listener.value;
-                    },
-                    reset:function()
-                    {
-                        this.node[0].style[this.cssProperty]=this.oldProperty;
-                    }
-                }
-            },
-            AttrExpando:{
-                inherits:"Expando",
-                construct:function(){
-                    this.Expando("sivAttr");
-                },
-                methods:{
-                    _initialize:function(node,nodeManager,pathRoot,contextObj,caller)
-                    {
-                        this.attrProperty=node.attr("attrProperty");
-
-                        this.oldProperty=node[0].style[this.attrProperty];
-                        return this.Expando$_initialize(node,nodeManager,pathRoot,contextObj,caller);
-                    },
-                    onListener:function()
-                    {
-                        this.node[0].style[this.attrProperty]=this.listener.value;
-                    },
-                    reset:function()
-                    {
-                        this.node[0].style[this.attrProperty]=this.oldProperty;
-                    }
-                }
-            },
-            CallExpando: {
-                inherits: "Expando",
-                construct: function () {
-                    this.Expando("sivCall");
-                },
-                destruct: function () {
-                    if(this.paramObj)
-                        this.paramObj.destruct();
-                    if (this.listener)
-                        this.listener.destruct();
-                    //console.debug("DESTROYING " + this.expandoTag);
-                    this.listener = null;
-                    if (this.node) {
-                        this.node.remove();
-                    }
-                    this.node = null;
-                    this.destroyed=true;
-                },
-                methods: {
-                    _initialize: function (node, nodeManager, pathRoot, contextObj, caller) {
-                        this.method = node.attr("sivCall");
-                        this.node = node;
-                        this.caller = caller;
-                        //return this.Expando$initialize(node,nodeManager,pathRoot,contextObj,caller);
-                        // Directamente, se llama a initialize
-                        // this.Expando$initialize(node,nodeManager,pathRoot,contextObj,caller);
-                        // Noa aniadimos como listener de los parametros.
-                        this.paramObj = node.data("paramsExpando");
-                        if (this.paramObj)
-                            this.paramObj.setController(this);
-                        this.onListener();
-                        // Un sivcall no debe procesar su contenido.El por que, es complejo:
-                        // Supongamos que el contenido del nodo , va a ser establecido en la llamada , a otra subplantilla cargada via ajax.
-                        // La primera vez que se procesa el sivCall, la plantilla que quiere meter en el nodo, no esta cacheada,
-                        // asi que cuando termina la llamada , el nodo no tiene hijos, y no se parsean.
-                        // La segunda vez que se ejecute el SivCall, la plantilla a meter YA esta cacheada, por lo que muy probablemente
-                        // hara que ANTES de terminar la llamada, el nodo ya tenga la subplantilla.
-                        // Esta diferencia hace que, en el primer caso, el contenido de sivCall no se parsee.En el segundo, si.
-                        // Y esto puede provocar que el codigo acabe parseando dos veces la subplantilla.
-                        // Por si acaso, metemos un parametro extra que nos indique que queremos hacer.
-                        var doparse = node.attr("parseContent");
-                        if (doparse)
-                            return true;
-                        return false; // NO se deben procesar los contenidos del nodo.Que lo haga quien lo llama.
-
-                    },
-                    onListener: function () {
-                        if (this.method.substr(0, 1) == ".") {
-                            return window[this.method.substr(1)](this.node, $(this.node).data("params"));
-                        }
-                        var src = this.caller;
-                        if (this.caller.viewObject)
-                            src = src.viewObject
-                        var params=null;
-                        if(Siviglia.isset(this.paramObj))
-                            params=this.paramObj.getValues();
-                        src[this.method](this.node, params);
-                    },
-
-                    reset: function () {
-                        this.onListener();
-                    }
-                }
-            },
-            LoopExpando: {
-                inherits: "Expando",
-                construct: function () {
-                    this.oManager = null;
-                    this.Expando("sivLoop");
-                },
-                destruct: function () {
-                    if (this.oManager)
-                        this.oManager.destruct();
-                },
-                methods: {
-                    _initialize: function (node, nodeManager, pathRoot, contextObj, caller) {
-                        this.origHTML = [];
-                        for (var k = 0; k < node[0].childNodes.length; k++) {
-                            var cNode = node[0].childNodes[k];
-                            if (cNode.nodeType != 3 && cNode.nodeType != 8)
-                                this.origHTML.push(cNode.cloneNode(true));
-                        }
-                        this.contextParam = node.attr("contextIndex");
-                        this.pathRoot = pathRoot;
-                        this.context = contextObj;
-                        this.Expando$_initialize(node, nodeManager, pathRoot, contextObj, caller);
-                        return false;
-                    },
-
-                    onListener: function () {
-                        this.node[0].innerHTML = "";
-                        if (this.oManager) {
-                            this.oManager.destruct();
-                        }
-                        //var newRoot = new Siviglia.model.PathRoot();
-                        if(this.oManager)
-                            this.oManager.destruct();
-                        this.oManager = new Siviglia.UI.Dom.Expando.ExpandoManager(this.pathRoot, this.context);
-                        this.oManager.setOwner(this);
-                        //this.oManager.context = {}; // this.context;
-
-
-                        var curNode;
-
-                        var val = this.listener.value;
-                        if(val === null)
-                        {
-                            val=[];
-                        }
-                        var tempNode = $(this.origHTML);
-
-                        if (val.constructor.toString().indexOf("rray") < 0) {
-                            if (val.constructor.toString().indexOf("bject") > 0) {
-                                for (var k in val) {
-                                    for (var j = 0; j < this.origHTML.length; j++) {
-                                        curNode = this.origHTML[j].cloneNode(true);
-                                        this.context[this.contextParam] = val[k];
-                                        this.context[this.contextParam+"-index"]=k;
-                                        this.oManager.parse([curNode], this.listener.caller, true, true);
-                                        this.node.append(curNode);
-                                    }
-                                }
-                            }
-                            else {
-                                //alert("Indicado LoopExpando sobre path que no es un array");
-                                return;
-                            }
-                        }
-                        else {
-
-                            var l = val.length;
-                            for (var k = 0; k < l; k++) {
-                                for (var j = 0; j < this.origHTML.length; j++) {
-                                    curNode = this.origHTML[j].cloneNode(true);
-                                    this.context[this.contextParam] = val[k];
-                                    this.context[this.contextParam+"-index"]=k;
-                                    this.oManager.parse([curNode], this.listener.caller, true, true);
-                                    this.node.append(curNode);
-                                }
-                            }
-                        }
-                        delete this.context[this.contextParam];
-                        delete this.context[this.contextParam+"-index"];
-                        //this.oManager.context=oldContext;
-                    },
-                    onPathNotFound:function(path)
-                    {
-                        this.node[0].innerHTML = "";
-                        if (this.oManager) {
-                            this.oManager.destruct();
-                        }
-                    }
-                }
-            },
-            IfExpando: {
-                inherits: "Expando",
-                construct: function () {
-                    this.oManager = null;
-                    this.Expando("sivIf");
-                },
-                destruct: function () {
-                    if (this.oManager)
-                        this.oManager.destruct();
-                },
-                methods: {
-                    _initialize: function (node, nodeManager, pathRoot, contextObj, caller) {
-                        this.origHTML = [];
-                        for (var k = 0; k < node[0].childNodes.length; k++) {
-                            var cNode = node[0].childNodes[k];
-                            this.origHTML.push(cNode.cloneNode(true));
-                        }
-                        var attr = node[0].getAttribute("sivIf");
-                        var parts=attr.split(' ');
-                        if(parts.length!=3)
-                        {
-                            console.debug("SivIf no valido:"+attr);
-                            return;
-                        }
-                        this.origDisplay=node.css("display");
-                        this.pathRoot=pathRoot;
-                        this.context=contextObj;
-                        this.operator=parts[1];
-                        this.source=parts[0];
-                        this.compareTo=parts[2];
-                        this.node = node;
-                        var newListener=new Siviglia.model.Listener(this, "value", caller, pathRoot, contextObj, this.source);
-                        this.listener=newListener;
-                        this.dontRecurse=false;
-                        pathRoot.getPath(this.source, newListener, contextObj);
-
-                        return this.dontRecurse;
-                    },
-                    onListener: function () {
-                        this.removeContent();
-                        var val = this.listener.value;
-                        if (!this.testValue(val))
-                            this.removeContent();
-                        else
-                            this.restoreContent();
-                    },
-                    testValue:function(val)
-                    {
-
-                        return ((val == null || val == "") && this.compareTo == "null")
-                            ||
-                            (this.operator=="==" && val.toString() == this.compareTo)
-                            ||
-                            (this.operator=="!=" && val.toString() != this.compareTo);
-                    },
-                    restoreContent:function()
-                    {
-                        if(this.oManager)
-                            this.oManager.destruct();
-                        //var newRoot = new Siviglia.model.PathRoot();
-                        this.oManager = new Siviglia.UI.Dom.Expando.ExpandoManager(this.pathRoot, this.context);
-                        this.oManager.setOwner(this);
-                        //this.oManager.context = {}; // this.context;
-                        var curNode;
-                        for (var j = 0; j < this.origHTML.length; j++) {
-                            curNode = this.origHTML[j].cloneNode(true);
-                            this.oManager.parse([curNode], this.listener.caller, true, true);
-                            this.node.append(curNode);
-                        }
-                        this.node.css("display",this.origDisplay);
-                        this.dontRecurse=false;
-                    },
-                    removeContent:function()
-                    {
-                        this.node[0].innerHTML = "";
-                        if (this.oManager) {
-                            this.oManager.destruct();
-                        }
-                        this.node.css("display","none");
-                        this.dontRecurse=true;
-                    },
-                    onPathNotFound:function(path)
-                    {
-                        if(!this.listener)
-                            return;
-                        if(this.operator=="==" &&  this.compareTo == "null")
-                            this.restoreContent();
-                        else
-                            this.removeContent();
-                    }
-                }
-            },
-            ClassExpando: {
-                inherits: "Expando",
-                construct: function () {
-                    this.Expando("sivClass");
-                },
-                methods: {
-                    _initialize: function (node, nodeManager, pathRoot, contextObj, caller) {
-                        var attr = node[0].getAttribute("orClass");
-                        if (attr == null) {
-
-                            var oClass = node[0].className;
-                            if (!oClass)oClass = "";
-                            node[0].setAttribute("orClass", oClass);
-                        }
-
-                        return this.Expando$_initialize(node, nodeManager, pathRoot, contextObj, caller);
-
-                    },
-                    onListener: function () {
-                        var oClass = this.node[0].getAttribute("orClass");
-                        this.node[0].className = oClass + " " + this.listener.value;
-                    },
-                    reset: function () {
-                        var oClass = this.node[0].getAttribute("orClass");
-                        this.node[0].className = oClass;
-                    }
-                }
-            },
-            DojoExpando: {
-                inherits: "Expando",
-                construct: function () {
-                    this.widgets = [];
-                    this.Expando("sivDojo");
-
-                },
-                methods: {
-                    _initialize: function (node, nodeManager, pathRoot, contextObj, caller) {
-                        return this.Expando$initialize(node, nodeManager, pathRoot, contextObj, caller);
-                    },
-                    onListener: function () {
-                        var m = this;
-                        var params = $(this.node).data("params");
-                        require([this.listener.value], function (view) {
-                            var newDiv = document.createElement("div");
-                            var v = new view(params, null);
-                            v.placeAt(newDiv);
-                            m.node.append(newDiv);
-                            m.widgets.push(v);
-                        })
-
-                    },
-                    reset: function () {
-                        for (var k = 0; k < this.widgets.length; k++)
-                            this.widgets[k].destroyRecursive(false);
-                        this.widgets = [];
-                    }
-                }
-            },
-            EventExpando: {
-                inherits: "Expando",
-                construct: function () {
-                    this.Expando("sivEvent");
-                },
-                destruct: function () {
-                    this.reset();
-                    this.node.unbind();
-
-                },
-                methods: {
-                    _initialize: function (node, nodeManager, pathRoot, contextObj, caller) {
-                        this.node = node;
-                        var f = null;
-                        var functions = [];
-                        var attr = node[0].getAttribute(this.expandoTag);
-                        var callback = node[0].getAttribute("sivCallback");
-                        if (callback) {
-                            node.data("event_caller", caller);
-                            node.data("event_method", callback);
-                            f = function (event) {
-                                var caller = $(this).data("event_caller");
-
-                                var paramObj = $(this).data("params");
-                                var params = [];
-                                var k;
-                                params.push($(this));
-                                /*for(k in paramObj)
-                                 params.push(paramObj[k]);*/
-                                params.push(paramObj);
-                                var method = $(this).data("event_method");
-                                if (caller.invoke)
-                                    return caller.invoke(method, params, event);
-                                else
-                                    return caller[method].apply(caller, params, event);
-                            }
-                            functions.push(f);
-                            this.node = node;
-                        }
-                        var firedState = node[0].getAttribute("fireState");
-                        if (firedState) {
-                            this.node.data("firedState", firedState);
-                            var eventTarget = node[0].getAttribute("eventTarget");
-                            if (eventTarget)
-                                this.node.data("eventTarget", eventTarget);
-
-                            f = function () {
-                                var expando = $(this).data("sivEvent");
-                                var target = $(this).data("eventTarget");
-                                var parentNode = expando.findViewStateRoot(target);
-                                var exp = $(parentNode).data("sivState");
-                                //console.debug("FIRING STATE::"+$(this).data("firedState"));
-                                // La siguiente llamada hace que se actualize la variable "al otro lado" del listener.
-                                // Es decir, la apuntada por el contexto.
-                                var val = $(this).data("firedState");
-                                exp.listener.__widgetToCaller(val);
-                                exp.setState(val);
-                            }
-                            functions.push(f);
-                        }
-                        if (functions.length) {
-                            // Los nombres de callbacks son los mismos que en jQuery
-                            $(node).off(attr);
-                            var i = 0;
-                            for (i; i < functions.length; i++) {
-                                $(node).on(attr, functions[i]);
-                            }
-                        }
-                        return this.Expando$_initialize(node, nodeManager, pathRoot, contextObj, caller);
-                    },
-                    findViewStateRoot: function (target) {
-                        var node = this.node[0];
-                        while (node && node.tagName && node.tagName != "body") {
-                            if ($(node).data("sivState")) {
-                                if (target) {
-                                    if (node.getAttribute("sivAlias") == target)
-                                        return node;
-                                }
-                                else
-                                    return node;
-                            }
-                            node = node.parentNode;
-                        }
-                        if (!node || node.tagName == "body") {
-                            alert("No se encuentra target de fireState");
-                            return null;
-                        }
-                        return node;
-                    },
-                    onListener: function () {
-                    },
-                    reset: function () {
-                        var attr = this.node[0].getAttribute(this.expandoTag);
-                        if (attr)this.node.unbind(attr);
-                    }
-                }
-            },
-            ParamsExpando: {
-                inherits: "Expando",
-                construct: function () {
-                    this.Expando("sivParams");
-                },
-                destruct:function(){
-
-                    var nListeners = this.listeners.length;
-                    var index;
-                    for (var k = 0; k < nListeners; k++) {
-                        this.listeners[k].l.destruct();
-                    }
-                    this.controller=null;
-                    this.listeners=[];
-                },
-                methods: {
-                    _initialize: function (node, nodeManager, pathRoot, contextObj, caller) {
-                        this.node = node;
-                        var attr = node[0].getAttribute(this.expandoTag);
-                        if (attr.substr(0, 1) != "{")
-                            attr = "{" + attr + "}";
-                        //this.params=jsonlite.parse(attr);
-                        this.params = jQuery.parseJSON(attr);
-
-                        this.listeners = [];
-
-                        this.path_recursive(this.params, this.params, 0, node, nodeManager, pathRoot, contextObj, caller);
-                        // los parametros se almacenan en el nodo.Por lo tanto, el tag sivParams debe ser de los primeros que se
-                        // parseen, antes de cualquier otro que los quiera utilizar.
-                        this.node.data("params", this.params);
-                        this.node.data("paramsExpando", this);
-                        return true;
-
-                    },
-                    path_recursive: function (el, parentEl, idx, node, nodeManager, pathRoot, contextObj, caller) {
-
-                        if (Object.prototype.toString.call(el) === '[object Array]') {
-                            for (idx = 0; idx < el.length; idx++)
-                                el[idx] = this.path_recursive(el[idx], el, idx, node, nodeManager, pathRoot, contextObj, caller);
-
-                            return el;
-                        }
-                        if (el === null)
-                        {
-                            return null;
-                        }
-                        if (el instanceof Object) {
-                            for (idx in el)
-                                el[idx] = this.path_recursive(el[idx], el, idx, node, nodeManager, pathRoot, contextObj, caller);
-
-                            return el;
-                        }
-                        if (el.toString().substr(0, 1) == "/") {
-                            var newListener = new Siviglia.model.Listener(this, "param", caller, pathRoot, contextObj, el);
-                            this.listeners.push({
-                                p: parentEl,
-                                i: idx,
-                                l: newListener
-                            });
-                            var nVal = pathRoot.__getPath(pathRoot, el.split("/"), 0, contextObj, caller, newListener);
-                            return newListener.value;
-                        }
-                        return el;
-                    },
-                    setController: function (obj) {
-                        this.controller = obj;
-                    },
-                    onListener: function () {
-                        var nListeners = this.listeners.length;
-                        this.paramValues={};
-                        for (var k = 0; k < nListeners; k++) {
-                            var cl = this.listeners[k];
-                            cl.p[cl.i] = this.listeners[k].l.value;
-                            this.paramValues[cl.i]=this.listeners[k].l.value;
-                            //index=this.listeners[k].i;
-                            //this.params[index]=this.listeners[k].l.value;
-                            if (this.controller && this.controller.viewObject) {
-                                for (var j in this.params)
-                                    this.controller.viewObject[j] = this.params[j];
-                            }
-                        }
-
-                        if (this.node) {
-                            this.node.data("params", this.params);
-                        }
-
-                        if (this.controller) {
-                            this.controller.reset();
-                        }
-                    },
-                    getValues:function()
-                    {
-                        return this.paramValues;
-                    },
-                    reset: function () {
-                        var attr = this.node[0].getAttribute(this.expandoTag);
-                        if (attr)this.node.unbind(attr);
-                    }
-                }
-
-            },
-
-            StateExpando: {
-                inherits: "Expando",
-                construct: function () {
-                    this.oManager = null;
-                    this.Expando("sivState");
-                    this.caller = null;
-                    this.innerManager = null;
-                    this.parsed = false;
-                },
-                destruct: function () {
-                    if (this.innerManager) {
-                        this.innerManager.destruct();
-                        this.innerManager = null;
-                    }
-                    if (this.oManager) {
-                        this.oManager.destruct();
-                        this.oManager = null;
-                    }
-                    this.Expando$destruct();
-                },
-                methods: {
-                    _initialize: function (node, nodeManager, pathRoot, contextObj, caller) {
-
-
-                        //console.debug("INICIALIZANDO ESTADO "+node[0].className);
-                        this.caller = caller;
-                        var k;
-
-                        for (k = 0; k < node[0].childNodes.length; k++) {
-                            if (node[0].childNodes[k].tagName)
-                                node[0].childNodes[k].style.display = 'none';
-                        }
-                        if(this.oManager)
-                            this.oManager.destruct();
-                        //this.oManager=new Siviglia.UI.Dom.Expando.ExpandoManager(nodeManager.pathRoot,nodeManager.contextObj);
-                        this.oManager = new Siviglia.UI.Dom.Expando.ExpandoManager(pathRoot, contextObj);
-                        this.oManager.setOwner(this);
-                        this.context = contextObj;
-
-                        var childNodes = node[0].childNodes;
-                        var nChildNodes = childNodes.length;
-                        var stateVal = null;
-                        var curNode;
-                        //console.debug("ESTADO:"+val);
-                        for (var i = 0; i < nChildNodes; i++) {
-                            curNode = null;
-                            tempNode = childNodes[i];
-                            if (!childNodes[i].tagName)continue;
-                            stateVal = tempNode.getAttribute("onState");
-                            tempNode.setAttribute("origHTML", tempNode.innerHTML)
-                        }
-
-                        this.pathRoot = pathRoot;
-                        this.context = contextObj;
-                        this.node = node;
-                        this.Expando$_initialize(node, nodeManager, pathRoot, contextObj, caller);
-                        /*if(!this.curState)
-                         this.setState("default");
-                         */
-
-                        return false;
-                    },
-                    onListener: function () {
-                        this.setState(this.listener.value);
-                    },
-                    setState: function (val) {
-                        if (this.oManager) {
-                            this.oManager.destruct();
-                        }
-
-                        this.oManager = new Siviglia.UI.Dom.Expando.ExpandoManager(this.pathRoot, this.context);
-                        this.oManager.setOwner(this);
-                        this.oManager.context = this.context;
-
-                        this.curState = val;
-
-                        var i = 0, j = 0;
-                        var childNodes = this.node[0].childNodes;
-                        var nChildNodes = childNodes.length;
-                        var stateVal = null;
-                        var curNode;
-                        //console.debug("ESTADO:"+val);
-                        for (i; i < nChildNodes; i++) {
-                            curNode = null;
-                            tempNode = childNodes[i];
-                            if (!childNodes[i].tagName)continue;
-
-                            stateVal = tempNode.getAttribute("onState");
-
-                            if (!stateVal) {
-                                curNode = tempNode;
-                            } else {
-                                var tmpStateVal = stateVal.split(',');
-                                for (j = 0; j < tmpStateVal.length; j++) {
-                                    if (tmpStateVal[j] == val) {
-                                        curNode = tempNode;
-                                        break;
-                                    }
-                                }
-                            }
-                            if (curNode) {
-                                var origHTML = curNode.getAttribute("origHTML").replace(/^\s+/g, '');
-                                var p = document.createElement("div");
-                                p.innerHTML = origHTML;
-                                p.setAttribute("onState", curNode.getAttribute("onState"));
-                                p.setAttribute("origHTML", origHTML);
-                                this.oManager.parse($(p), this.listener.caller, true, true);
-                                p.style.display = 'block';
-                                curNode.parentNode.replaceChild(p, curNode);
-                            }
-                            else
-                                tempNode.style.display = 'none';
-                        }
-                        if (this.caller && this.caller.fireEvent)
-                            this.caller.fireEvent(val, this);
-                    }
-
-                }
-
-            },
-            ExpandoManager: {
-                construct: function (pathRoot, contextObj) {
-                    this.pathRoot = pathRoot;
-                    this.context = contextObj;
-                    this.expandos = [];
-                    this.destroyed = false;
-                    if(!Siviglia.isset(Siviglia.__expandoCount))
-                        Siviglia.__expandoCount=0;
-                    this.eid=Siviglia.__expandoCount;
-
-
-                    if(typeof this.__proto__.counter=="undefined") {
-                        this.__proto__.counter = 0;
-                        this.__proto__.store = {};
-                        this.__proto__.nObjs = 0;
-                    }
-                    this.__objid__=this.__proto__.counter;
-                    this.__proto__.store[this.__objid__]=this;
-                    this.__proto__.counter++;
-                    this.__proto__.nObjs++;
-                },
-                destruct: function () {
-                    //console.debug("******DESTROYING EXPANDOS");
-                    this.destroyExpandos();
-                    this.pathRoot = null;
-                    this.expandos = null;
-                    this.destroyed=true;
-
-                    delete this.__proto__.store[this.__objid__];
-                    this.__proto__.nObjs--;
-                },
-                methods: {
-                    parse: function (htmlNode, caller, removeAttr, keepObjects) {
-                        if (this.expandos.length > 0 && !keepObjects) {
-                            this.destroyExpandos();
-                            this.expandos = [];
-                        }
-                        var manager = this;
-                        var k;
-                        var views = [];
-                        for (k = 0; k < htmlNode.length; k++) {
-
-                            if (htmlNode[k].nodeType == 3 || htmlNode[k].nodeType == 8) // TEXT -- HTML Comment
-                            {
-                                continue;
-                            }
-                            //if(htmlNode[k].getAttribute("SivigliaParsed"))continue;
-
-
-                            Siviglia.Utils.recurseHTML(htmlNode[k],
-                                function (node) {
-                                    var k, attr;
-                                    var retValue = true;
-                                    if(node.getAttribute("sivId"))
+                                if(typeof match[1]!=="undefined")
+                                {
+                                    try {
+                                        return this.getValue(match[1]);
+                                    }catch (e)
                                     {
-                                        var cWidget=Siviglia.UI.Dom.Expando.WidgetExpando.prototype.widgetStack.pop();
-                                        var target=cWidget;
-                                        if(cWidget!=cWidget.viewObject)
-                                            target=cWidget.viewObject;
-
-                                        target[node.getAttribute("sivId")]=$(node);
-                                        Siviglia.UI.Dom.Expando.WidgetExpando.prototype.widgetStack.push(cWidget);
+                                        this.parsing=false;
+                                        throw new Siviglia.Utils.ParametrizableStringException("Parameter not found:"+match[1]);
                                     }
-                                    for (k in manager.installedExpandos) {
-                                        if (!node.getAttribute) {
-                                            //console.dir(node);
-                                            break;
+                                }
+                                var t=Siviglia.issetOr(match[2],null);
+                                var t1=Siviglia.issetOr(match[3],null)
+                                var mustInclude=false,exists=false,body='';
+                                if(t)
+                                {
+                                    var paramName=t;
+                                    var negated=(t.substr(0,1)=="!");
+                                    if(negated)
+                                        paramName=t.substr(1);
+                                    try
+                                    {
+                                        this.getValue(paramName);
+                                        exists=true;
+                                    }catch (e) {}
+
+                                    mustInclude=(t.substr(0,1)=="!"?!exists:exists);
+                                }
+                                else
+                                    mustInclude=this.parseComplexTag(t1);
+                                if(mustInclude)
+                                {
+                                    var reg=new RegExp(this.BODYREGEXP);
+                                    var m=this,bodyMatch,replacements=[];
+                                    while(bodyMatch=reg.exec(match[4])) {
+                                        var replacement=this.parseBody(bodyMatch);
+                                        replacements.push({s:bodyMatch[0],r:replacement});
+                                    }
+                                    for(var k=0;k<replacements.length;k++) {
+                                        match[4]=match[4].replace(replacements[k].s,replacements[k].r);
+                                    }
+                                    return match[4];
+                                }
+                                return '';
+                            },
+                            getValue:function(path)
+                            {
+
+                                if(typeof this.paths[path]!=="undefined") {
+                                    if(!this.paths[path].isValid())
+                                        this.valid=false;
+                                    else {
+                                        var v=this.paths[path].getValue();
+                                        if(typeof v=="object")
+                                            return JSON.stringify(v);
+                                        return v;
+                                    }
+                                }
+
+                                var controller=new Siviglia.Path.PathResolver(this.contextStack,path);
+                                this.paths[path]=controller;
+                                controller.addListener("CHANGE",this,"onListener","ParametrizableString: value:"+path);
+                                var val=controller.getPath();
+                                if(!controller.isValid()) {
+                                    this.parsing=false;
+                                    throw new Siviglia.Path.ParametrizableStringException("Unknown path:" + path);
+                                }
+                                else {
+                                    if (val === null) {
+                                        this.parsing = false;
+                                        throw new Siviglia.Path.ParametrizableStringException("Null value::" + path);
+                                    }
+                                    else
+                                    {
+                                        if(typeof val=="object")
+                                            return JSON.stringify(val);
+                                    }
+                                }
+
+                                return val;
+                            },
+                            removeAllPaths:function()
+                            {
+                                for(var k in this.paths)
+                                    this.paths[k].destruct();
+                            },
+                            onListener:function()
+                            {
+                                if(!this.parsing) {
+
+                                    this.parse();
+                                }
+                            },
+                            parseBody:function(match)
+                            {
+                                //this.BODYREGEXP=/{\%(?:(?<simple>[^%:]*)|(?:(?<complex>[^:]*):(?<predicates>.*?(?=\%}))))\%}/;
+                                var v=Siviglia.issetOr(match[1],null);
+                                if(v)
+                                {
+                                    try {
+                                        return this.getValue(v);
+                                    }catch(e)
+                                    {
+                                        this.parsing=false;
+                                        throw new Siviglia.Path.ParametrizableStringException("Parameter not found:"+v);
+                                    }
+                                }
+                                var complex=Siviglia.issetOr(match[2],null);
+                                var cVal=null;
+                                try {
+                                    cVal=this.getValue(complex);
+                                }catch(e) {}
+
+                                var r=this.PARAMREGEXP,res;
+                                while(res= r.exec(match[3]))
+                                {
+                                    var func=typeof res[1]=="undefined"?null:res[1];
+                                    var args=typeof res[2]=="undefined"?null:res[2];
+                                    if(func=="default" && cVal==null)
+                                    {
+                                        cVal=args.cTrim("'");
+                                        continue;
+                                    }
+                                    if(! args)
+                                    {
+                                        if(cVal==null)
+                                        {
+                                            this.parsing=false;
+                                            throw new Siviglia.Path.ParametrizableStringException("Parameter not found:"+v);
                                         }
+                                        cVal=this.controller[func](cVal);
+                                        continue;
 
-                                        attr = node.getAttribute(k);
-                                        if (attr) {
+                                    }
+                                    /* //this.SUBPARAMREGEXP=/('[^']*')|([^ ]+)/g; */
+                                    var r2=new RegExp(this.SUBPARAMREGEXP);
+                                    var cRes=null;
+                                    var pars=[];
+                                    var cur;
+                                    while(cRes=r2.exec(args)) {
+                                        cur=Siviglia.isset(cRes[0])?cRes[0].cTrim("'"):cRes[1];
+                                        pars.push(cur=="@@"?cVal:this.getValue(cur));
+                                    }
+                                    cVal=this.controller[func].apply(this.controller,pars);
+                                }
+                                return cVal;
+                            },
+                            parseComplexTag:function(format)
+                            {
+                                var parts=format.split(',');
+                                var d=$.Deferred();
+                                var opsStack=[];
 
-                                            if (k == "sivView") {
-                                                views.push(node);
-
-                                                continue;
+                                for(var k=0;k<parts.length;k++) {
+                                    var c=parts[k];
+                                    var sparts=c.split(" ");
+                                    var negated=(sparts[0].substr(0,1)=='!');
+                                    if(negated)
+                                        tag=sparts[0].substr(1);
+                                    else
+                                        tag=sparts[0];
+                                    if(sparts.length==1) {
+                                        if(negated) {
+                                            try {
+                                                curValue = this.getValue(tag);
+                                            }catch(e){
+                                                curValue=null;
                                             }
-
-                                            var curExpando = $(node).data();
-                                            if (curExpando["expando_" + attr]) {
-                                                curExpando["expando_" + attr].onListener();
+                                            if (curValue!=null)
                                                 return false;
-                                            }
-                                            else {
-                                                retValue =  manager.addExpando(node, manager.installedExpandos[k], caller) && retValue;
-                                            }
-                                            /*if(removeAttr)
-                                             node.removeAttribute(k);*/
                                         }
+                                        continue;
                                     }
-                                    return retValue;
-                                });
-                            // Se parsean ahora las vistas.
 
-                        }
-                        for (var k = views.length - 1; k >= 0; k--) {
-                            if ($(views[k]).data("parsed"))
-                                continue;
-                            manager.addExpando(views[k], 'ViewExpando', caller);
-                            if (removeAttr)
-                                views[k].removeAttribute('sivView');
-                        }
-                        return false;
-                    },
-                    setOwner:function(owner)
-                    {
-                        this.__owner=owner;
-                    },
-                    addExpando: function (node, expType, caller) {
-                        var newExpando = new Siviglia.UI.Dom.Expando[expType]();
-                        var result = newExpando._initialize($(node), this, this.pathRoot, this.context, caller);
-                        this.expandos.push(newExpando);
-                        $(node).data("expando_" + expType, newExpando);
-                        //node.setAttribute("expando_"+expType,newExpando);
-                        return result;
-                    },
-                    resetExpandos: function () {
-                        var k;
-                        for (k = 0; k < this.expandos.length; k++)
-                            this.expandos[k].reset();
-                    },
-                    destroyExpandos: function () {
-                        var k;
-                        if (!this.expandos)return;
-                        for (k = 0; k < this.expandos.length; k++)
-                            this.expandos[k].destruct();
-                    },
-                    updateExpandos: function () {
-                        var k;
-                        if (!this.expandos)return;
-
-                        for (k = 0; k < this.expandos.length; k++) {
-                            if (this.expandos[k].listener) {
-                                this.expandos[k].listener.onChange();
+                                    var curValue;
+                                    try{
+                                        curValue=this.getValue(tag);
+                                    }catch (e){
+                                        this.parsing=false;
+                                        throw new Siviglia.Utils.ParametrizableStringException("Parameter not found:"+tag);
+                                    }
+                                    var result=false;
+                                    switch(sparts[1]) {
+                                        case "is":{
+                                            result=Siviglia["is"+sparts[2].ucfirst()](curValue);
+                                        }break;
+                                        case "!=":{
+                                            result=(curValue!=this.getValue(sparts[2]));
+                                        }break;
+                                        case "==":{
+                                            result=(curValue==this.getValue(sparts[2]));
+                                        }break;
+                                        case ">":{
+                                            result=(curValue>parseInt(this.getValue(sparts[2])));
+                                        }break;
+                                        case "<":{
+                                            result=(curValue<parseInt(this.getValue(sparts[2])));
+                                        }break;
+                                    }
+                                    if(negated)
+                                        result=!result;
+                                    if(!result)
+                                        return false;
+                                }
+                                return true;
                             }
                         }
-                    }
                 }
-            }
-
         }
+});
+
+Siviglia.Path.eventize=function(obj,propName) {
+    var srcObject = obj[propName];
+    var disableEvents = false;
+    if (obj.hasOwnProperty("__type__")) {
+        if (obj.__type__ === "BaseTypedObject")
+            return; // No se necesita hacer nada, ya que obj[propName] ya soporta addEventListener
+    }
+    // En cualquier otro caso, es posible hacer un proxy sobre el objeto padre.
+    // Primero, quitar de enmedio el caso en que el obj[propName] es un BaseType, donde, de nuevo, no hay que hacer nada.
+    if (obj[propName] !== null && obj[propName].hasOwnProperty("__type__") && obj[propName].__type__ == "BaseType")
+        return; // No se necesita hacer nada, ya que obj[propName] ya soporta addEventListener
+
+    // Si estamos aqui, ni el objeto, ni la propiedad, son objetos basetyped . Podrian ser objetos evented, incluso podrian
+    // tener un evento CHANGE, pero no lo sabemos. Tendria que existir una propiedad que permitiera identificarlos, y que
+    // evitara tener que montar un proxy sobre ellos.
+
+    // Ahora hay varias posibilidades.
+    // La primera que hay que mirar, es que obj[propName] sea null. En ese caso, no sabemos que va a ser obj[propName] en el futuro.
+    // No sabemos si habra que crearle un proxy, o valdria con un defineProperty en el padre.
+    // La segunda, es si obj[propName] es un objeto simple, o no. Si es un objeto simple, vale con un defineProperty.Si no, hay que montar un proxy.
+    // Ahora, una restriccion: que ocurre si la propiedad comienza siendo una cosa, y luego es otra?
+    // O, si empieza siendo "algo", y luego es "null"?
+    // Por lo tanto, es mejor hacer un defineProperty en el padre, y en el hijo.
+    if (!obj.hasOwnProperty("__disableEvents__")) {
+        Object.defineProperty(obj, "__disableEvents__", {
+            get: function () {
+                return disableEvents;
+            },
+            set: function (val) {
+                disableEvents = val;
+            },
+            enumerable: false
+        });
     }
 
 
+    if (!obj.hasOwnProperty("_" + propName)) {
+
+        var v = obj[propName];
+        var ev = new Siviglia.Dom.EventManager();
+
+        Object.defineProperty(obj, "_" + propName, {
+            get: function () {
+                return ev;
+            },
+            set: function (val) {
+            },
+            enumerable: false
+        });
+        if(typeof v=="object")
+        {
+            obj[propName]=Siviglia.Path.Proxify(v, ev);
+        }
+        else {
+            Object.defineProperty(obj, propName, {
+                get: function () {
+                    return v;
+                },
+                set: function (val) {
+                    if (v !== val) {
+                        if (typeof val === "object" && val !== null)
+                            v = Siviglia.Path.Proxify(val, ev);
+                        else
+                            v = val;
+                        if (!obj.__disableEvents__)
+                            ev.fireEvent("CHANGE", {object: obj, property: propName, value: val});
+                    }
+                },
+                enumerable: true
+            });
+        }
+    }
+}
+
+Siviglia.Path.Proxify=function(obj,ev)
+{
+    var curVal=obj;
+    var isArray=(obj.constructor.toString().indexOf("rray")>0);
+    var objProxy = new Proxy(obj,{
+        get:function(target,prop)
+        {
+            return curVal[prop];
+        },
+        apply:function(target,thisArg,list)
+        {
+            var retVal=curVal.target.apply(thisArg,list);
+            //if(isArray && ['pop','push','slice','splice','concat','shift','unshift'])
+            //    ev.fireEvent("CHANGE",{object:obj,property:propName,value:retVal});
+            return retVal;
+        },
+        set: function (target, prop,value) {
+
+            curVal[prop]=value;
+            if(!isArray || (isArray && prop!=="length"))
+                ev.fireEvent("CHANGE",{object:obj,value:value});
+            return value;
+        },
+        deleteProperty:function(target,prop)
+        {
+
+            delete curVal[prop];
+            ev.fireEvent("CHANGE",{object:obj,property:propName,value:undefined});
+        }
+    });
+    return objProxy;
+}
+
+
+
+Siviglia.UI = {
+    expandos: {
+        'sivparams': 'ParamsExpando',
+        'sivvalue': 'ValueExpando',
+        'sivclass': 'ClassExpando',
+        'sivloop': 'LoopExpando',
+        'sivif': 'IfExpando',
+        'sivevent': 'EventExpando',
+        'sivstate': 'StateExpando',
+        'sivwidget': 'WidgetExpando',
+        'sivview': 'ViewExpando',
+        'sivcss': 'CssExpando',
+        'sivattr': 'AttrExpando',
+        'sivcall': 'CallExpando',
+        'sivdojo': 'DojoExpando'
+    },
+    viewStack: []
+};
+Siviglia.Utils.buildClass(
+    {
+        context: "Siviglia.UI",
+        classes: {
+            HTMLParser:
+                {
+                    construct: function (stack) {
+                        if (!stack) {
+                            stack = new Siviglia.Path.ContextStack();
+                        }
+                        this.stack = stack;
+                        this.expandos = [];
+                    },
+                    destruct: function () {
+                        this.stack = null;
+                        this.destroyExpandos();
+
+                    },
+                    methods:
+                        {
+                            addContext: function (prefix, plainObj) {
+                                var plainCtx = new Siviglia.Path.BaseObjectContext(plainObj, prefix, this.stack);
+                            },
+                            recurseHTML: function (node, applyFunc) {
+                                var dataset = node.data();
+                                if (dataset.noparse)
+                                    return;
+                                var parseChildren = applyFunc(node);
+                                if (!parseChildren)
+                                    return;
+                                var m = this;
+                                node.trigger("startChildren");
+                                node.children().each(function (idx, el) {
+                                    m.recurseHTML($(el), applyFunc);
+                                })
+                                node.trigger("endChildren");
+                            },
+                            destroyExpandos: function () {
+                                this.expandos.map(function (v) {
+                                    v.destruct();
+                                })
+                            },
+                            parse: function (node) {
+
+                                var cb = function (node) {
+                                    var newExpandos = {};
+                                    var dataset = node.data();
+                                    var k;
+                                    var retValue = true;
+                                    if (dataset["sivid"]) {
+
+                                        var curRoot = this.stack.getRoot("*");
+                                        if (curRoot)
+                                            curRoot[dataset["sivid"]] = node;
+                                    }
+                                    for (k in Siviglia.UI.expandos) {
+                                        if (dataset[k])
+                                            newExpandos[k] = new Siviglia.UI.Expando[Siviglia.UI.expandos[k]]();
+                                    }
+
+                                    for (var k in newExpandos) {
+                                        retValue = retValue && newExpandos[k]._initialize($(node), this, this.stack, newExpandos);
+                                        this.expandos.push(newExpandos[k]);
+                                    }
+                                    return retValue;
+                                };
+
+                                this.recurseHTML(node, cb.bind(this));
+
+                                return false;
+                            }
+                        }
+                }
+        }
+    }
 );
+Siviglia.UI.expandoCounter = 0;
+Siviglia.Utils.buildClass(
+    {
+        context: "Siviglia.UI.Expando",
+        classes:
+            {
+                Expando: {
+                    construct: function (expandoTag) {
+                        this.expandoTag = expandoTag;
+                        this._ex_id = Siviglia.UI.expandoCounter;
+                        Siviglia.UI.expandoCounter++;
+                        this.str = null;
+                        this.observer = null;
+                    },
+                    destruct: function () {
+                        if (this.str)
+                            this.str.destruct();
+                        if (this.node) {
+                            this.node.remove();
+                        }
+
+                        this.node = null;
+                        this.destroyed = true;
+                    },
+                    methods: {
+                        _initialize: function (node, nodeManager, stack, nodeExpandos) {
+                            this.node = node;
+                            var pString = node.data(this.expandoTag);
+                            if (pString[0] == "/")
+                                pString = "[%" + pString + "%]";
+                            this.stack=stack;
+                            this.str = new Siviglia.Path.ParametrizableString(pString, stack);
+                            this.str.addListener("CHANGE", this, "_update", "BaseExpando:" + this.expandoTag);
+                            this.str.parse();
+                            return true;
+                        },
+                        _update: function (event, params) {
+                            this.update(params.value);
+                        }
+                    }
+                },
+                ValueExpando: {
+                    inherits: "Expando",
+                    construct: function () {
+                        this.Expando("sivvalue");
+                    },
+                    methods: {
+                        update: function (val) {
+                            if (Siviglia.isString(val)) {
+                                var parts = val.split("::");
+                                for (var k = 0; k < parts.length; k++) {
+                                    var p1 = parts[k].split("|")
+
+                                    if (p1.length == 1)
+                                        this.node.html(p1[0]);
+                                    else
+                                        this.node.attr(p1[0], p1[1]);
+                                }
+                            } else
+                                this.node.html("" + val);
+                        }
+                    }
+                },
+                CallExpando: {
+                    inherits: "Expando",
+                    construct: function () {
+                        this.Expando("sivcall");
+                    },
+                    destruct: function () {
+                    },
+                    methods: {
+                        _initialize: function (node, nodeManager, stack, nodeExpandos) {
+                            this.method = node.data("sivcall");
+                            this.node = node;
+                            this.stack=stack;
+                            // Noa aniadimos como listener de los parametros.
+                            // Nota: los parametros se parsean antes, ya que existen antes en el array de
+                            // expandos existentes.
+                            var paramsObj = node.data("sivparams");
+                            if (paramsObj) {
+                                this.paramObj = nodeExpandos["sivparams"];
+                                this.paramObj.addListener("CHANGE", this, "update", "CallExpando:" + this.method);
+                            }
+                            this.update();
+                            // Un sivcall no debe procesar su contenido.El por que, es complejo:
+                            // Supongamos que el contenido del nodo , va a ser establecido en la llamada , a otra subplantilla cargada via ajax.
+                            // La primera vez que se procesa el sivCall, la plantilla que quiere meter en el nodo, no esta cacheada,
+                            // asi que cuando termina la llamada , el nodo no tiene hijos, y no se parsean.
+                            // La segunda vez que se ejecute el SivCall, la plantilla a meter YA esta cacheada, por lo que muy probablemente
+                            // hara que ANTES de terminar la llamada, el nodo ya tenga la subplantilla.
+                            // Esta diferencia hace que, en el primer caso, el contenido de sivCall no se parsee.En el segundo, si.
+                            // Y esto puede provocar que el codigo acabe parseando dos veces la subplantilla.
+                            // Por si acaso, metemos un parametro extra que nos indique que queremos hacer.
+                            var doparse = node.attr("parseContent");
+                            if (doparse)
+                                return true;
+                            return false; // NO se deben procesar los contenidos del nodo.Que lo haga quien lo llama.
+
+                        },
+                        update: function () {
+                            var params = null;
+                            if (Siviglia.isset(this.paramObj))
+                                params = this.paramObj.getValues();
+
+                            if (this.method.substr(0, 1) == ".") {
+                                return window[this.method.substr(1)](this.node, params);
+                            }
+                            var src = this.stack.getRoot("*")
+                            src[this.method](this.node, params);
+                        }
+                    }
+
+                },
+                ParamsExpando: {
+                    inherits: "Expando,Siviglia.Dom.EventManager",
+                    construct: function () {
+                        this.Expando("sivparams");
+                        this.paramValues={};
+                        this.paths=[];
+                        this.EventManager();
+                        this.disableEvents=false;
+                    },
+                    destruct:function()
+                    {
+                        this.paths.map(function(item){
+                            item.destruct();
+                        });
+                        this.paths=null;
+                    },
+                    methods: {
+                        _initialize: function (node, nodeManager, stack, nodeExpandos) {
+                            this.node = node;
+                            var pObj = node.data(this.expandoTag);
+                            if (typeof pObj == "string")
+                                pObj = JSON.parse(pObj);
+                            this.disableEvents=true;
+                            var m=this;
+                            for(var k in pObj)
+                            {
+                                (function(key,value){
+                                    var pr=new Siviglia.Path.PathResolver(stack,value);
+                                    pr.addListener("CHANGE",null,function(ev,param){
+                                        m.updateParams(key,param.value);
+                                    })
+                                    pr.getPath();
+                                })(k,pObj[k]);
+                            }
+                            this.disableEvents=false;
+                            return true;
+                        },
+                        updateParams:function(pName,pValue)
+                        {
+                            this.paramValues[pName]=pValue;
+                            if(this.disableEvents==false)
+                                this.fireEvent("CHANGE", {value: this.paramValues});
+                            if (this.node) {
+                                this.node.data("params", this.params);
+                            }
+                        },
+                        getValues: function () {
+                            return this.paramValues;
+                        }
+                    }
+                },
+                // Aunque derive de Expando, Loop no se basa en parametrizableString, sino directamente en path.
+                LoopExpando: {
+                    inherits: "Expando",
+                    construct: function () {
+                        this.oManager = null;
+                        this.resolver = null;
+                        this.Expando("sivloop");
+                        this.childNodes = [];
+                        this.nest = true;
+                    },
+                    destruct: function () {
+                        this.reset();
+                        if (this.resolver)
+                            this.resolver.destruct();
+                        this.childNodes = null;
+                    },
+                    methods: {
+                        _initialize: function (node, nodeManager, stack, nodeExpandos) {
+                            this.origHTML = [];
+                            this.stack = stack;
+                            this.node = node;
+                            for (var k = 0; k < node[0].childNodes.length; k++) {
+                                var cNode = node[0].childNodes[k];
+                                if (cNode.nodeType != 3 && cNode.nodeType != 8)
+                                    this.origHTML.push(cNode.cloneNode(true));
+                            }
+                            if (typeof node.data("sivnested") !== "undefined")
+                                this.nest = node.data("sivnested");
+
+                            this.contextParam = node.data("contextindex");
+                            this.resolver = new Siviglia.Path.PathResolver(stack, node.data("sivloop"));
+                            this.resolver.addListener("CHANGE", this, "update", "LoopExpando:" + this.str);
+                            this.resolver.getPath();
+                            return false;
+                        },
+                        reset: function () {
+                            if (this.oManager) {
+                                this.oManager.destruct();
+                            }
+                            if (this.ownStack) {
+                                this.ownStack.destruct()
+                            }
+
+                        },
+                        update: function (event, params) {
+                            for (var k = 0; k < this.childNodes.length; k++)
+                                this.childNodes[k].remove();
+
+                            this.reset();
+                            this.ownStack = this.stack.getCopy();
+                            this.oManager = new Siviglia.UI.HTMLParser(this.ownStack);
+
+                            var val = params.value;
+                            if (!val)
+                                val = [];
+
+                            var contextRoot;
+                            var newNode;
+                            var cb = (function (key, value) {
+                                contextRoot = {};
+                                var contextContext = new Siviglia.Path.BaseObjectContext(contextRoot, "@", this.ownStack);
+                                contextRoot[this.contextParam] = value;
+                                contextRoot[this.contextParam + "-index"] = key;
+                                var reference = this.node[0];
+
+                                for (var j = 0; j < this.origHTML.length; j++) {
+                                    var curNode = this.origHTML[j].cloneNode(true);
+                                    if (curNode.nodeType == 1)
+                                        this.oManager.parse($(curNode));
+                                    if (this.nest)
+                                        newNode.appendChild(curNode);
+                                    else {
+                                        reference.parentNode.insertBefore(curNode, reference.nextSibling);
+                                        this.chilNodes.push({node:$(curNode),value:value});
+                                        reference = curNode;
+                                    }
+                                }
+
+                            }).bind(this);
+
+                            var valType = val.constructor.toString();
+                            newNode=document.createElement("div");
+                            if (valType.indexOf("rray") >= 0)
+                                val.map(function (value, index) {
+                                    cb(index, value);
+                                });
+                            else {
+                                if (valType.indexOf("bject") > 0) {
+                                    for (var k in val) {
+                                        cb(k, val[k]);
+                                    }
+                                } else {
+                                    //alert("Indicado LoopExpando sobre path que no es un array");
+                                    return;
+                                }
+                            }
+                            this.node[0].innerHTML = "";
+                            $(newNode).children().appendTo(this.node);
+                        }
+                    }
+                },
+                EventExpando: {
+                    inherits: "Expando",
+                    construct: function () {
+                        this.Expando("sivevent");
+                    },
+                    destruct: function () {
+                        this.reset();
+                        this.node.unbind();
+                    },
+                    methods: {
+                        _initialize: function (node, nodeManager, stack, nodeExpandos) {
+                            this.node = node;
+                            var attr = node.data(this.expandoTag);
+                            var callback = node.data("sivcallback");
+                            if (!callback)
+                                throw "Event Expando missing data-sivcallback expando";
+                            var evContext = null;
+                            try {
+                                evContext = stack.getRoot("*");
+                            } catch (e) {
+                                evContext = window;
+                            }
+                            var paramsExpando = node.data("sivparams");
+                            var paramsObj;
+                            if (paramsExpando)
+                                paramsObj = nodeExpandos["sivparams"].getValues();
+                            node.data("event_caller", evContext);
+                            node.data("event_method", callback);
+                            var callbackBuilder = function (evName) {
+                                return function (event) {
+                                    var caller = $(this).data("event_caller");
+                                    var params = [];
+                                    params.push($(this));
+                                    params.push(paramsObj);
+                                    var method = $(this).data("event_method");
+                                    // Si existe caller.invoke, es que es un widget
+                                    if (caller.invoke)
+                                        return evContext.invoke(method, params, evName, event);
+                                    else
+                                        return evContext[method].apply(caller, params, evName, event);
+                                }
+                            };
+                            this.node = node;
+
+                            var events = attr.split(",");
+                            events.map(function (item) {
+                                $(node).off(item);
+                                $(node).on(attr, callbackBuilder(attr));
+                            });
+                        },
+                        reset: function () {
+                            var attr = this.node[0].getAttribute(this.expandoTag);
+                            var events = attr.split(",");
+                            events.map(function (item) {
+                                this.node.unbind(item);
+                            });
+                        }
+                    }
+                },
+                IfExpando: {
+                    inherits: "Expando",
+                    construct: function () {
+                        this.oManager = null;
+                        this.Expando("sivif");
+                    },
+                    destruct: function () {
+                        if (this.oManager)
+                            this.oManager.destruct();
+                    },
+                    methods: {
+                        _initialize: function (node, nodeManager, stack, nodeExpandos) {
+
+                            this.origHTML = [];
+                            while (node[0].childNodes.length>0) {
+                                var n = node[0].childNodes[0];
+                                var s = n.cloneNode(true);
+                                n.parentElement.removeChild(n);
+                                this.origHTML.push(n);
+                            }
+                            this.origDisplay = node[0].style.display;
+
+                            this.Expando$_initialize(node, nodeManager, stack, nodeExpandos);
+                            return false;
+                        },
+                        update: function (val) {
+                            if (!eval(val))
+                                this.removeContent();
+                            else
+                                this.restoreContent();
+                        },
+                        restoreContent: function () {
+                            if (this.oManager)
+                                this.oManager.destruct();
+                            this.oManager = new Siviglia.UI.HTMLParser(this.stack);
+                            var curNode;
+                            for (var j = 0; j < this.origHTML.length; j++) {
+                                curNode = this.origHTML[j].cloneNode(true);
+                                if (curNode.nodeType == 1)
+                                    this.oManager.parse($(curNode));
+                                this.node.append(curNode);
+                            }
+                            this.node.css("display", this.origDisplay);
+                            this.dontRecurse = false;
+                        },
+                        removeContent: function () {
+                            this.node[0].innerHTML = "";
+                            if (this.oManager) {
+                                this.oManager.destruct();
+                            }
+                            this.node.css("display", "none");
+                            this.dontRecurse = true;
+                        }
+                    }
+                },
+            }
+    }
+)
 
 Siviglia.Utils.buildClass(
     {
-        context: 'Siviglia.UI.Dom.Expando',
+        context: 'Siviglia.UI.Expando',
         classes: {
             WidgetExpando: {
                 inherits: 'Expando',
                 construct: function () {
-                    this.Expando("sivWidget");
-                    if (!Siviglia.UI.Dom.Expando.WidgetExpando.prototype.widgets) {
-                        Siviglia.UI.Dom.Expando.WidgetExpando.prototype.widgets = {};
-                        Siviglia.UI.Dom.Expando.WidgetExpando.prototype.widgetStack = [];
-                    }
-                },
-                destruct: function () {
+                    this.Expando("sivwidget");
                 },
                 methods: {
                     _initialize: function (node, nodeManager, pathRoot, contextObj, caller) {
                         this.caller = caller;
-                        var k;
-                        this.widgetName = node.attr("sivWidget");
+                        this.widgetName = node.data("sivwidget");
                         this.widgetNode = node[0];
-                        this.widgetCode = node.attr("widgetCode");
-                        if (this.widgetCode) {
-                            var codeClass = Siviglia.Utils.stringToContextAndObject(this.widgetCode);
-                            codeClass.context[codeClass.object].prototype.__widgetObject = this;
-                        }
-
-                        this.widgetParams = node.attr("widgetParams");
-                        Siviglia.UI.Dom.Expando.WidgetExpando.prototype.widgets[this.widgetName] = this;
+                        this.widgetCode = node.data("widgetcode");
+                        this.widgetParams = node.data("widgetparams");
+                        if(typeof Siviglia.UI.Expando.WidgetExpando.prototype.widgets=="undefined")
+                            Siviglia.UI.Expando.WidgetExpando.prototype.widgets={};
+                        Siviglia.UI.Expando.WidgetExpando.prototype.widgets[this.widgetName] = this;
                         this.context = contextObj;
                         this.pathRoot = pathRoot;
-                        node.removeAttr("sivWidget");
-                        //node[0].parentNode.removeChild(node[0]);
-                        //this.Expando$initialize(node,nodeManager,pathRoot,contextObj,caller);
+                        node[0].removeAttribute("sivWidget");
+                        node.removeData("sivWidget");
                         return false;
                     },
-                    onListener: function () {
-                    },
                     getNode: function () {
-                        return $(this.widgetNode).clone(true);
+                        var newNode= $(this.widgetNode).clone(true);
+                        newNode[0].removeAttribute("data-sivwidget");
+                        newNode.removeData("sivwidget");
+                        return newNode;
                     },
-                    getControllerInstance: function (view) {
-                        if (this.widgetCode) {
-                            var c = Siviglia.Utils.stringToContextAndObject(this.widgetCode);
-                            if(typeof c.context[c.object]=="undefined")
-                                console.log(this.widgetCode);
-                            return new c.context[c.object](view.widgetName, view.params, view.nodeParams, null, view.pathRoot, view);
-                        }
-                        return null;
-                    },
-                    getInstance: function () {
-                        return new Siviglia.UI.Dom.Expando.ViewExpando(this.widgetName);
-                    },
-                    notifyPathListeners:function()
-                    {
-                        Siviglia.UI.Dom.Expando.WidgetExpando.prototype.widgetStack.push(this);
-                        this.PathListener$notifyPathListeners();
-                        Siviglia.UI.Dom.Expando.WidgetExpando.prototype.widgetStack.pop();
+                    getClass: function(){
+                        return this.widgetCode;
                     }
                 }
             },
@@ -1691,1697 +1794,159 @@ Siviglia.Utils.buildClass(
                 construct: function () {
                 },
                 methods: {
+                    hasInstance:function(widgetName)
+                    {
+                        var lib = Siviglia.UI.Expando.WidgetExpando.prototype.widgets;
+                        return lib && lib[widgetName];
+                    },
                     getInstance: function (widgetName) {
-                        var lib = Siviglia.UI.Dom.Expando.WidgetExpando.prototype.widgets;
-                        if (!lib || !lib[widgetName]) return null;
-                        return lib[widgetName]
-                    }
-                }
-            },
-            WidgetNodeExpando: {
-                inherits: 'Expando',
-                construct: function () {
-                    this.Expando("widgetNode");
-                    this.view = null;
-                },
-                methods: {
-                    _initialize: function (node, nodeManager, pathRoot, contextObj, caller) {
-                        var nodeAlias = node[0].getAttribute("widgetNode");
-                        if (caller.nodeParams) // caller debe ser un ViewExpando
-                        {
-                            var v = caller.nodeParams[nodeAlias];
-
-                            if (v) {
-                                if (typeof v == "string")
-                                    node[0].html(v);
-                                else {
-                                    node.append(v);
-                                }
-                            }
-                        }
-                        return false;
-                    }
-                }
-            },
-            ViewExpando: {
-                inherits: 'Expando,Siviglia.model.PathListener',
-                construct: function (widgetName) {
-                    this.Expando("sivView");
-                    this.widgetRoot = null;
-                    this.widgetName = widgetName || null;
-                    this.subViews = [];
-                    this.__objid__=this.__proto__.counter;
-                    if(typeof this.__proto__.counter=="undefined") {
-                        this.__proto__.counter = 0;
-                        this.__proto__.store = {};
-                        this.__proto__.nListeners = 0;
-                    }
-                    this.__objid__=this.__proto__.counter;
-                    this.__proto__.store[this.__objid__]=this;
-                    this.__proto__.counter++;
-                    this.__proto__.nObjs++;
-
-                    console.log("Creada vista con id:"+this.eid);
-                },
-                destruct: function () {
-                    this.destroyed=true;
-                    console.log("Destruyendo vista con id:"+this.eid);
-                    if(this.resultPromise && this.resultPromise.state=="pending")
-                        this.resultPromise.reject();
-                    if (this.oManager) {
-                        this.oManager.destruct();
-                    }
-
-                    this.Expando$destruct();
-                    this.rootNode.remove();
-                    delete this.__proto__.store[this.listenerId];
-                    this.__proto__.nObjs--;
-                },
-                methods: {
-                    _initialize: function (node, nodeManager, pathRoot, contextObj, caller) {
-                        this.pathRoot = pathRoot;
-                        this.context = contextObj;
-                        this.rootNode = node;
-                        this.nodeManager = nodeManager;
-                        this.caller = caller;
-                        // En caso de que tengamos un id, al padre mapeamos la instancia de View, no el nodo.
-                        if(node[0].getAttribute("sivId"))
-                        {
-                            var parent=Siviglia.UI.Dom.Expando.WidgetExpando.prototype.widgetStack.pop()
-                            if(parent)
-                                parent[node[0].getAttribute("sivId")]=this;
-                        }
-                        // Si ya tenemos un viewObject, es porque se nos ha creado desde js, en vez de desde html.
-                        if (!this.viewObject) {
-
-                            this.params = node.data("params") || {};
-                            if (node.data("params")) {
-                                node.data("paramsExpando").setController(this);
-                            }
-                            this.widgetName = node.attr("sivView");
-
-
-                            this.nodeParams = {};
-                            var curChild;
-                            var att;
-                            for (k = 0; k < node[0].childNodes.length; k++) {
-                                curChild = node[0].childNodes[k];
-                                if (curChild.tagName) {
-                                    att = curChild.getAttribute("viewNode");
-                                    if (att) {
-                                        this.nodeParams[att] = $(curChild);
-                                    }
-                                }
-                            }
-
-                        }
-                        var cWidget=Siviglia.UI.Dom.Expando.WidgetExpando.prototype.widgetStack.pop();
-                        if(cWidget && cWidget.viewObject) {
-                            this.parentWidget = cWidget.viewObject;
-                            Siviglia.UI.Dom.Expando.WidgetExpando.prototype.widgetStack.push(cWidget);
-                        }
-                        this.reset();
-
-
-                        return false;
-                    },
-                    reset: function () {
-//                    this.rootNode.html("");
-                        if (this.widgetName.substr(0, 1) == "/") {
-                            this.listener = new Siviglia.model.Listener(this, "value", this.caller, this.pathRoot, this.context, "sivView");
-                            this.widgetName = this.pathRoot.__getPath(this.pathRoot, this.widgetName.split("/"), 0, this.context, this, this.listener);
-                        }
-                        /**************/
-                        var r=this.attach(this.caller, this.rootNode, this.params, this.nodeParams, this.pathRoot, this.context);
-                    },
-                    onChange: function () {
-                    },
-                    setViewObject: function (v, params, nodeParams) {
-                        this.viewObject = v;
-                        this.params = params;
-                        this.nodeParams = nodeParams;
-                    },
-                    attach: function (caller, node, params, widgetParams, pathRoot, contextObj) {
-
-
-                        var widgetFactory = new Siviglia.UI.Dom.Expando.WidgetFactory();
-                        var widgetInstance = widgetFactory.getInstance(this.widgetName);
-                        if (!this.viewObject)
-                            this.viewObject = widgetInstance.getControllerInstance(this);
-
-                        if (params) {
-                            for (k in params) {
-                                contextObj[k] = params[k];
-                            }
-                        }
-
-                        this.nodeParams = widgetParams;
-
-                        if (!this.viewObject)
-                            this.viewObject = new Siviglia.model.PathListener();
-                        if(this.oManager)
-                            this.oManager.destruct();
-                        this.oManager = new Siviglia.UI.Dom.Expando.ExpandoManager(pathRoot, contextObj);
-                        this.oManager.setOwner(this);
-
-                        if (this.nodeParams) {
-                            var p = {};
-
-                            for (var k in this.nodeParams) {
-                                if (typeof this.nodeParams[k] == 'string')
-                                    p[k] = $('<div>' + this.nodeParams[k] + '</div>');
-                                else {
-                                    p[k] = $(this.nodeParams[k]);//.clone(true);
-                                    //$(this.nodeParams[k]).data("ORIGINAL",1);
-                                    //p[k].data("ORIGINAL",2);
-                                }
-                                //this.oManager.parse(p[k],caller,true,true);
-                                p[k].attr("noparse", 1);
-                            }
-                            this.nodeParams = p;
-
-                        }
-                        if (!this.viewObject.nodes)
-                            this.viewObject.nodes = this.nodeParams;
-                        for (var j in params) {
-                            this.viewObject[j] = params[j];
-                        }
-                        this.resultPromise=$.Deferred();
-                        this.resultPromise.resolve();
-                        if (this.viewObject.preInitialize && !this.preInitialized) {
-                            this.preInitialized = true;
-                            var result=this.viewObject.preInitialize(params);
-                            if(result && result.then)
-                                this.resultPromise=result;
-                        }
-                        var m=this;
-
-                        this.resultPromise.then(
-                            function(v){
-                                if(m.destroyed)
-                                    return;
-
-                                m.afterPreInitialize(widgetInstance,caller, node, params, widgetParams, pathRoot, contextObj);
-                                if (m.viewObject && m.viewObject.initialize) {
-                                    m.viewObject.initialize(m.params);
-                                }
-                            }
-                        )
-                        return this.resultPromise;
-
-//                    this.rootNode.html("");
-
-
-                    },
-                    afterPreInitialize:function(widgetInstance,caller, node, params, widgetParams, pathRoot, contextObj,promiseVal)
-                    {
-                        this.Expando$_initialize(node, this.oManager, pathRoot, contextObj, caller);
-                        this.widgetRoot = widgetInstance.getNode();
-
-                        if (this.parentWidget) {
-                            this.parentWidget.addSubView(this);
-                        }
-                        // Si estoy en una vista instansciada desde otra, el caller es la vista instansciada.
-                        var nodeParent = this.widgetRoot.parentNode;
-                        if (nodeParent)
-                            var nodeNext = this.widgetRoot.nextSibling;
-
-                        Siviglia.UI.Dom.Expando.WidgetExpando.prototype.widgetStack.push(this);
-                        this.oManager.parse($(this.widgetRoot), this, true, true);
-                        Siviglia.UI.Dom.Expando.WidgetExpando.prototype.widgetStack.pop();
-                        if (nodeParent)
-                            nodeParent.insertBefore(this.widgetRoot, nodeNext);
-                        node.html("");
-                        node.append(this.widgetRoot);
-                        var self=this;
-                        $("[sivMapped]",node).each(function(i,n){
-                            self.viewObject.nodes[$(n).attr("sivMapped")]=$(n);
-                        })
-                        node.data("parsed", 1);
-                    },
-                    addSubView: function (v) {
-                        this.subViews.push(v);
-                    },
-                    getRootWidget: function () {
-                        if (this.parentWidget == null)
-                            return this;
-                        return this.parentWidget.getRootWidget();
-                    },
-                    invoke: function (method, params) {
-                        if (this.viewObject) {
-                            this.viewObject[method].apply(this.viewObject, params);
-                        }
-                    },
-                    get: function (varName) {
-                        return this[varName];
-                    },
-                    onListener: function () {
-                    }
-
-                }
-            }
-        }
-    });
-
-
-/*
- Instalacion de gestores de expandos
-
- */
-
-Siviglia.UI.Dom.Expando.ExpandoManager.prototype.installedExpandos = {
-    'sivValue': 'ValueExpando',
-    'sivClass': 'ClassExpando',
-    'sivLoop': 'LoopExpando',
-    'sivIf':'IfExpando',
-    'sivEvent': 'EventExpando',
-    'sivParams': 'ParamsExpando',
-    'sivState': 'StateExpando',
-    'sivWidget': 'WidgetExpando',
-    'sivView': 'ViewExpando',
-    'widgetNode': 'WidgetNodeExpando',
-    'sivCss':'CssExpando',
-    'sivAttr':'AttrExpando',
-    'sivCall': 'CallExpando',
-    'sivDojo': 'DojoExpando'
-};
-
-/**
- *  Objetos de modelo relacionados con el recorrido de objetos
- *  usando paths.
- *  Contexto almacena valores a los que se puede hacer
- *  referencia dentro de un path.
- *  PathResolver es el root de los paths, y al que se
- *  le agregan objetos hijos como hojas del arbol.
- *  Listener es el objeto "token" que liga a los objetos del UI
- *  con los objetos del modelo, y envia la senial
- *  correspondiente al UI cuando el modelo cambia.
- *  PathListener es el objeto del que derivan los objetos
- *  modelo que vayan a formar parte de los paths, y almacena los
- *  listeners a notificar en caso de cambio.
- *
- */
-
-
-Siviglia.Utils.buildClass(
-    {
-        context: "Siviglia.model",
-        classes: {
-            Context: {
-                methods: {
-                    get: function (propName) {
-                        return this[propName];
-                    }
-                }
-            },
-            SimpleListener:{
-                inherits:'Siviglia.Dom.EventManager',
-                construct: function(refWidget,str,params)
-                {
-                    this.listener=new Siviglia.model.Listener(this,null,refWidget.view,Siviglia.model.Root,Siviglia.model.Root.context);
-                    this.path=null;
-                    if(Siviglia.isString(str))
-                        this.path=str;
-                    else
-                        this.path=JSON.stringify(str);
-                    this.pstring=null;
-                    this.refWidget=refWidget;
-                    this.params=params;
-                },
-                destruct:function(){
-                    this.listener.destruct();
-                    if(this.pstring)
-                        this.pstring.destruct();
-                },
-                methods:{
-                    listen:function()
-                    {
-                        if(!this.pstring)
-                        this.pstring=new Siviglia.Utils.ParametrizableString(this.refWidget.view,this.listener,this.path,this.params);
-                    },
-                    onListener:function()
-                    {
-                        this.fireEvent("CHANGE",{data:this.listener.getValue()});
-                    }
-                }
-            },
-            Listener: {
-                construct: function (parentObject, tag, caller, pathRootObject, context, path) {
-                    //console.debug("CONSTRUIDO LISTENER");
-                    this.initialized = false;
-                    this.parentObject = parentObject;
-                    this.tag = tag;
-                    this.caller = caller;
-                    this.pathRootObject = pathRootObject;
-                    this.obj = pathRootObject;
-                    this.index = 0;
-                    this.changing=false;
-                    this.context = context;
-                    if(path)
-                        this.path = path.split("/");
-                    this.contextual=0;
-                    this.dependent=[];
-                    this.pathExpr=null;
-                    this.hasNotified=false;
-                    if(typeof Siviglia.model.Listener.prototype.counter=="undefined") {
-                        Siviglia.model.Listener.prototype.counter = 0;
-                        Siviglia.model.Listener.prototype.store = {};
-                        Siviglia.model.Listener.prototype.nListeners = 0;
-                    }
-                    this.listenerId=Siviglia.model.Listener.prototype.counter;
-                    Siviglia.model.Listener.prototype.store[this.listenerId]=this;
-                    Siviglia.model.Listener.prototype.counter++;
-                    Siviglia.model.Listener.prototype.nListeners++;
-
-                },
-
-                destruct: function () {
-                    //console.debug("DESTRUIDO LISTENER");
-                    for(var k=0;k<this.dependent.length;k++)
-
-                    if (!this.initialized)return;
-
-                    if (this.obj) {
-                        var p = this.obj;
-                        this.obj = null;
-                        if (p.removePathListener) // Si deriva de PathListener
-                            p.removePathListener(this);
-                    }
-                    if (this.caller) {
-                        var p = this.caller;
-                        this.caller = null;
-                        if (p.removePathListener) {
-                            p.removePathListener(this);
-                        }
-                    }
-                    delete Siviglia.model.Listener.prototype.store[this.listenerId];
-                    Siviglia.model.Listener.prototype.nListeners--;
-                    // No se debe destruir el Expando asociado?
-                },
-                methods: {
-                    getDependentListener:function()
-                    {
-                        var newL=new Siviglia.model.Listener(this,this.tag,this.caller,this.pathRootObject,this.context,this.path.join("/"));
-                        this.dependent.push(newL);
-                        return newL;
-
-                    },
-                    // Una expresion de path es un array, donde hay algunos elementos que son cadenas de texto,
-                    // y otros elementos que son listeners anidados.
-                    setPathExpr:function(expr)
-                    {
-                        if(expr.length==1 && this.dependent.length == 0)
-                            this.path=expr[0].split("/");
-                        else
-                            this.pathExpr=expr;
-                    },
-                    // Obtiene un path concatenado a partir del pathExpr.
-                    // Si un elemento del path es una cadena, se copia.
-                    // Si un elemento es un sublistener, se le pide el valor.
-                    getEffectivePath:function(path)
-                    {
-                        if(typeof path!="undefined" && path)
-                        {
-                            this.path=path.split("/");
-                            return path;
-                        }
-
-                        if(this.pathExpr==null)
-                            return this.path.join("/");
-
-                        var sPath="";
-                        for(var k in this.pathExpr)
-                        {
-                            if(Siviglia.types.isString(this.pathExpr[k]))
-                                sPath+=this.pathExpr[k];
-                            else
-                                sPath+=this.pathExpr[k].getValue();
-                        }
-                        return sPath;
-                    },
-
-                    setAsContextual:function()
-                    {
-                        this.contextual=1;
-                    },
-                    setPath: function (path, index, obj, context) {
-                        if (!this.initialized && obj.addPathListener && obj.onListener && !this.noNotify && !this.contextual)
-                            obj.addPathListener(this);
-                        this.initialized = true;
-                        this.resolvedObject = obj;
-                        // To be optimized out:
-                        var prop = path[1];
-                        var firstChar = prop.substr(0, 1);
-                        this.noNotify = false;
-                        if (firstChar == '@' || firstChar == '$' || firstChar == '%') {
-                            prop = prop.substr(1);
-                            if (firstChar == '@') {
-                                this.noNotify = true;
-                            }
-                        }
-                        this.resolvedProperty = prop;
-                        //this.path=path;
-                        this.index = 0;
-                        //this.pathRootObject=obj;
-                        //this.obj=obj;
-                        this.context = context;
-                        this.initialized = true;
-
-                    },
-                    setValue: function (val) {
-
-                            this.value = val;
-                            if(this.parentObject && this.parentObject.onListener && !this.changing)
-                                this.parentObject.onListener(this, this.tag);
-                            return val;
-
-                    },
-                    getValue: function (val) {
-                        return this.value;
-                    },
-                    // LLamado por stateExpando cuando el cambio de estado se ha producido por un fireState.
-                    // Es decir, el sistema de widgets lee datos de un objeto, y los usa. Pero no los modifica.
-                    // StateExpando, sin embargo, funciona junto con fireState. StateExpando lee algo del contexto,
-                    // y se establece.Pero fireState modifica esa variable de expando.
-                    // Sirve para actualizar el valor del elemento del path que define el estado.
-
-                    __widgetToCaller: function (val) {
-                        this.resolvedObject[this.resolvedProperty] = val;
-                    },
-
-                    onChange: function () {
-                        if (this.noNotify == true)
-                            return;
-                        this.changing=true;
-                        /*
-                        if (this.parentObject.expandoTag != "sivParams" &&
-                            this.parentObject.node == null &&
-                            this.parentObject.pathExpr == null &&
-                                this.pathExpr==null
-                        ) {
-                            this.changing=false;
-                            this.destruct();
-                        }
-                        else*/
-
-                        this.pathRootObject.__getPath(this.obj, this.getEffectivePath().split("/"), this.index, this.context, this.pathRootObject, this);
-                        this.changing=false;
-                        var ttype=Siviglia.typeOf(this.value);
-
-                        if(typeof this.oldVal!="undefined")
-                        {
-                            var otype=Siviglia.typeOf(this.oldVal);
-                            if(otype!=ttype)
-                                return true;
-                            if((otype=="number" || otype=="string") && this.oldVal==this.value)
-                                return false;
-                            this.oldVal=this.value;
-                            return true;
-                        }
-                        else
-                        {
-                            this.oldVal=this.value;
-                            return true;
-                        }
-                    },
-
-                    notifyOwners:function()
-                    {
-                        // Si el padre de este objeto NO era otro listener, simplemente, se le notifica.
-                        if(!this.parentObject.getDependentListener) {
-                            this.hasNotified=true;
-                            return this.parentObject.onListener(this, this.tag);
-                        }
-                        // Si el padre de este listener, era otro listener, y ese listener padre ya ha
-                        // notificado a su padre, no es necesario hacer
-                        if(this.parentObject.hasNotified) {
-                            this.hasNotified=true;
-                            return;
-                        }
-                        // Si el padre de este listener, era otro listener, y ese listener padre aun no
-                        // ha notificado a su padre, es porque ese listener no era dependiente del objeto
-                        // que ha cambiado. Si lo fuera, ya habria notificado.
-                        // Por lo tanto, le llamamos a su onChange, y a su notifyOwners
-                        this.parentObject.onChange();
-                        this.parentObject.notifyOwners();
-                        this.hasNotified=true;
-
-                    },
-                    endNotify:function()
-                    {
-                        this.hasNotified=false;
-                        // Si el padre no era un listener, simplemente salimos.
-                        if(this.parentObject.getDependentListener)
-                            return;
-                        // Si el padre era tambien un listener, y ya ha notificado, salimos
-                        if(!this.parentObject.hasNotified)
-                            return;
-                        // Si el padre era un listener, y no ha terminado de notificar, le llamamos desde aqui.
-                        this.parentObject.endNotify();
-                    },
-
-                    invoke: function (callback, params) {
-                        if (this.caller && this.caller[callback]) {
-                            this.caller[callback].apply(this.caller, params);
-                        }
-                    },
-
-                    isInitialized:function()
-                    {
-                        return this.initialized;
-                    },
-                    onListener:function()
-                    {
-                        // Disparada por alguno de los sublisteners.
-                        if(this.pathExpr!=null)
-                        {
-                            var newPath=this.getEffectivePath(null);
-                            this.path=newPath.split("/");
-                            this.onChange();
-                        }
-                    }
-                }
-            },
-            PathResolver: {
-                inherits: "Siviglia.model.PathListener",
-                methods: {
-                    addNode: function (elem, path) {
-                        this[path] = elem;
-                    },
-                    __getSubPaths:function(str,mainListener)
-                    {
-                        var curListener=mainListener;
-                        var stack=[curListener];
-
-                        var exprStack=[[]];
-                        curExpr=exprStack[0];
-                        curStr="";
-                        oldContext=null;
-                        for(var k=0;k<str.length;k++)
-                        {
-                            switch(str[k])
-                            {
-                                case "{":{
-
-                                        // Se crea un nuevo listener dependiente del
-                                        // actual.
-                                        var nL=curListener.getDependentListener();
-                                        stack.push(nL);
-                                        curListener=nL;
-                                        if(curStr.length>0)
-                                            curExpr.push(curStr);
-                                        exprStack.push([]);
-                                        curExpr=exprStack[exprStack.length-1];
-                                        curStr="";
-
-
-                                    }break;
-                                    case "}":{
-
-
-                                            if(stack.length<2)
-                                                return null;
-                                            if(curStr!="")
-                                                curExpr.push(curStr);
-
-                                            curListener.setPathExpr(curExpr);
-
-                                            //curListener.noNotify=true;
-                                            var calculatedPath=curListener.getEffectivePath();
-                                            var sval=this.getPath(calculatedPath,curListener,curListener.context);
-                                            //curListener.onChange();
-                                            //curListener.noNotify=false;
-                                            oldListener=curListener;
-                                            exprStack.pop();
-                                            curExpr=exprStack[exprStack.length-1];
-                                            curExpr.push(oldListener);
-                                            //Eliminamos el listener que acabamos de calcular, de la pila de listeners.
-                                            stack.pop();
-                                            // El listener actual es el ultimo
-                                            curListener=stack[stack.length-1];
-                                            curStr="";
-
-                                    }break;
-                                    default:{
-                                        curStr+=str[k];
-                                    }
-                                }
-                            }
-                            if(curStr!="")
-                                curExpr.push(curStr);
-
-                            if(curExpr.length > 1)
-                                mainListener.setPathExpr(curExpr);
-                            if(stack.length>1)
-                                return null;
-                            return stack;
-                    },
-                    getPath: function (str, listener, context) {
-
-                        if (str.substr(0, 1) != '/')
-                            return listener.setValue(str);
-                        // Se buscan subPaths dinamicos.
-                        //var stack=this.__getSubPaths(str,listener);
-                        str=listener.getEffectivePath(str);
-
-                        // Se buscan los subPaths.Estos subPaths NO son dinamicos.Se resuelven estaticamente.
-                        var m=this;
-                        str=str.replace(/{\%(.*?)%}/g,function(a,b){
-                            // Ojo, no se pasa un listener
-                            var subPath=b;
-                            return m.__getPath(listener.pathRootObject, subPath.split("/"), 0, context, this, null);
-                        });
-
-                        //return this.__getPath(Siviglia.model.Root,str.split("/"),0,context,this,listener);
-                        return this.__getPath(listener.pathRootObject, str.split("/"), 0, context, this, listener);
-                    },
-                    onPathNotFound: function (obj, path, index, context, currentObject, listener) {
-                        if (listener) {
-
-                            // Comprobacion de si existe un valor por defecto.
-                            var v = path[path.length - 1];
-                            if (v.substr) {
-                                var defPos = v.indexOf("?");
-                                if (defPos != -1) {
-                                    var defValue = v.substr(defPos + 1);
-                                    listener.setValue(defValue);
-
-                                    return;
-                                }
-                            }
-
-                            if(currentObject && currentObject.onPathNotFound && currentObject.onPathNotFound!=this.onPathNotFound)
-                            {
-                                return currentObject.onPathNotFound(obj?obj:currentObject,path,obj?index:index-1,context,currentObject,listener);
-                            }
-                            else
-                            {
-
-                                if (listener.parentObject.onPathNotFound)
-                                    listener.parentObject.onPathNotFound();
-                            }
-
-                            return listener.pathRootObject.onNotFound(obj ? obj : currentObject, path, obj ? index : index - 1, context, currentObject, listener);
-                            // listener.setValue("NOT FOUND :/"+path.join("/")+" idx:"+index);
-                        }
-                        else
-                            return "NOT FOUND";
-                    },
-                    __getPathProperty: function (path, index, context, currentObject, listener, index) {
-                        var prop = path[index + 1];
-                        var cI = prop;
-                        if (cI.substr) {
-                            var defPos = cI.indexOf("?");
-                            if (defPos != -1) {
-                                prop = cI.substr(0, defPos);
-                                defCi = cI.substr(defPos + 1);
-                            }
-                        }
-
-                        if (prop.substr(0, 1) == "@") {
-                            if (listener.caller)
-                                propName = listener.caller[prop.substr(1)];
-                            if (!propName) {
-                                propName = context.get(prop.substr(1));
-                            }
-                        }
-                        else
-                            propName = prop;
-                        /* Para compatibilidad con AutoUI */
-                        if(propName==".." && this.getParent)
-                        {
-                            return this.__getPath(this.getParent(), path, index + 1, context, currentObject, listener);
-                        }
-
-                        var type = typeof this[propName];
-                        if (type == "number" || type == "string" || type == "function") {
-                            var val = (type == "function" ? this[propName]() : this[propName]);
-
-                            if (listener) {
-                                listener.setValue(val);
-                                if (!listener.initialized) {
-
-                                    listener.setPath(path, index, currentObject, context);
-                                    //currentObject.addPathListener(listener);
-                                }
-                            }
-                            return val;
-                        }
-
-                        return this.__getPath(this[propName], path, index + 1, context, currentObject, listener);
-                    },
-                    __getPath: function (obj, path, index, context, currentObject, listener) {
-                        if (!index)index = 0;
-
-                        if (typeof obj == "undefined") {
-                            return this.onPathNotFound(obj, path, index, context, currentObject, listener);
-                        }
-
-                        if (index + 1 == path.length) {
-                            if (listener) {
-                                if (!listener.initialized) {
-                                    listener.setPath(path, index, currentObject.viewObject || currentObject, context);
-                                }
-                                listener.setValue(obj);
-                            }
-                            return obj;
-                        }
-
-
-                        var cI = path[index + 1];
-                        var defCi;
-                        if (cI.substr) {
-                            var defPos = cI.indexOf("?");
-                            if (defPos != -1) {
-                                cI = cI.substr(0, defPos);
-                                defCI = cI.substr(defPos + 1);
-                            }
-
-                            var c = cI.substr(0, 1);
-                            var scI = cI.substr(1);
-                            // Si el primer caracter es $, se devuelve el path a partir del objeto/variable/etc
-                            // apuntado por la variable de la vista.
-                            // Si el primer caracter es %, se devuelve el path contenido en el valor de esa variable
-
-                            var path2 = path.slice(0);
-                            if ((c == "*" || c == "%") && listener && listener.caller && listener.caller.viewObject){
-                                    var v = listener.caller;
-
-                                    /*
-
-
-                                path2[index + 1] = v1;
-                                var n = this.__getPath(v.viewObject, path2, index, context, v.viewObject, listener);
-                                listener.setPath(path, index, currentObject, context);
-                                */
-
-                                var n = this.__getPath(listener.caller.viewObject[scI], path, index + 1, context, listener.caller.viewObject, listener);
-                                if (c == "%") {
-                                    obj.addPathListener(listener);
-                                    return listener.pathRootObject.getPath(n, listener, context);
-                                }
-                                return n;
-
-                            }
-                            // Si el primer caracter es @, se busca en el contexto.
-                            if (c == "@") {
-                                listener && listener.setAsContextual();
-                                var vOnListener = null;
-                                var tempObj = context;
-                                path2[index + 1] = cI.substr(1);
-                                if (typeof tempObj[path2[index + 1]] == "undefined") {
-                                    if (typeof defCI == "undefined") {
-                                        if (listener)
-                                        {
-                                            // Si un listener depende de una variable de contexto, que en su momento
-                                            // existio, pero que ahora no existe, entonces, no cambia de valor.
-                                            // Retorna su valor anterior.Es una especie de "closure".
-                                            if(listener.isInitialized)
-                                            {
-                                                return listener.getValue();
-                                            }
-                                        }
-                                            return this.onPathNotFound(obj, path, index, context, currentObject, index);
-                                        return "NOT FOUND";
-                                    }
-                                    else {
-                                        if (listener)
-                                            listener.setValue(defCI);
-                                        return defCI;
-                                    }
-                                }
-                                var type = typeof tempObj[path2[index + 1]];
-
-                                // En caso de que el elemento del contexto sea el ultimo elemento del path
-                                if (path.length == index + 2 ) {
-                                    if(listener) {
-                                        listener.setValue(tempObj[path2[index + 1]]);
-                                        listener.setPath(path, index, currentObject, context);
-                                    }
-                                    return tempObj[path2[index + 1]];
-//                                    if (!listener.initialized) {
-//                                        currentObject.addPathListener(listener);
-//                                    }
-                                }
-
-                                if (!(type == "number" || type == "string")) {
-                                    index++;
-                                        obj = tempObj[path2[index]];
-                                }
-                                else {
-                                        path[index + 1] = tempObj[path2[index + 1]];
-                                }
-                                try {
-                                    //var newVal = this.__getPath(obj, path2, index, context, currentObject, listener, index);
-                                    var newVal = this.__getPath(obj, path, index, context, currentObject, listener, index);
-                                }catch(e)
-                                {
-                                    return this.onPathNotFound(obj, path, index, context, currentObject, index);
-                                }
-                                    //this.__getPath(tempObj,path2,index,context,currentObject,listener,index);
-                                listener && listener.setPath(path, index, currentObject, context);
-                                return newVal;
-                            }
-                            if (c == "#") {
-                                var contVal;
-                                if (context.get)
-                                    contVal = context.get(path[index + 1].substr(1));
-                                else
-                                    contVal = context[path[index + 1].substr(1)];
-                                if (listener) {
-                                    listener.setValue(contVal);
-                                    if (!listener.initialized) {
-                                        listener.setPath(path, index, currentObject, context);
-                                        //currentObject.addPathListener(listener);
-                                    }
-                                }
-
-                                return contVal;
-                            }
-                        }
-
-                        if (obj.__construct) {
-                            // Es un objeto "nuestro"
-                            var propName = null;
-                            if (obj.notifyPathListeners) {
-                                currentObject = obj;
-                                index = index;
-                            }
-                            if (obj.__getPathProperty) {
-                                return obj.__getPathProperty(path, index, context, currentObject, listener, index);
-                            }
-
-                            if (path[index + 1].substr(0, 1) == "@") {
-                                if (listener.caller)
-                                    propName = listener.caller[path[index + 1].substr(1)];
-                                if (!propName) {
-                                    propName = context.get(path[index + 1].substr(1));
-                                }
-                            }
-                            else
-                                propName = path[index + 1];
-
-                            var type = typeof obj[propName];
-                            if (type == "number" || type == "string" || type == "function" || obj[propName]===null) {
-                                var val = (type == "function" ? obj[propName]() : obj[propName]);
-
-                                if (listener) {
-                                    listener.setValue(val);
-                                    if (!listener.initialized) {
-
-                                        listener.setPath(path, index, currentObject, context);
-                                        // currentObject.addPathListener(listener);
-                                    }
-                                }
-                                return val;
-                            }
-                            else {
-                                return this.__getPath(obj[propName], path, index + 1, context, currentObject, listener);
-                            }
-                        }
-
-
-                        var type = typeof obj[path[index + 1]];
-
-                        if (type == "number" || type == "string" || type == "function") {
-                            var val = (type == "function" ? obj[path[index + 1]]() : obj[path[index + 1]]);
-
-                            if (listener) {
-                                if (!listener.initialized)
-                                listener.setPath(path, index, currentObject, context);
-                                listener.setValue(val);
-
-                            }
-                            return val;
-                        }
-                        else {
-
-                            return  this.__getPath(obj[path[index + 1]], path, index + 1, context, currentObject, listener);
-                        }
-                    }
-                }
-            }
-        }
-    });
-
-/* Implementacion simple de una PathRoot */
-Siviglia.Utils.buildClass(
-    {
-        context: 'Siviglia.model',
-        classes: {
-            PathRoot: {
-                inherits: "Siviglia.model.PathResolver",
-                construct: function () {
-                    this.context = new Siviglia.model.Context();
-                    this.unresolvedPaths = [];
-                },
-                methods: {
-                    parseString:function(str,tag,listener)
-                    {
-                        if(str.toString().substr(0,1)!="/")
-                            return str;
-                        return this.getPath(str, listener, this.context);
-
-                    },
-                    onNotFound: function (obj, path, index, context, currentObject, listener) {
-                        if (this.unresolvingPaths)
+                        // TODO: SI EL WIDGET NO EXISTE, CARGARLO REMOTAMENTE
+                        var p = $.Deferred();
+                        var lib = Siviglia.UI.Expando.WidgetExpando.prototype.widgets;
+                        if (!lib || !lib[widgetName])
                             return null;
-
-                        this.unresolvedPaths.push({obj: obj, path: path, index: index, context: context, currentObject: currentObject, listener: listener});
-                        return "NOT FOUND DE PATHROOT";
-                    },
-                    addElement: function (name, element) {
-                        this[name] = element;
-                        this.unresolvingPaths = true;
-                        for (var k = 0; k < this.unresolvedPaths.length; k++) {
-                            var t = this.unresolvedPaths[k];
-                            val = this.__getPath(t.obj, t.path, t.index, t.context, t.currentObject, t.listener);
-                            if (val) {
-                                // Lo borramos de los pending paths
-                                this.unresolvedPaths.splice(k, 1);
-                            }
-                        }
-                        this.unresolvingPaths = false;
+                        return lib[widgetName];
+                        return p;
                     }
                 }
             },
-            RemotePath: {
-                "inherits": 'Siviglia.model.PathRoot',
-                construct: function (actionEndPoint) {
-                    //this.actionEndPoint='http://127.0.0.1/framework/html';
-                    this.actionEndPoint = actionEndPoint;
-                    this.PathRoot();
-                    this.callStack = [];
-                },
-                methods: {
-                    onNotFound: function (obj, path, index, context, currentObject, listener, savedIndex) {
-                        debugger;
-                        var k;
-                        var newPath = [];
 
-                        for (k = 0; k < path.length; k++) {
-                            if (path[k][0] == '@')
-                                newPath[k] = "" + context[path[k].substr(1)];
-                            else
-                                newPath[k] = path[k];
-                            if (k == path.length - 2) {
-                                var subPath = newPath.join("/");
-                                if (this.callStack[subPath]) {
-                                    this.callStack[subPath].push([obj, path, index, context, currentObject, listener, savedIndex]);
-                                    return;
-                                }
-                                else
-                                    this.callStack[subPath] = [arguments];
-                            }
-                        }
-                        var remotePath = newPath.join("/");
-                        $.ajax(
-                            {url: this.actionEndPoint + remotePath + '?output=json',
-                                context: this,
-                                async: true,
-                                dataType: 'json',
-                                type: 'GET',
-                                success: function (data, textStatus, jqXHR) {
-                                    //console.debug(path);
-                                    var lastStep = path.length;
-                                    // Si lo que se ha devuelto es un objeto, significa que el ultimo elemento
-                                    // del path pedido originalmente, es una propiedad.Por eso, lo que
-                                    // se ha recibido, es el objeto que contiene a esa propiedad.
-                                    // Por ello, el path a establecer, es el recibido, menos el ultimo elemento (la propiedad).
-                                    // ej, si se pidio /usuario/nombre, y se recibe un objeto, significa que se ha recibido /usuario.
-                                    if (data.data.DATA.constructor.toString().lastIndexOf("Object"))
-                                        lastStep--;
-                                    var k;
-                                    var curNode = currentObject;
-                                    var newNode;
-                                    for (k = index + 1; k < lastStep - 1; k++) {
-                                        newNode = new Siviglia.model.PathListener();
-                                        curNode[newPath[k]] = newNode;
-                                        curNode = newNode;
-                                    }
-                                    curNode[newPath[k]] = data.data.DATA;
-
-                                    var k;
-
-                                    var pending = this.callStack[subPath].slice(0);
-                                    delete this.callStack[subPath];
-
-                                    for (k = 0; k < pending.length; k++) {
-                                        Siviglia.Dom.getPath(pending[k][0], pending[k][1], pending[k][2], pending[k][3], pending[k][4], pending[k][5], pending[k][6]);
-                                    }
-                                },
-                                error: function (jqXHR, textStatus, errorThrown) {
-                                }
-                            });
-                    }
-
-                }
-            }
-        }
-    }
-)
-
-Siviglia.Utils.buildClass(
-    {
-        context: "Siviglia.model",
-        classes: {
-            RemotePath: {
-                "inherits": 'Siviglia.model.PathRoot',
-                construct: function (actionEndPoint) {
-                    this.actionEndPoint = actionEndPoint;
-                    ;
-                    this.PathRoot();
-                    this.callStack = [];
-                },
-                methods: {
-                    onNotFound: function (obj, path, index, context, currentObject, listener) {
-                        debugger;
-                        var k;
-                        var newPath = [];
-                        // Resolving a problem:
-                        // The problem is: if there are various elements requesting remote paths, which ones
-                        // should be remote loaded, and which ones should wait because its results should come
-                        // from requests already executing.
-                        // Example: requesting /a/1/field1 and /a/1/field2 should make 1 request.
-                        // requesting /a/FullList and /a/FullList?param=3 should make 2 requests.
-                        // To solve this, we're supposing that anything that's called from a sivLoop,should use the full path.
-                        // If not, only up to the n-1 elem.
-                        var pathCut = 2;
-                        if (listener.parentObject.expandoTag == "sivLoop") pathCut = 1;
-
-                        for (k = 0; k < path.length; k++) {
-                            if (path[k][0] == '@')
-                                newPath[k] = "" + context[path[k].substr(1)];
-                            else
-                                newPath[k] = path[k];
-                            if (k == path.length - pathCut) {
-                                var subPath = newPath.join("/");
-                                if (this.callStack[subPath]) {
-                                    this.callStack[subPath].push([obj, path, index, context, currentObject, listener, index]);
-                                    return;
-                                }
-                                else
-                                    this.callStack[subPath] = [arguments];
-                            }
-                        }
-                        var remotePath = newPath.join("/");
-                        var c = this;
-                        $.ajax(
-                            {url: this.actionEndPoint + remotePath + (remotePath.indexOf('?') >= 0 ? '&' : '?') + 'output=json',
-                                context: this,
-                                async: true,
-                                dataType: 'json',
-                                type: 'GET',
-                                success: function (data, textStatus, jqXHR) {
-                                    var lastStep = path.length;
-                                    // Si lo que se ha devuelto es un objeto, significa que el ultimo elemento
-                                    // del path pedido originalmente, es una propiedad.Por eso, lo que
-                                    // se ha recibido, es el objeto que contiene a esa propiedad.
-                                    // Por ello, el path a establecer, es el recibido, menos el ultimo elemento (la propiedad).
-                                    // ej, si se pidio /usuario/nombre, y se recibe un objeto, significa que se ha recibido /usuario.
-                                    if (data.data.constructor.toString().lastIndexOf("Object") >= 0)
-                                        lastStep--;
-                                    var k;
-                                    var curNode = currentObject;
-                                    var newNode;
-                                    for (k = index + 1; k < lastStep - 1; k++) {
-                                        newNode = new Siviglia.model.PathListener();
-                                        curNode[newPath[k]] = newNode;
-                                        curNode = newNode;
-                                    }
-                                    curNode[newPath[k]] = data.data;
-
-                                    var k;
-                                    var pending = this.callStack[subPath].slice(0);
-                                    for (k = 0; k < pending.length; k++) {
-                                        listener.pathRootObject.__getPath(pending[k][0], pending[k][1], pending[k][2], pending[k][3], pending[k][4], pending[k][5]);
-                                    }
-
-                                },
-                                error: function (jqXHR, textStatus, errorThrown) {
-                                    console.debug("EN ERROR!!!!!");
-                                }
-                            });
-                    }
-
-                }
-            }
-        }
-    });
-
-
-Siviglia.model.Root = new Siviglia.model.PathRoot();
-
-
-Siviglia.Utils.setCookie = function (name, value, expires, path, domain, secure) {
-    var today = new Date().getTime();
-    var expires_date = new Date(today + (expires ? expires * 1000 * 60 * 60 * 24 : 0));
-    document.cookie = name + "=" + escape(value) +
-        ( ( expires ) ? ";expires=" + expires_date.toGMTString() : "" ) +
-        ( ( path ) ? ";path=" + path : ";path=/" ) +
-        ( ( domain ) ? ";domain=" + domain : "" ) +
-        ( ( secure ) ? ";secure" : "" );
-}
-Siviglia.Utils.getCookie = function (check_name) {
-    // first we'll split this cookie up into name/value pairs
-    // note: document.cookie only returns name=value, not the other components
-    var a_all_cookies = document.cookie.split(';');
-    var a_temp_cookie = '';
-    var cookie_name = '';
-    var cookie_value = '';
-    var b_cookie_found = false; // set boolean t/f default f
-
-    for (var i = 0; i < a_all_cookies.length; i++) {
-        // now we'll split apart each name=value pair
-        a_temp_cookie = a_all_cookies[i].split('=');
-        // and trim left/right whitespace while we're at it
-        cookie_name = a_temp_cookie[0].replace(/^\s+|\s+$/g, '');
-        // if the extracted name matches passed check_name
-        if (cookie_name == check_name) {
-            b_cookie_found = true;
-            // we need to handle case where cookie has no value but exists (no = sign, that is):
-            if (a_temp_cookie.length > 1) {
-                cookie_value = unescape(a_temp_cookie[1].replace(/^\s+|\s+$/g, ''));
-            }
-            // note that in cases where cookie is initialized but no value, null is returned
-            return cookie_value;
-            break;
-        }
-        a_temp_cookie = null;
-        cookie_name = '';
-    }
-    if (!b_cookie_found) {
-        return null;
-    }
-}
-
-/*
-
- The following functions are stolen from the dojo toolkit. (www.dojotoolkit.org)
-
- */
-String.prototype.cTrim=function( characters) {
-    if(!Siviglia.isset(characters)) {
-        if(typeof String.prototype.trim !== undefined) {
-            // Simply use the String.trim as a default
-            return String.prototype.trim.call(string);
-         } else {
-            // set characters to whitespaces
-            characters = "\s\uFEFF\xA0";
-         }
-    }
-    // Characters is set at this point forward
-    // Validate characters just in case there are invalid usages
-    var escaped = characters.replace(/([.*+?^=!:${}()|\[\]\/\\])/g, '\\$1');
-    var target = new RegExp('^[' + escaped + ']+|[' + escaped + ']+$',"g");
-    // Remove the characters from the string
-    return this.replace(target, '');
-};
-String.prototype.ucfirst=function()
-{
-    return this.charAt(0).toUpperCase() + this.slice(1);
-}
-
-if (!String.prototype.trim) {
-    String.prototype.trim = function (c) {
-        c=Siviglia.issetOr(c,'\s');
-        return this.replace(/^\s+|\s+$/g, '');
-    };
-
-    String.prototype.ltrim = function (c) {
-        c=Siviglia.issetOr(c,'\s');
-        return this.replace(/^\s+/, '');
-    };
-
-    String.prototype.rtrim = function (c) {
-        c=Siviglia.issetOr(c,'\s');
-        return this.replace(/\s+$/, '');
-    };
-
-    String.prototype.fulltrim = function () {
-        return this.replace(/(?:(?:^|\n)\s+|\s+(?:$|\n))/g, '').replace(/\s+/g, ' ');
-    };
-}
-
-Siviglia.types = {
-    fromJson: function (/*String*/ json) {
-        return eval("(" + json + ")"); // Object
-    },
-    _escapeString: function (/*String*/str) {
-        return ('"' + str.replace(/(["\\])/g, '\\$1') + '"').
-            replace(/[\f]/g, "\\f").replace(/[\b]/g, "\\b").replace(/[\n]/g, "\\n").
-            replace(/[\t]/g, "\\t").replace(/[\r]/g, "\\r"); // string
-    },
-    isString: function (/*anything*/ it) {
-        return (typeof it == "string" || it instanceof String); // Boolean
-    },
-
-    isArray: function (/*anything*/ it) {
-        //	summary:
-        //		Return true if it is an Array.
-        //		Does not work on Arrays created in other windows.
-        return it && (it instanceof Array || typeof it == "array"); // Boolean
-    },
-
-    isFunction: function (/*anything*/ it) {
-        // summary:
-        //		Return true if it is a Function
-        return Function.call(it) === "[object Function]";
-    },
-
-    isObject: function (/*anything*/ it) {
-        return it !== undefined &&
-            (it === null || typeof it == "object" || Siviglia.types.isArray(it) || Siviglia.types.isFunction(it)); // Boolean
-    }
-};
-
-function getMouseEventCoordinates(event, reference) {
-    if (event.offsetX !== undefined && event.offsetY !== undefined)
-        return {x: event.offsetX, y: event.offsetY};
-    var totalOffsetX = 0;
-    var totalOffsetY = 0;
-    var canvasX = 0;
-    var canvasY = 0;
-    do {
-        totalOffsetX += reference.offsetLeft - reference.scrollLeft;
-        totalOffsetY += reference.offsetTop - reference.scrollTop;
-    }
-    while (reference = reference.offsetParent)
-
-    canvasX = event.pageX - totalOffsetX - document.body.scrollLeft;
-    canvasY = event.pageY - totalOffsetY - document.body.scrollTop;
-
-    return {x: canvasX, y: canvasY}
-
-}
-
-Siviglia.Utils.buildClass(
-    {
-        context: 'Siviglia.UI',
-        classes: {
-            Widget: {
-                inherits: "Siviglia.UI.Dom.Expando.ViewExpando",
-                construct: function (widgetName, params, nodeParams, node, pathRoot, widget) {
-                    this.ViewExpando(widgetName);
-                    this.subViews = [];
-                    this.wName=widgetName;
-                    this.pathRoot = pathRoot;
-                    if (!widget) {
-                        if (params.template) {
-                            var hiddenEl = document.createElement("div");
-                            $(hiddenEl).html(template);
-                        }
-                        this.view = this;
-                        this.params = params;
-                        this.nodeParams = nodeParams;
-                        if (node) {
-                            this.setViewObject(this, params, nodeParams);
-                            this.__initialize(node, null, pathRoot, pathRoot.context, null);
-                        }
-                    }
-                    else {
-                        this.view = widget;
-                    }
-                },
-
-
-
-                methods: {
-                    /* attach:function(node){
-
-                     this.ViewExpando$attach(this,node,this.params,this.nodeParams);
-                     this.onAttach();
-
-                     },*/
-                    onAttach: function () {
-                    },
-                    getRootNode: function () {
-                        return this.view.widgetRoot;
-                    },
-                    addSubView: function (v) {
-                        this.subViews.push(v);
-                    },
-
-                    __initialize: function (node, nodeManager, pathRoot, contextObj, caller) {
-                        this.pathRoot = pathRoot;
-                        this.context = contextObj;
-                        this.rootNode = node;
-                        this.nodeManager = nodeManager;
-                        this.caller = caller;
-                        this.parentWidget = caller;
-                        this.attach(this.caller, this.rootNode, this.params, this.nodeParams, this.pathRoot, this.context);
-                        return false;
-                    },
-                    notifyPathListeners:function()
-                    {
-
-
-                        Siviglia.UI.Dom.Expando.WidgetExpando.prototype.widgetStack.push(this);
-                        this.ViewExpando$notifyPathListeners();
-                        Siviglia.UI.Dom.Expando.WidgetExpando.prototype.widgetStack.pop();
-
-
-                    }
-
-                }
-            }
-
-        }
-    }
-
-);
-
-
-Siviglia.Utils.buildClass({
-    context:'Siviglia.App',
-    classes:
-    {
-        Page:{
-            inherits:"Siviglia.Dom.EventManager",
-            construct:function(App)
-            {
-                this.App=App;
-                this.EventManager();
-                this.oManager=new Siviglia.UI.Dom.Expando.ExpandoManager(this.App.root,this.App.root.context);
-                var m=this;
-                $(function(){m.onLoaded();});
-            },
-            methods:
-            {
-                onLoaded:function()
-                {
-
-                    this.fireEvent("PAGE_LOADED");
-                    this.oManager.parse($(document.body),null);
-                    this.fireEvent("UI_INITIALIZED");
-                },
-                parseWidgets:function(node) {
-                    this.oManager.parse(node, null, null, true);
-                }
-                /*
-
-                 */
-            }
-        },
-        App:{
-            inherits:"Siviglia.Dom.EventManager",
-            construct:function(config){
-                this.config=config;
-                //Siviglia.Model.initialize(config);
-                this.root=Siviglia.model.Root;
-            },
-            methods:
-            {
-                initialize:function()
-                {
-                    var self=this;
-                    $(document).ready(function(){
-                        if(self.page)
-                            self.page.onLoaded()}
-                    );
-                },
-                getRoot:function()
-                {
-                    return this.root;
-                },
-                getPage:function()
-                {
-                    return this.page;
-                },
-                setPage:function(page)
-                {
-                    this.page=page;
-                    top.page=page;
-                    top.eventManager=page;
-                },
-                startup:function()
-                {
-                }
-            }
-        }
-    }
-});
-
-Siviglia.Utils.buildClass({
-    context:'Siviglia.Utils',
-    classes:
-    {
-        ParametrizableStringException:{
-            construct:function(message)
-            {
-                this.message=message;
-            }
-        },
-        ParametrizableString:
-        {
-            /*
-                Si se quieren utilizar paths, controller debe ser una instancia de una clase derivada
-                de Siviglia.model.PathRoot
-            */
-            construct:function(controller,listener,str,params)
-            {
-                this.controller=controller;
-                this.mainListener=listener;
-                this.BASEREGEXP=/\[%(?:(?:([^: ,%]*)%\])|(?:([^: ,]*)|([^:]*)):(.*?(?=%\]))%\])/g;
-                this.BODYREGEXP=/\{%(?:([^%:]*)|(?:([^:]*):(.*?(?=%\}))))%\}/g;
-                this.PARAMREGEXP=/([^|$ ]+)(?:\||$|(?: ([^|$]+)))/g;
-                this.SUBPARAMREGEXP=/('[^']*')|([^ ]+)/g;
-                this.listeners={};
-                this.str=str;
-                this.params=params;
-                var res=this.parse(str,params);
-                this.mainListener.setValue(res);
-                //this.mainListener.onChange();
-            },
-            methods:
-            {
-                parse:function()
-                {
-                    this.parsing=true;
-                    var params=Siviglia.issetOr(this.params,{});
-                    var str=this.str;
-                    var m=this,r=this.BASEREGEXP,res,f=str;
-                    while(res=r.exec(str))
-                        f=f.replace(res[0], this.parseTopMatch(res,params));
-                    this.parsing=false;
-                    return f;
-                },
-                parseTopMatch:function(match,params)
-                {
-                    // Match simple
-
-                    if(typeof match[1]!=="undefined")
-                    {
-                        try {
-                            return this.getValue(match[1],params);
-                        }catch (e)
-                        {
-                            throw new Siviglia.Utils.ParametrizableStringException("Parameter not found:"+match[1]);
-                        }
-                    }
-                    var t=Siviglia.issetOr(match[2],null);
-                    var t1=Siviglia.issetOr(match[3],null)
-                    var mustInclude=false,exists=false,body='';
-                    if(t)
-                    {
-                        var paramName=t;
-                        var negated=(t.substr(0,1)=="!");
-                        if(negated)
-                            paramName=t.substr(1);
-                        try
-                        {
-                            this.getValue(paramName,params);
-                            exists=true;
-                        }catch (e) {}
-
-                        mustInclude=(t.substr(0,1)=="!"?!exists:exists);
-                    }
+            View: {
+                construct: function (template, params, widgetParams,node,  context) {
+                    this.__template = template;
+                    this.__params = params;
+                    this.__node = node;
+                    this.rootNode=node; // Solo por compatibilidad
+                    this.__context = context.getCopy();
+                    this.__widgetParams = widgetParams;
+                    this.oManager=null;
+                    var plainCtx = new Siviglia.Path.BaseObjectContext(this, "*", this.__context);
+                    if(Siviglia.UI.viewStack.length>0)
+                        this.parentView=Siviglia.UI.viewStack[Siviglia.UI.viewStack.length-1];
                     else
-                        mustInclude=this.parseComplexTag(t1,params);
-                    if(mustInclude)
-                    {
-                        var reg=new RegExp(this.BODYREGEXP);
-                        var m=this,bodyMatch,replacements=[];
-
-                        while(bodyMatch=reg.exec(match[4])) {
-                            var replacement=this.parseBody(bodyMatch,params);
-                            replacements.push({s:bodyMatch[0],r:replacement});
-                        }
-                        for(var k=0;k<replacements.length;k++) {
-                            match[4]=match[4].replace(replacements[k].s,replacements[k].r);
-                        }
-
-                        return match[4];
-                    }
-                    return '';
+                        this.parentView=null;
                 },
-                getValue:function(path,params)
+                destruct:function()
                 {
-                    if(path.substr(0,1)=="/")
-                        return this.getPath(path);
-                    try
-                    {
-                        var o=Siviglia.Utils.stringToContextAndObject(path, params, params, 1);
-                    }catch(e)
-                    {
-                        throw new Siviglia.Utils.ParametrizableStringException("Parameter not found:"+path);
-                    }
-                    if(!Siviglia.isset(o.context[o.object])) {
-                        throw new Siviglia.Utils.ParametrizableStringException("Parameter not found:"+path);
-                    }
-                    return o.context[o.object];
+                    if(this.oManager)
+                        this.oManager.destruct();
                 },
-                getPath:function(path)
-                {
-                    if(!this.listeners[path]) {
-                        if (!this.controller || !this.mainListener.pathRootObject.parseString)
-                            return path;
-                        this.listeners[path] = new Siviglia.model.Listener(this, null, this.controller, this.mainListener.pathRootObject, this.mainListener.pathRootObject.context, path);
-                        return this.mainListener.pathRootObject.parseString(path,null,this.listeners[path]);
-                    }
-                    return this.listeners[path].getValue();
+                methods: {
+                    __build: function () {
+                        var widgetFactory = new Siviglia.UI.Expando.WidgetFactory();
+                        var f=(function (w) {
 
-                },
-                onListener:function()
-                {
-                    // Si algun listener ha cambiado, destruimos todos, y notificamos al listener principal.
-                    // No podemos arriesgarnos a reevaluar la expresion localmente.
-                    // Ademas, el listener principal va a hacer un getPath, por lo que podría crear una nueva
-                    // instancia de ParametrizableString, con lo cual tendríamos 2: la antigua, y la nueva.
-                    /*for(var k in this.listeners)
-                        this.listeners[k].destruct();*/
-                    if(this.parsing==false)
-                        this.mainListener.setValue(this.parse());
+                            this.preInitialize(this.__params);
+                            this.__composeHtml(w);
+                            this.parseNode();
+                            this.initialize(this.__params);
+                        }).bind(this);
+                        if(!widgetFactory.hasInstance(this.__template))
+                            $.when(widgetFactory.getInstance(this.__template)).then(f);
+                        else
+                            f(widgetFactory.getInstance(this.__template));
+                    },
+                    __composeHtml: function (widget) {
 
-
-                },
-                parseBody:function(match,params)
-                {
-                    //this.BODYREGEXP=/{\%(?:(?<simple>[^%:]*)|(?:(?<complex>[^:]*):(?<predicates>.*?(?=\%}))))\%}/;
-                    var v=Siviglia.issetOr(match[1],null);
-                    if(v)
+                        var widgetNode = widget.getNode();
+                        //this.__node[0].parentNode.insertBefore(widgetNode[0],this.__node[0].nextSibling);
+                        this.__node.append(widgetNode);
+                    },
+                    parseNode:function()
                     {
+
+                        this.oManager = new Siviglia.UI.HTMLParser(this.__context);
                         try {
-                            return this.getValue(v, params);
+                            this.__node[0].removeAttribute("data-sivview");
+                            this.__node.removeData("sivview");
+                            Siviglia.UI.viewStack.push(this);
+                            this.oManager.parse(this.__node);
+                            Siviglia.UI.viewStack.pop();
                         }catch(e)
                         {
-                            throw new Siviglia.Utils.ParametrizableStringException("Parameter not found:"+v);
+                            console.dir(e);
+                            throw e;
                         }
+                        console.log(this.__node[0].innerHTML)
                     }
-                    var complex=Siviglia.issetOr(match[2],null);
-                    var cVal=null;
-                    try {
-                        cVal=this.getValue(complex, params);
-                    }catch(e) {}
+                }
 
-                    var r=this.PARAMREGEXP,res;
-                    while(res= r.exec(match[3]))
-                    {
-                        var func=typeof res[1]=="undefined"?null:res[1];
-                        var args=typeof res[2]=="undefined"?null:res[2];
-                        if(func=="default" && cVal==null)
-                        {
-                            cVal=args.cTrim("'");
-                            continue;
-                        }
-                        if(! args)
-                        {
-                            if(cVal==null)
-                            {
-                                throw new Siviglia.Utils.ParametrizableStringException("Parameter not found:"+v);
-                            }
-                            cVal=this.controller[func](cVal);
-                            continue;
-
-                        }
-                        /* //this.SUBPARAMREGEXP=/('[^']*')|([^ ]+)/g; */
-                        var r2=new RegExp(this.SUBPARAMREGEXP);
-                        var cRes=null;
-                        var pars=[];
-                        var cur;
-                        while(cRes=r2.exec(args)) {
-                            cur=Siviglia.isset(cRes[0])?cRes[0].cTrim("'"):cRes[1];
-                            pars.push(cur=="@@"?cVal:this.getPath(cur));
-                        }
-                        cVal=this.controller[func].apply(this.controller,pars);
-                    }
-                    return cVal;
+            },
+            ViewExpando: {
+                inherits: 'Expando',
+                construct: function () {
+                    this.Expando('sivview');
+                    this.view = null;
+                    this.name = null;
+                    this.params = null;
+                    this.str=null;
+                    this.gotName=false;
+                    this.paramListeners=[];
                 },
-                parseComplexTag:function(format,params)
-                {
-                    parts=format.split(',');
-                    for(var k=0;k<parts.length;k++) {
-                        var c=parts[k];
-                        var sparts=c.split(" ");
-                        var negated=(sparts[0].substr(0,1)=='!');
-                        if(negated)
-                            tag=sparts[0].substr(1);
-                        else
-                            tag=sparts[0];
-                        if(sparts.length==1) {
-                            if(negated)
-                                if(Siviglia.isset(params[tag]))
-                                    return false;
-                                continue;
-                        }
+                destruct: function () {
+                    if (this.view !== null)
+                        this.view.destruct();
+                },
+                methods:
+                    {
+                        _initialize: function (node, nodeManager, stack, nodeExpandos) {
+                            // Listener de nombre de vista: Es el propio del Expando.
 
-                        var curValue;
-                        try{
-                            curValue=this.getValue(tag,params);
-                        }catch (e){
-                            throw new Siviglia.Utils.ParametrizableStringException("Parameter not found:"+param);
-                        }
 
-                        var result=false;
+                            this.stack=stack;
 
-                        switch(sparts[1]) {
-                            case "is":{
-                                result=Siviglia["is"+sparts[2].ucfirst()](curValue);
-                            }break;
-                            case "!=":{
-                                result=(curValue!=this.getPath(sparts[2]));
-                            }break;
-                            case "==":{
-                                result=(curValue==this.getPath(sparts[2]));
-                            }break;
-                            case ">":{
-                                result=(curValue>parseInt(this.getPath(sparts[2])));
-                            }break;
-                            case "<":{
-                                result=(curValue<parseInt(this.getPath(sparts[2])));
-                            }break;
-                        }
-                        if(negated)
-                            result=!result;
-                        if(!result)
+                            // Obtener id para, en su caso, mapear esta instancia sobre la vista padre.
+                            // Nota: Esto podria ser un array.
+
+                            this.node = node;
+                            this.params=typeof nodeExpandos["sivparams"]=="undefined"?null:nodeExpandos["sivparams"];
+                            //if (this.params)
+                            //    this.params.addListener("CHANGE", this, "updateParams", "ViewExpando:" + this.method);
+
+                            this.Expando$_initialize(node, nodeManager, stack, nodeExpandos);
+
                             return false;
+                        },
+                        update: function (params) {
+                            this.name = params;
+                            this.rebuild();
+                        },
+                        updateParams:function(event,params){
+
+                              this.rebuild();
+                        },
+                        rebuild:function()
+                        {
+                            this.node.removeData("sivview");
+                            this.node[0].removeAttribute("data-sivview");
+
+                            if (this.view)
+                                this.view.destruct();
+                            if(this.params)
+                                this.currentParamsValues=this.params.getValues();
+                            var widgetFactory = new Siviglia.UI.Expando.WidgetFactory();
+                            var f=(function (w) {
+                                var className=w.getClass();
+                                var obj=Siviglia.Utils.stringToContextAndObject(className);
+
+                                this.view = new obj.context[obj.object](this.name, this.currentParamsValues,null, this.node,  this.stack);
+                                this.view.__build();
+
+                            }).bind(this);
+
+                            if(!widgetFactory.hasInstance(this.name)) {
+                                $.when(widgetFactory.getInstance(this.name)).then(f);
+                            }
+                            else
+                                f(widgetFactory.getInstance(this.name));
+
+                        }
+
                     }
-                    return true;
-                }
             }
-        },
-        applyRecursive:function(object,params)
-        {
-            if(Siviglia.isString(object)) {
-                return this.parse()
-            }
-            if(Siviglia.isArray(object)) {
-                var r=[];
-                for(var k=0;k<object.length;k++) {
-                    r.push(this.applyRecursive(object[k],params));
-                }
-                return r;
-            }
-            if(Siviglia.isPlainObject(object)) {
-                var r={};
-                for(var k in object) {
-                    r[k]=this.applyRecursive(object[k],params);
-                }
-            }
-            return object;
+
         }
-    }
-});
+    });
 
 Siviglia.Utils.load=function(assets)
 {
@@ -3445,44 +2010,168 @@ Siviglia.Utils.load=function(assets)
                 case "js": {
                     subpromises.push(loadJS(p));
                 }break;
-                    case "css": {
-                        subpromises.push(loadCSS(p));
-                    }break;
-                }
-            }
-            else
-            {
-                switch(p.type)
-                {
-                    case "widget":{
-                        if(!p.node) {
-                            p.node = $("<div></div>");
-                            $(document.body).append(p.node);
-                        }
-                        var pr=$.Deferred();
-                        subpromises.push(pr);
-                        var promises=[];
-                        promises.push(loadHTML(p.template,p.node));
-                        promises.push(loadJS(p.js));
-                        $.when.apply($,promises).then(function(){
-                            page.parseWidgets(p.node);
-                            pr.resolve(p.node);
-                        })
-                    }break;
-                    case "html":{
-                        subpromises.push(loadHTML(p.url));
-                    }break;
-                    case "js":{
-                        subpromises.push(loadJS(p.url));
-                    }break;
-                    case "css":{
-                        subpromises.push(loadCSS(p.url));
-                    }break;
-                }
+                case "css": {
+                    subpromises.push(loadCSS(p));
+                }break;
             }
         }
+        else
+        {
+            switch(p.type)
+            {
+                case "widget":{
+                    if(!p.node) {
+                        p.node = $("<div></div>");
+                        $(document.body).append(p.node);
+                    }
+                    var pr=$.Deferred();
+                    subpromises.push(pr);
+                    var promises=[];
+                    promises.push(loadHTML(p.template,p.node));
+                    promises.push(loadJS(p.js));
+                    $.when.apply($,promises).then(function(){
+                        page.parseWidgets(p.node);
+                        pr.resolve(p.node);
+                    })
+                }break;
+                case "html":{
+                    subpromises.push(loadHTML(p.url));
+                }break;
+                case "js":{
+                    subpromises.push(loadJS(p.url));
+                }break;
+                case "css":{
+                    subpromises.push(loadCSS(p.url));
+                }break;
+            }
+        }
+    }
 
-        $.when.apply($, subpromises).done(function() {curPromise.resolve();});
-        return curPromise;
+    $.when.apply($, subpromises).done(function() {curPromise.resolve();});
+    return curPromise;
 };
+
+Siviglia.Utils.setCookie = function (name, value, expires, path, domain, secure) {
+    var today = new Date().getTime();
+    var expires_date = new Date(today + (expires ? expires * 1000 * 60 * 60 * 24 : 0));
+    document.cookie = name + "=" + escape(value) +
+        ( ( expires ) ? ";expires=" + expires_date.toGMTString() : "" ) +
+        ( ( path ) ? ";path=" + path : ";path=/" ) +
+        ( ( domain ) ? ";domain=" + domain : "" ) +
+        ( ( secure ) ? ";secure" : "" );
+}
+Siviglia.Utils.getCookie = function (check_name) {
+    // first we'll split this cookie up into name/value pairs
+    // note: document.cookie only returns name=value, not the other components
+    var a_all_cookies = document.cookie.split(';');
+    var a_temp_cookie = '';
+    var cookie_name = '';
+    var cookie_value = '';
+    var b_cookie_found = false; // set boolean t/f default f
+
+    for (var i = 0; i < a_all_cookies.length; i++) {
+        // now we'll split apart each name=value pair
+        a_temp_cookie = a_all_cookies[i].split('=');
+        // and trim left/right whitespace while we're at it
+        cookie_name = a_temp_cookie[0].replace(/^\s+|\s+$/g, '');
+        // if the extracted name matches passed check_name
+        if (cookie_name == check_name) {
+            b_cookie_found = true;
+            // we need to handle case where cookie has no value but exists (no = sign, that is):
+            if (a_temp_cookie.length > 1) {
+                cookie_value = unescape(a_temp_cookie[1].replace(/^\s+|\s+$/g, ''));
+            }
+            // note that in cases where cookie is initialized but no value, null is returned
+            return cookie_value;
+            break;
+        }
+        a_temp_cookie = null;
+        cookie_name = '';
+    }
+    if (!b_cookie_found) {
+        return null;
+    }
+}
+
+/*
+
+ The following functions are stolen from the dojo toolkit. (www.dojotoolkit.org)
+
+ */
+String.prototype.cTrim=function( characters) {
+    if(!Siviglia.isset(characters)) {
+        if(typeof String.prototype.trim !== undefined) {
+            // Simply use the String.trim as a default
+            return String.prototype.trim.call(string);
+        } else {
+            // set characters to whitespaces
+            characters = "\s\uFEFF\xA0";
+        }
+    }
+    // Characters is set at this point forward
+    // Validate characters just in case there are invalid usages
+    var escaped = characters.replace(/([.*+?^=!:${}()|\[\]\/\\])/g, '\\$1');
+    var target = new RegExp('^[' + escaped + ']+|[' + escaped + ']+$',"g");
+    // Remove the characters from the string
+    return this.replace(target, '');
+};
+String.prototype.ucfirst=function()
+{
+    return this.charAt(0).toUpperCase() + this.slice(1);
+}
+
+if (!String.prototype.trim) {
+    String.prototype.trim = function (c) {
+        c=Siviglia.issetOr(c,'\s');
+        return this.replace(/^\s+|\s+$/g, '');
+    };
+
+    String.prototype.ltrim = function (c) {
+        c=Siviglia.issetOr(c,'\s');
+        return this.replace(/^\s+/, '');
+    };
+
+    String.prototype.rtrim = function (c) {
+        c=Siviglia.issetOr(c,'\s');
+        return this.replace(/\s+$/, '');
+    };
+
+    String.prototype.fulltrim = function () {
+        return this.replace(/(?:(?:^|\n)\s+|\s+(?:$|\n))/g, '').replace(/\s+/g, ' ');
+    };
+}
+
+Siviglia.types = {
+    fromJson: function (/*String*/ json) {
+        return eval("(" + json + ")"); // Object
+    },
+    _escapeString: function (/*String*/str) {
+        return ('"' + str.replace(/(["\\])/g, '\\$1') + '"').
+        replace(/[\f]/g, "\\f").replace(/[\b]/g, "\\b").replace(/[\n]/g, "\\n").
+        replace(/[\t]/g, "\\t").replace(/[\r]/g, "\\r"); // string
+    },
+    isString: function (/*anything*/ it) {
+        return (typeof it == "string" || it instanceof String); // Boolean
+    },
+
+    isArray: function (/*anything*/ it) {
+        //	summary:
+        //		Return true if it is an Array.
+        //		Does not work on Arrays created in other windows.
+        return it && (it instanceof Array || typeof it == "array"); // Boolean
+    },
+
+    isFunction: function (/*anything*/ it) {
+        // summary:
+        //		Return true if it is a Function
+        return Function.call(it) === "[object Function]";
+    },
+
+    isObject: function (/*anything*/ it) {
+        return it !== undefined &&
+            (it === null || typeof it == "object" || Siviglia.types.isArray(it) || Siviglia.types.isFunction(it)); // Boolean
+    }
+};
+
+
 

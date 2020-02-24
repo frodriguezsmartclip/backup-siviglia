@@ -1,0 +1,81 @@
+<html>
+<head>
+    <script src="/node_modules/jquery/dist/jquery.js"></script>
+    <script src="../../Siviglia.js"></script>
+    <script src="../../SivigliaPaths.js"></script>
+    <script src="../../SivigliaStore.js"></script>
+    <script src="../../Model.js"></script>
+    <style type="text/css">
+        .estilo1 {color:red}
+        .estilo2 {color:blue}
+    </style>
+    <script src="../../SivigliaTypes.js"></script>
+    <script>
+        var obj1={"style": {
+                "color": "green",
+                "border": "1px solid black"
+            },
+            "texto":"Lalas",
+            "arr":["uno","dos","tres","cuatro"],
+            "assoc":{
+                "uno":"Era el 1",
+                "dos":"Era el 2",
+                "tres":"Era el 3",
+                "cuatro":"Era el 4",
+
+            },
+            "arr2":{
+                "uno":[0,1,2,3,4],
+                "dos":[5,6,7,8,9],
+                "tres":[10,11,12,13],
+                "cuatro":[14,15,16,17]
+            }
+        };
+        var i=0;
+        function myMethod(node,params)
+        {
+            node.css({"border":params.uno});
+            node.html("CALLED "+i);
+            i++;
+        }
+        function onCallback(node,params,evName)
+        {
+            node.css({"color":"red"});
+            console.dir(params);
+        }
+    </script>
+</head>
+<body>
+<sivLoop></sivLoop>
+<div id="test">
+
+    <!--<span data-sivValue="style|color:[%/style/color%];border:[%/style/border%]::[%/texto%]"></span>-->
+    <!--<span id="uno" data-sivCall=".myMethod" data-sivParams='{"uno":"[%/style/border%]"}'></span>
+    <span id="dos" data-sivCall=".myMethod" data-sivParams='{"uno":"[%/style/border%]"}'></span>-->
+    <!--<span data-sivLoop="/arr" data-contextIndex="current">
+        <div>
+            <span data-sivValue="[%/assoc/{%@current%}%]"></span>
+            <ul data-sivLoop="/arr2/{%@current%}" data-contextIndex="current2">
+               <li data-sivValue="/@current2" data-sivEvent="click" data-sivCallback="onCallback" data-sivparams='{"p1":"[%/@current2%]"}'></li>
+            </ul>
+        </div>
+    </span>-->
+    <span data-sivIf="'[%/texto%]'=='Lalas'">
+        IGUAL
+    </span>
+    <span data-sivIf="'[%/texto%]'!='Lalas'">
+        DISTINTO
+    </span>
+
+</div>
+<div id="target"></div>
+
+<script>
+    var parser=new Siviglia.UI.HTMLParser();
+    parser.addContext("/",obj1);
+    parser.parse($("#test"));
+    setTimeout(function(){obj1.texto="PEPITO";},1000);
+    setTimeout(function(){parser.destruct()},3000);
+</script>
+</body>
+</html>

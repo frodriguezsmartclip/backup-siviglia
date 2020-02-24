@@ -20,7 +20,7 @@
 
 
                         "SimpleWidget":{
-                            inherits: "Siviglia.UI.Widget,Siviglia.Dom.EventManager",
+                            inherits: "Siviglia.UI.Expando.View,Siviglia.Dom.EventManager",
                             methods: {
                                 preInitialize: function (params) {
                                     this.a="data1";
@@ -68,15 +68,15 @@
 
 
     <div sivWidget="Test.SimpleWidget" widgetParams="" widgetCode="Test.SimpleWidget">
-        <div sivLoop="/*data" contextIndex="current">
+        <div data-sivLoop="/*data" data-contextIndex="current">
             <div>
-                <span sivValue="/@current/a"></span>--<span sivValue="/@current/b"></span>
+                <span data-sivValue="/@current/a"></span>--<span data-sivValue="/@current/b"></span>
             </div>
         </div>
 
     </div>
 </div>
-<div sivView="Test.SimpleWidget"></div>
+<div data-sivView="Test.SimpleWidget"></div>
 
 
 

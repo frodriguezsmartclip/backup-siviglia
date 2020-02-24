@@ -1,0 +1,121 @@
+<html>
+<head>
+    <script src="/node_modules/jquery/dist/jquery.js"></script>
+    <script src="../../Siviglia.js"></script>
+    <script src="../../SivigliaPaths.js"></script>
+    <script src="../../SivigliaStore.js"></script>
+    <script src="../../Model.js"></script>
+    <style type="text/css">
+        .estilo1 {color:red}
+        .estilo2 {color:blue}
+    </style>
+    <script src="../../SivigliaTypes.js"></script>
+    <script>
+        var obj1={"style": {
+                "color": "green",
+                "border": "1px solid black"
+            },
+            "texto":"Lalas",
+            "arr":["uno","dos","tres","cuatro"],
+            "assoc":{
+                "uno":"Era el 1",
+                "dos":"Era el 2",
+                "tres":"Era el 3",
+                "cuatro":"Era el 4",
+                "Z":"Este es el nuevo"
+
+            },
+            "arr2":{
+                "uno":[0,1,2,3,4],
+                "dos":[5,6,7,8,9],
+                "tres":[10,11,12,13],
+                "cuatro":[14,15,16,17]
+            }
+        };
+        var i=0;
+        function myMethod(node,params)
+        {
+            node.css({"border":params.uno});
+            node.html("CALLED "+i);
+            i++;
+        }
+        function onCallback(node,params,evName)
+        {
+            node.css({"color":"red"});
+            console.dir(params);
+        }
+
+        Siviglia.Utils.buildClass(
+            {
+                "context":"Siviglia.test",
+                "classes":{
+                    "UNO":{
+                        "inherits":"Siviglia.UI.Expando.View",
+                        "methods":{
+                            preInitialize:function(params){
+                                debugger;
+                                this.title=params.title;
+                                this.list=params.list;
+                            },
+                            initialize:function(params){
+                                setTimeout(function(){
+                                this.list.push("Z");
+                                }.bind(this),3000);
+
+                            }
+                        }
+                    },
+                    "DOS":{
+                        "inherits":"Siviglia.UI.Expando.View",
+                        methods: {
+                            preInitialize: function (params) {
+
+
+                                this.myItem = params.item;
+                            },
+                            initialize: function (params) {
+
+                            }
+                        }
+                    }
+                }
+            }
+        )
+    </script>
+</head>
+<body>
+
+<div style="display:none">
+
+    <div data-sivWidget="DOS" data-widgetCode="Siviglia.test.DOS" data-widgetParams="item">
+        <div style="font-size:20px;margin:4px" data-sivValue="/assoc/{%*myItem%}"></div>
+    </div>
+
+
+    <div data-sivWidget="UNO" data-widgetCode="Siviglia.test.UNO" data-widgetParams="list">
+        <div style="background-color:red" data-sivValue="/*title"></div>
+        <div data-sivLoop="/*list" data-contextIndex="current">
+            <div data-sivView="DOS" data-sivParams='{"item":"@current"}'></div>
+            <div style="background-color:blue;color:white" data-sivValue="/@current">
+            </div>
+        </div>
+    </div>
+
+
+</div>
+
+<div data-sivView="UNO" data-sivParams='{"title":"hola","list":"/arr"}'>
+</div>
+
+<div id="target"></div>
+<script>
+    var parser=new Siviglia.UI.HTMLParser();
+    parser.addContext("/",obj1);
+    parser.parse($(document.body));
+    var a={"title":"El Nuevo","list":["cuatro","dos","uno","tres"]};
+    var tempView=new Siviglia.test.UNO("UNO",a,null,$("#target"),parser.stack);
+    setTimeout(function(){a.list.push("dos");a.list.push("dos");a.list.push("dos")})
+    tempView.__build();
+</script>
+</body>
+</html>

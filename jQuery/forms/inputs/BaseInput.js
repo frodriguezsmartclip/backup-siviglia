@@ -578,7 +578,7 @@ Siviglia.Utils.buildClass(
                         {
                             console.debug("FORCING VALUE "+this.definition.LABEL+":"+(item?item.value:"null")+", LABEL:"+searchString);
                             if(this.definition.LABEL=='id_state' && item==null && searchString!='')
-                            debugger;
+
                             this.internalValue=item?item[this.sivParams.VALUE]:null;
                             this.lastItem=item;
                             if(item==null)

@@ -14,7 +14,7 @@
     context:'Siviglia.AutoUI.Painter',
     classes:{
         Factory:{
-            inherits:"Siviglia.UI.Widget,Siviglia.Dom.EventManager",
+            inherits:"Siviglia.UI.Expando.View,Siviglia.Dom.EventManager",
             methods:{
                 preInitialize:function(params){
                     this.parentObject=params.parentObject;
@@ -111,7 +111,7 @@
         },
         BasePainter:
         {
-            inherits:"Siviglia.UI.Widget,Siviglia.Dom.EventManager",
+            inherits:"Siviglia.UI.Expando.View,Siviglia.Dom.EventManager",
             methods:{
                 preInitialize:function(params)
                 {
@@ -839,27 +839,27 @@
     <div sivWidget="AUTOPAINTER_DictionaryType" widgetParams="parentObject,parentNode,value" widgetCode="Siviglia.AutoUI.Painter.DictionaryPainter"
          class="DictionaryType ContainerType">
         <div class="panel panel-primary">
-            <div class="panel-heading" sivValue="/*title" class="title"></div>
+            <div class="panel-heading" data-sivValue="/*title" class="title"></div>
             <div class="panel-body">
                 <!--<div class="container-fluid">-->
-                <p class="text-info description" sivValue="/*description"></p>
-                <div sivIf="/*hasSimpleType == false">
+                <p class="text-info description" data-sivValue="/*description"></p>
+                <div data-sivIf="/*hasSimpleType == false">
                 <div class="row" style="margin-left:0px">
                     <div style="display:flex">
                     <div class="containerLabel" width="150px">
                         <div class="well">
-                        <ul  class="nav nav-stacked" sivLoop="/*uinode/getKeys" contextIndex="current">
+                        <ul  class="nav nav-stacked" data-sivLoop="/*uinode/getKeys" data-contextIndex="current">
                             <li role="presentation">
-                                <button class="btn btn-primary" sivValue="/@current" sivEvent="click" sivCallback="onLabelClicked" sivParams='{"key":"/@current"}'></button>
-                                <span class="removebutton" style="float:right" sivEvent="click" sivCallback="onRemoveClicked" sivParams='{"key":"/@current"}'></span>
+                                <button class="btn btn-primary" data-sivValue="/@current" data-sivEvent="click" data-sivCallback="onLabelClicked" data-sivParams='{"key":"/@current"}'></button>
+                                <span class="removebutton" style="float:right" data-sivEvent="click" data-sivCallback="onRemoveClicked" data-sivParams='{"key":"/@current"}'></span>
                             </li>
                         </ul>
                         </div>
                         <div class="newItemWidget" sivCall="buildNewItemWidget"></div>
                     </div>
-                        <div sivIf="/*currentKey != null">
+                        <div data-sivIf="/*currentKey != null">
                         <div class="containerInput dictionaryInput">
-                            <div class="currentWidget" sivCall="getInputFor" sivParams='{"key":"/*currentKey"}'>
+                            <div class="currentWidget" sivCall="getInputFor" data-sivParams='{"key":"/*currentKey"}'>
                             </div>
                         </div>
                         </div>
@@ -868,17 +868,17 @@
 
                 </div>
                 </div>
-                <div sivIf="/*hasSimpleType == true" >
-                    <div  sivLoop="/*uinode/getKeys" contextIndex="current">
+                <div data-sivIf="/*hasSimpleType == true" >
+                    <div  data-sivLoop="/*uinode/getKeys" data-contextIndex="current">
                         <div style="display:flex">
                         <div>
-                            <span class="label label-primary" sivValue="/@current"></span>
+                            <span class="label label-primary" data-sivValue="/@current"></span>
                         </div>
                         <div>
-                            <span sivCall="getInputFor" sivParams='{"key":"/@current"}'></span>
+                            <span sivCall="getInputFor" data-sivParams='{"key":"/@current"}'></span>
                         </div>
                         <div>
-                            <span class="removebutton" style="float:right" sivEvent="click" sivCallback="onRemoveClicked" sivParams='{"key":"/@current"}'></span>
+                            <span class="removebutton" style="float:right" data-sivEvent="click" data-sivCallback="onRemoveClicked" data-sivParams='{"key":"/@current"}'></span>
                         </div>
                         </div>
                     </div>
@@ -888,9 +888,9 @@
                 <!--</div>-->
             </div>
             <div class="actions">
-                <div class="addItem" sivId="newItemNode"></div>
-                <div style="float:right" class="saveNode" sivId="saveNode">
-                    <input type="button" value="Guardar" sivEvent="click" sivCallback="doSave">
+                <div class="addItem" data-sivId="newItemNode"></div>
+                <div style="float:right" class="saveNode" data-sivId="saveNode">
+                    <input type="button" value="Guardar" data-sivEvent="click" data-sivCallback="doSave">
                 </div>
                 <div style="clear:both"></div>
             </div>
@@ -900,30 +900,30 @@
     <div sivWidget="AUTOPAINTER_FixedDictionaryType" widgetParams="parentObject,parentNode,value" widgetCode="Siviglia.AutoUI.Painter.FixedDictionaryPainter"
          class="DictionaryType ContainerType">
         <div class="panel panel-primary">
-            <div class="panel-heading" sivValue="/*title" class="title"></div>
+            <div class="panel-heading" data-sivValue="/*title" class="title"></div>
             <div class="panel-body">
-                <p class="text-info description" sivValue="/*description"></p>
+                <p class="text-info description" data-sivValue="/*description"></p>
                 <!--<div class="container-fluid">-->
                 <div class="row" style="margin-bottom:10px;margin-left:0px">
                     <div class="containerLabel well" style="margin-right:5px">
-                        <ul  class="nav nav-stacked" sivLoop="/*uinode/getKeys" contextIndex="current">
+                        <ul  class="nav nav-stacked" data-sivLoop="/*uinode/getKeys" data-contextIndex="current">
                             <li role="presentation">
-                                <button class="btn btn-primary" sivValue="/@current" sivEvent="click" sivCallback="onLabelClicked" sivParams='{"key":"/@current"}'></button>
-                                <span class="removebutton" style="float:right" sivEvent="click" sivCallback="onRemoveClicked" sivParams='{"key":"/@current"}'></span>
+                                <button class="btn btn-primary" data-sivValue="/@current" data-sivEvent="click" data-sivCallback="onLabelClicked" data-sivParams='{"key":"/@current"}'></button>
+                                <span class="removebutton" style="float:right" data-sivEvent="click" data-sivCallback="onRemoveClicked" data-sivParams='{"key":"/@current"}'></span>
                             </li>
                         </ul>
-                        <div class="newItemWidget" sivId="newItemNode" sivCall="buildNewItemWidget" ></div>
+                        <div class="newItemWidget" data-sivId="newItemNode" sivCall="buildNewItemWidget" ></div>
                     </div>
                     <div class="containerInput dictionaryInput" style="padding-right:10px;padding-left:10px">
-                        <div class="currentWidget" sivCall="getInputFor" sivParams='{"key":"/*currentKey"}'>
+                        <div class="currentWidget" sivCall="getInputFor" data-sivParams='{"key":"/*currentKey"}'>
                         </div>
                     </div>
                 </div>
                 <!--</div>-->
                 <div class="actions">
-                    <div class="addItem" sivId="newItemNode"></div>
-                    <div style="float:right" class="saveNode" sivId="saveNode">
-                        <input type="button" value="Guardar" sivEvent="click" sivCallback="doSave">
+                    <div class="addItem" data-sivId="newItemNode"></div>
+                    <div style="float:right" class="saveNode" data-sivId="saveNode">
+                        <input type="button" value="Guardar" data-sivEvent="click" data-sivCallback="doSave">
                     </div>
                     <div style="clear:both"></div>
                 </div>
@@ -935,29 +935,29 @@
     <div sivWidget="AUTOPAINTER_ContainerType" widgetParams="parentObject,parentNode,value" widgetCode="Siviglia.AutoUI.Painter.ContainerPainter"
          class="ContainerType">
         <div class="panel panel-primary">
-            <!--<div class="panel-heading" sivValue="/*title" class="title"></div>-->
+            <!--<div class="panel-heading" data-sivValue="/*title" class="title"></div>-->
             <div class="panel-body">
-                <p class="text-info description" sivValue="/*description"></p>
+                <p class="text-info description" data-sivValue="/*description"></p>
 
-                    <div class="inputs container" sivLoop="/*uinode/getKeys" contextIndex="current">
+                    <div class="inputs container" data-sivLoop="/*uinode/getKeys" data-contextIndex="current">
                         <div class="row">
                             <div class="col col-sm-1 col-md-1">
-                            <label class="text-primary"  class="control-label" sivCall="getLabel" sivParams='{"key":"/@current"}'></label>
+                            <label class="text-primary"  class="control-label" sivCall="getLabel" data-sivParams='{"key":"/@current"}'></label>
                             </div>
                             <div class="col col-sm-11 col-md-11">
-                            <div sivIf="/*uinode/isSimpleType == false" class="containerInput">
-                                <div sivCall="getSubInput" sivParams='{"key":"/@current"}'></div>
+                            <div data-sivIf="/*uinode/isSimpleType == false" class="containerInput">
+                                <div sivCall="getSubInput" data-sivParams='{"key":"/@current"}'></div>
                             </div>
 
-                            <div sivIf="/*uinode/isSimpleType == true">
-                                <div sivCall="getSubInput" sivParams='{"key":"/@current"}'></div>
+                            <div data-sivIf="/*uinode/isSimpleType == true">
+                                <div sivCall="getSubInput" data-sivParams='{"key":"/@current"}'></div>
                             </div>
                             </div>
 
                         </div>
                     </div>
-                    <div class="saveNode" sivId="saveNode">
-                        <input type="button" value="Guardar" sivEvent="click" sivCallback="doSave">
+                    <div class="saveNode" data-sivId="saveNode">
+                        <input type="button" value="Guardar" data-sivEvent="click" data-sivCallback="doSave">
                     </div>
 
             </div>
@@ -967,53 +967,53 @@
     </div>
 
     <div sivWidget="AUTOPAINTER_StringType" widgetParams="parentObject,parentNode,value" widgetCode="Siviglia.AutoUI.Painter.StringPainter" class="StringType">
-        <div class="input-group" sivId="inputNode">
+        <div class="input-group" data-sivId="inputNode">
         </div>
     </div>
     <div sivWidget="AUTOPAINTER_BooleanType" widgetParams="parentObject,parentNode,value" widgetCode="Siviglia.AutoUI.Painter.BooleanPainter" class="BooleanType">
-        <div class="input-group" sivId="inputNode">
+        <div class="input-group" data-sivId="inputNode">
         </div>
     </div>
     <div sivWidget="AUTOPAINTER_ArrayType" widgetParams="parentObject,parentNode,value" widgetCode="Siviglia.AutoUI.Painter.ArrayPainter" class="ArrayType">
-        <p class="text-info description" sivValue="/*description"></p>
+        <p class="text-info description" data-sivValue="/*description"></p>
 
-        <div sivLoop="/*uinode/children" contextIndex="current" class="arrayValues" style="min-height:20px;margin-bottom:5px">
+        <div data-sivLoop="/*uinode/children" data-contextIndex="current" class="arrayValues" style="min-height:20px;margin-bottom:5px">
             <span class="label label-primary" style="margin-right:4px;font-size:14px">
-                <span sivValue="/@current/value"></span>
-                <span class="remove ion-close-circled " style="color:red;padding-left:5px" sivEvent="click" sivCallback="onRemoveClicked" sivParams='{"key":"/@current"}'></span>
+                <span data-sivValue="/@current/value"></span>
+                <span class="remove ion-close-circled " style="color:red;padding-left:5px" data-sivEvent="click" data-sivCallback="onRemoveClicked" data-sivParams='{"key":"/@current"}'></span>
             </span>
         </div>
 
-        <div  class="newItem" sivId="newItemNode"></div>
+        <div  class="newItem" data-sivId="newItemNode"></div>
     </div>
 
     <div sivWidget="AUTOPAINTER_ObjectArrayType" widgetParams="parentObject,parentNode,value" widgetCode="Siviglia.AutoUI.Painter.ObjectArrayPainter" class="ArrayType">
-        <p class="text-info description" sivValue="/*description"></p>
+        <p class="text-info description" data-sivValue="/*description"></p>
         <div class="row" style="margin-left:0px">
 
-                <div sivIf="/*keyDirection == VERTICAL">
+                <div data-sivIf="/*keyDirection == VERTICAL">
                     <div style="display:flex">
                     <div class="well">
-                    <ul  class="nav nav-stacked" sivLoop="/*uinode/children" contextIndex="current">
+                    <ul  class="nav nav-stacked" data-sivLoop="/*uinode/children" data-contextIndex="current">
                         <li role="presentation">
-                            <button class="btn btn-primary" sivCall="getLabel" sivValue="/@current" sivEvent="click" sivCallback="onLabelClicked" sivParams='{"index":"/@current-index"}'></button>
-                            <span class="removebutton" style="float:right" sivEvent="click" sivCallback="onRemoveClicked" sivParams='{"key":"/@current-index"}'></span>
+                            <button class="btn btn-primary" sivCall="getLabel" data-sivValue="/@current" data-sivEvent="click" data-sivCallback="onLabelClicked" data-sivParams='{"index":"/@current-index"}'></button>
+                            <span class="removebutton" style="float:right" data-sivEvent="click" data-sivCallback="onRemoveClicked" data-sivParams='{"key":"/@current-index"}'></span>
                         </li>
                     </ul>
-                    <div class="newItemWidget" sivId="newItemNode">
-                        <input type="button" sivEvent="click" sivCallback="addItem">
+                    <div class="newItemWidget" data-sivId="newItemNode">
+                        <input type="button" data-sivEvent="click" data-sivCallback="addItem">
                     </div>
                     </div>
                     </div>
                 </div>
-                <div sivIf="/*keyDirection == HORIZONTAL">
+                <div data-sivIf="/*keyDirection == HORIZONTAL">
                     <div>
-                    <span class="newItemWidget add" sivId="newItemNode" sivEvent="click" sivCallback="addItem">
+                    <span class="newItemWidget add" data-sivId="newItemNode" data-sivEvent="click" data-sivCallback="addItem">
                     </span>
-                    <span  sivLoop="/*uinode/children" contextIndex="current">
+                    <span  data-sivLoop="/*uinode/children" data-contextIndex="current">
                         <span class="label label-primary" style="display:inline-block;margin-right:4px;font-size:14px">
-                            <span sivCall="getLabel"  sivEvent="click" sivCallback="onLabelClicked" sivParams='{"index":"/@current-index"}'></span>
-                            <span class="removebutton" sivEvent="click" sivCallback="onRemoveClicked" sivParams='{"key":"/@current-index"}'></span>
+                            <span sivCall="getLabel"  data-sivEvent="click" data-sivCallback="onLabelClicked" data-sivParams='{"index":"/@current-index"}'></span>
+                            <span class="removebutton" data-sivEvent="click" data-sivCallback="onRemoveClicked" data-sivParams='{"key":"/@current-index"}'></span>
                         </span>
                     </span>
                     </div>
@@ -1031,10 +1031,10 @@
 
                 <div style="display:table-row">
                     <div style="display:table-cell">
-                    <input style="float:left" type="text" class="form-control  addKey" placeholder="Nuevo" sivId="newItemString">
-                    <select style="float:left" class="form-control" sivId="newItemSelector"></select>
+                    <input style="float:left" type="text" class="form-control  addKey" placeholder="Nuevo" data-sivId="newItemString">
+                    <select style="float:left" class="form-control" data-sivId="newItemSelector"></select>
                     </div>
-                    <div style="display:table-cell;vertical-align: top;line-height: 1.0;font-size: 20px;"><div sivEvent="click" sivCallback="onAdd" class="add"></div></div>
+                    <div style="display:table-cell;vertical-align: top;line-height: 1.0;font-size: 20px;"><div data-sivEvent="click" data-sivCallback="onAdd" class="add"></div></div>
 
                 </div>
 
@@ -1046,11 +1046,11 @@
     </div>
     <div sivWidget="AUTOPAINTER_TypeSwitcher" widgetParams="parentObject,parentNode" widgetCode="Siviglia.AutoUI.Painter.TypeSwitchPainter" class="TypeSwitchType">
         <div class="panel panel-primary">
-            <!--<div class="panel-heading" sivValue="/*title" class="title"></div>-->
+            <!--<div class="panel-heading" data-sivValue="/*title" class="title"></div>-->
             <div class="panel-body">
-                <div sivId="fieldContainer"></div>
+                <div data-sivId="fieldContainer"></div>
                 <div class="typeChanger">
-                    <div sivId="typeSwitchSelector">
+                    <div data-sivId="typeSwitchSelector">
                     </div>
                 </div>
             </div>
@@ -1058,35 +1058,35 @@
         </div>
     </div>
     <div sivWidget="AUTOPAINTER_SelectorType" widgetParams="parentObject,parentNode" widgetCode="Siviglia.AutoUI.Painter.SelectorPainter" class="SelectorType">
-        <div class="input-group" sivId="inputNode">
+        <div class="input-group" data-sivId="inputNode">
         </div>
         <div class="NewItemSelector" style="display:none">
 
         </div>
     </div>
     <div sivWidget="AUTOPAINTER_SubdefinitionType" widgetParams="parentObject,parentNode" widgetCode="Siviglia.AutoUI.Painter.SubdefinitionPainter" class="SubdefinitionType">
-        <div sivId="subcontainer">
+        <div data-sivId="subcontainer">
 
         </div>
     </div>
 
     <div sivWidget="AUTOPAINTER_FixedPainter" widgetParams="parentObject,parentNode,value" widgetCode="Siviglia.AutoUI.Painter.FixedPainter" class="FixedType">
-        <div sivValue="/*uinode/value"></div>
+        <div data-sivValue="/*uinode/value"></div>
     </div>
 
     <div sivWidget="AUTOPAINTER_FormContainer" widgetParams="parentObject,parentNode,value" widgetCode="Siviglia.AutoUI.Painter.FormContainerPainter" class="FormContainerType">
         <div class="container">
             <div class="row">
-                <div sivId="listContainer" class="col col-md-2 col-sm-2">
-                    <ul class="nav nav-tabs tabs-left" sivLoop="/*groups" contextIndex="current">
+                <div data-sivId="listContainer" class="col col-md-2 col-sm-2">
+                    <ul class="nav nav-tabs tabs-left" data-sivLoop="/*groups" data-contextIndex="current">
                         <li class="nav-item">
-                            <a class="nav-link" sivCall="getHLink" data-toggle="tab" sivValue="/@current/LABEL" sivParams='{"current":"/@current-index"}'></a>
+                            <a class="nav-link" sivCall="getHLink" data-toggle="tab" data-sivValue="/@current/LABEL" data-sivParams='{"current":"/@current-index"}'></a>
                         </li>
                 </ul>
                 </div>
-                    <div sivId="viewContainer" class="col col-md-10 col-sm-10">
-                        <div class="tab-content card" sivLoop="/*groups" contextIndex="current">
-                            <div class="tab-pane" sivCall="getContents" sivParams='{"current":"/@current-index"}' role="tabpanel">
+                    <div data-sivId="viewContainer" class="col col-md-10 col-sm-10">
+                        <div class="tab-content card" data-sivLoop="/*groups" data-contextIndex="current">
+                            <div class="tab-pane" sivCall="getContents" data-sivParams='{"current":"/@current-index"}' role="tabpanel">
 
                             </div>
                         </div>

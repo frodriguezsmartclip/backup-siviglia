@@ -27,7 +27,7 @@
         instance.validate({"Uno":"lalaa","Dos":15});
         //f.addNamedType("EXAMPLE",t1);
         var ins=f.getType(null,{"TYPE":"Dictionary","VALUETYPE":t1});
-        debugger;
+
         ins.set({
             "Primera":{"Uno":"lalas","Dos":12},
             "Segunda":{"Dos":22,"Uno":"wannn"}
@@ -42,12 +42,12 @@
 <body>
 <div style="display:none">
     <div sivWidget="Test.SimpleWidget" widgetParams="" widgetCode="Test.SimpleWidget">
-        <div sivValue="class|[%/*tres/{/*cuatro}%]">
-            <div style="" sivValue="Esto es [%/*myNull%] con dos [%/*uno/dos%]"></div>
+        <div data-sivValue="class|[%/*tres/{/*cuatro}%]">
+            <div style="" data-sivValue="Esto es [%/*myNull%] con dos [%/*uno/dos%]"></div>
         </div>
     </div>
 </div>
-<div sivView="Test.SimpleWidget"></div>
+<div data-sivView="Test.SimpleWidget"></div>
 
 
 <script>

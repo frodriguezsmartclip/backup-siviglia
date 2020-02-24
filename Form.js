@@ -676,7 +676,7 @@ Siviglia.Utils.buildClass(
                         this.input.clearErrors();
                     },
                     sivValidate:function () {
-                        var sivValue = this.input.getValue();
+                        var data-sivValue = this.input.getValue();
                         if (this.type.isEmpty(sivValue)  && this.sivDefinition.REQUIRED && this.sivDefinition.REQUIRED != "false") {
                             msg=this.form.decodeJsError(this.name,new Siviglia.types.BaseException(Siviglia.types.BaseException.ERR_UNSET))
                             this.showError('invalidMessage',msg);

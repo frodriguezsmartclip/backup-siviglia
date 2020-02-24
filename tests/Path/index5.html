@@ -67,7 +67,7 @@
                 }
             };
 
-        var btype=new Siviglia.model.BaseTypedObject(def);
+        /*var btype=new Siviglia.model.BaseTypedObject(def);
 
         // Prueba uno: el fetch devuelve algo.
         btype.f1="a";
@@ -81,9 +81,10 @@
         // Prueba dos : el fetch deberia devolver null, porque la combinacion f1=d y f2=b no esta soportada:
 
         btype.f1="d";
+        btype.destruct();
 
         // Ahora se va a hacer al reves.Primero que devuelva null, y lugeo, que se "recupere"
-        debugger;
+
         btype=new Siviglia.model.BaseTypedObject(def);
         var s=btype._f3.getSource(btype);
         s.addListener("CHANGE",function(evType,data){
@@ -92,9 +93,9 @@
         s.fetch();
         btype.f1="d";
         btype.f2="c";
+        btype.destruct();
 
-
-
+*/
         var sampleObj={
             site_id:1
         };
@@ -115,8 +116,8 @@
             console.dir(params);
         });
         source.fetch();
-        setTimeout(function(){sampleObj.site_id=2;},2000);
-
+        setTimeout(function(){sampleObj.site_id=2;},1000);
+        setTimeout(function(){source.destruct();},2000)
         //setTimeout(function(){sampleObj2.x.y="h";},2000);
     </script>
 </head>
@@ -124,14 +125,14 @@
 
 
 <script>
-    var remoteRoot=new Siviglia.model.RemotePath("http://127.0.0.1/buscando");
+    /*var remoteRoot=new Siviglia.model.RemotePath("http://127.0.0.1/buscando");
     var tmp=new Siviglia.UI.Dom.Expando.ExpandoManager(
         //Siviglia.model.Root,
         remoteRoot,
         //Siviglia.model.Root.context
         remoteRoot.context
      );
-    tmp.parse($(document.body),null,null,true);
+    tmp.parse($(document.body),null,null,true);*/
 </script>
 </body>
 </html>

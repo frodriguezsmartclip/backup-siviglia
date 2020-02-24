@@ -15,7 +15,7 @@
                 classes:
                     {
                         "SimpleWidget":{
-                            inherits: "Siviglia.UI.Widget,Siviglia.Dom.EventManager",
+                            inherits: "Siviglia.UI.Expando.View,Siviglia.Dom.EventManager",
                             methods: {
                                 preInitialize: function (params) {
                                     this.myNull="Lalas";
@@ -54,12 +54,12 @@
 <body>
 <div style="display:none">
     <div sivWidget="Test.SimpleWidget" widgetParams="" widgetCode="Test.SimpleWidget">
-        <div sivValue="class|[%/*tres/{/*cuatro}%]">
-            <div style="" sivValue="Esto es [%/*myNull%] con dos [%/*uno/dos%]"></div>
+        <div data-sivValue="class|[%/*tres/{/*cuatro}%]">
+            <div style="" data-sivValue="Esto es [%/*myNull%] con dos [%/*uno/dos%]"></div>
         </div>
     </div>
 </div>
-<div sivView="Test.SimpleWidget"></div>
+<div data-sivView="Test.SimpleWidget"></div>
 
 
 <script>

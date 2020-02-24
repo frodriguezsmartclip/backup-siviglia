@@ -10,7 +10,7 @@
                 classes:
                     {
                         "SimpleWidget":{
-                            inherits: "Siviglia.UI.Widget,Siviglia.Dom.EventManager",
+                            inherits: "Siviglia.UI.Expando.View,Siviglia.Dom.EventManager",
                             methods: {
                                 preInitialize: function (params) {
 
@@ -87,19 +87,19 @@
 <div style="display:none">
     <div sivWidget="Test.SimpleWidget" widgetParams="" widgetCode="Test.SimpleWidget">
 
-        <div sivLoop="/*info" contextIndex="current">
-            <div sivValue="/@current-index" sivEvent="click" sivCallback="doClicked" sivParams='{"current":"/@current-index"}'></div>
+        <div data-sivLoop="/*info" data-contextIndex="current">
+            <div data-sivValue="/@current-index" data-sivEvent="click" data-sivCallback="doClicked" data-sivParams='{"current":"/@current-index"}'></div>
         </div>
 
-        <div sivLoop="/*info/{/*currentSelection}" contextIndex="current">
-            <div><span style="font-weight:bold" sivValue="/@current-index"></span>:<span sivValue="/@current"></span> </div>
+        <div data-sivLoop="/*info/{/*currentSelection}" data-contextIndex="current">
+            <div><span style="font-weight:bold" data-sivValue="/@current-index"></span>:<span data-sivValue="/@current"></span> </div>
         </div>
 
-        <!--<span sivValue="/*obj/{/*index2/{/*index3}}/{/*index1}/value"></span>-->
-        <span sivValue="/*probando/probando2/probando3"></span>
+        <!--<span data-sivValue="/*obj/{/*index2/{/*index3}}/{/*index1}/value"></span>-->
+        <span data-sivValue="/*probando/probando2/probando3"></span>
     </div>
 </div>
-<div sivView="Test.SimpleWidget"></div>
+<div data-sivView="Test.SimpleWidget"></div>
 
 
 <script>
