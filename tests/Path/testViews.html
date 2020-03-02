@@ -2,7 +2,7 @@
 <head>
     <script src="/node_modules/jquery/dist/jquery.js"></script>
     <script src="../../Siviglia.js"></script>
-    <script src="../../SivigliaPaths.js"></script>
+
     <script src="../../SivigliaStore.js"></script>
     <script src="../../Model.js"></script>
     <style type="text/css">
@@ -53,7 +53,7 @@
                         "inherits":"Siviglia.UI.Expando.View",
                         "methods":{
                             preInitialize:function(params){
-                                debugger;
+
                                 this.title=params.title;
                                 this.list=params.list;
                             },
@@ -80,14 +80,106 @@
                     }
                 }
             }
-        )
+        );
+        Siviglia.Utils.buildClass(
+            {
+                "context": "Siviglia.test",
+                "classes": {
+                    "TRES": {
+                        "inherits": "Siviglia.UI.Expando.View",
+                        "methods": {
+                            preInitialize: function (params) {
+                                this.tt=new Siviglia.model.BaseTypedObject({
+                                    "FIELDS":{
+                                        "f1": {
+                                            "TYPE": "Array",
+                                            "VALUETYPE": {
+
+                                                "TYPE":"String"
+                                            }
+                                        },
+                                        "f2":{
+                                            "TYPE":"TypeSwitcher",
+                                            "TYPE_FIELD":"TYPE",
+                                            "ALLOWED_TYPES":{
+                                                "TIPO1":{
+                                                    "TYPE":"Container",
+                                                    "FIELDS":{
+                                                        "f3":{"TYPE":"String","MINLENGTH":2},
+                                                        "f4":{"TYPE":"Integer"}
+                                                    }
+                                                },
+                                                "TIPO2":{
+                                                    "TYPE":"Container",
+                                                    "FIELDS":{
+                                                        "f1":{"TYPE":"String","MINLENGTH":2},
+                                                        "f2":{"TYPE":"Integer"}
+                                                    }
+                                                }
+                                            }
+                                        },
+                                        "f3":{
+                                            "TYPE":"TypeSwitcher",
+                                            "TYPE_FIELD":"TYPE",
+                                            "IMPLICIT_TYPE":"TIPO3"
+                                            "ALLOWED_TYPES":{
+                                                "TIPO3":{
+                                                    "TYPE":"Container",
+                                                    "FIELDS":{
+                                                        "f3":{"TYPE":"String","MINLENGTH":2},
+                                                        "f4":{"TYPE":"Integer"}
+                                                    }
+                                                },
+                                                "TIPO4":{
+                                                    "TYPE":"Container",
+                                                    "FIELDS":{
+                                                        "f1":{"TYPE":"String","MINLENGTH":2},
+                                                        "f2":{"TYPE":"Integer"}
+                                                    }
+                                                }
+                                            }
+                                        },
+                                        "f4":{
+                                            "TYPE":"TypeSwitcher",
+                                            "TYPE_FIELD":"TYPE",
+                                            "CONTENT_FIELD":"value",
+                                            "IMPLICIT_TYPE":"TIPO5"
+                                            "ALLOWED_TYPES":{
+                                                "TIPO6":{
+                                                    "TYPE":"Container",
+                                                    "FIELDS":{
+                                                        "f3":{"TYPE":"String","MINLENGTH":2},
+                                                        "f4":{"TYPE":"Integer"}
+                                                    }
+                                                },
+                                                "TIPO7":{
+                                                    "TYPE":"Container",
+                                                    "FIELDS":{
+                                                        "f1":{"TYPE":"String","MINLENGTH":2},
+                                                        "f2":{"TYPE":"Integer"}
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                });
+                                top.tt=this.tt;
+                            },
+                            initialize: function (params) {
+
+                            }
+                        }
+                    }
+                }
+            }
+        );
     </script>
 </head>
 <body>
 
 <div style="display:none">
 
-    <div data-sivWidget="DOS" data-widgetCode="Siviglia.test.DOS" data-widgetParams="item">
+    <!--<div data-sivWidget="DOS" data-widgetCode="Siviglia.test.DOS" data-widgetParams="item">
         <div style="font-size:20px;margin:4px" data-sivValue="/assoc/{%*myItem%}"></div>
     </div>
 
@@ -99,23 +191,26 @@
             <div style="background-color:blue;color:white" data-sivValue="/@current">
             </div>
         </div>
+    </div>-->
+
+    <div data-sivWidget="TRES" data-widgetCode="Siviglia.test.TRES">
+        <div data-sivLoop="/*tt/_f1/[[KEYS]]" data-contextIndex="current">
+            uuu
+            <div data-sivValue="/@current"></div>
+        </div>
     </div>
-
-
 </div>
 
-<div data-sivView="UNO" data-sivParams='{"title":"hola","list":"/arr"}'>
-</div>
+<!--<div data-sivView="UNO" data-sivParams='{"title":"hola","list":"/arr"}'>
+</div>-->
+<div data-sivView="TRES"></div>
 
 <div id="target"></div>
 <script>
     var parser=new Siviglia.UI.HTMLParser();
     parser.addContext("/",obj1);
     parser.parse($(document.body));
-    var a={"title":"El Nuevo","list":["cuatro","dos","uno","tres"]};
-    var tempView=new Siviglia.test.UNO("UNO",a,null,$("#target"),parser.stack);
-    setTimeout(function(){a.list.push("dos");a.list.push("dos");a.list.push("dos")})
-    tempView.__build();
+
 </script>
 </body>
 </html>

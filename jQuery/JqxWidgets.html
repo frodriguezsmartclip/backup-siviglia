@@ -127,11 +127,6 @@
                             this.changing=false;
                             this.errorMessage = "";
                             this.type = params.type;
-
-                            if(this.controller && this.controller.notifyPathListeners)
-                            {
-                                this.type.addListener("CHANGE",this,"notifyParent");
-                            }
                             this.helpMessage = Siviglia.issetOr(this.type.definition.HELP, null);
                             this.hasHelpMessage = (this.helpMessage != null ? true : false);
                             this.inputParams = Siviglia.issetOr(params.inputParams, {});
@@ -169,14 +164,7 @@
                             this.Widget$detach();
                             this.type.removeListeners(this);
                         },
-                        notifyParent:function()
-                        {
-                            if(!this.changing) {
 
-                                console.log("--------------NOTIFY PARENT-----------------");
-                                 this.controller.notifyPathListeners();
-                            }
-                        },
                         getDefaultInputOptions: function () {
                             return {};
                         },
@@ -462,6 +450,7 @@
                                 this.source.removeListeners(this);
                         },
                         preprocessParams: function (params) {
+                            this.type=params.type;
                             var s=this.type.getSource();
                             this.labelField = s.getLabelField();
                             this.valueField = s.getValueField();
@@ -730,7 +719,7 @@
                                 },
                                 buildNewItemWidget:function(node,params)
                                 {
-                                    debugger;
+
                                     if(this.newItemWidget) {
                                         this.newItemWidget.destruct();
                                     }
@@ -752,7 +741,7 @@
                                     console.log("*****LABEL CLICKED*****");
                                     this.currentKey=params.key;
                                     this.hasCurrentKey=true;
-                                    this.notifyPathListeners();
+
                                 },
                                 getInputFor:function(node,params)
                                 {
@@ -802,13 +791,14 @@
                                     this.hasCurrentKey=false;
                                     this.currentKey=null;
                                     this.currentWidget=null;
-                                    this.type.removeItem(params.key);
-                                    this.notifyPathListeners();
+                                    var v=this.type.getValue();
+                                    delete v[params.key];
+                                    //this.type.removeItem(params.key);
+
                                 },
                                 onAdd:function(val)
                                 {
                                     this.type.addItem(val);
-                                    this.notifyPathListeners();
                                     this.onLabelClicked(null,{key:val});
                                 },
 
@@ -908,7 +898,6 @@
                                 onRemoveClicked:function(node,params)
                                 {
                                     this.type.remove(params.key);
-                                    this.notifyPathListeners();
                                 },
                                 buildNewItemWidget:function(node,params)
                                 {

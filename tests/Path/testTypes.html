@@ -1,0 +1,1322 @@
+<html>
+<head>
+    <script src="/node_modules/jquery/dist/jquery.js"></script>
+    <script src="../../Siviglia.js"></script>
+
+    <script src="../../SivigliaStore.js"></script>
+    <script src="../../Model.js"></script>
+    <style type="text/css">
+        .estilo1 {
+            color: red
+        }
+
+        .estilo2 {
+            color: blue
+        }
+    </style>
+    <script src="../../SivigliaTypes.js"></script>
+    <script>
+        var def = {
+            "FIELDS": {
+                "f1": {
+                    "TYPE": "Array",
+                    "VALUETYPE": {
+
+                        "TYPE": "String"
+                    }
+                },
+                "f2": {
+                    "TYPE": "TypeSwitcher",
+                    "TYPE_FIELD": "TYPE",
+                    "ALLOWED_TYPES": {
+                        "TIPO1": {
+                            "TYPE": "Container",
+                            "FIELDS": {
+                                "f3": {"TYPE": "String", "MINLENGTH": 2},
+                                "f4": {"TYPE": "Integer"}
+                            }
+                        },
+                        "TIPO2": {
+                            "TYPE": "Container",
+                            "FIELDS": {
+                                "f1": {"TYPE": "String", "MINLENGTH": 2},
+                                "f2": {"TYPE": "Integer"}
+                            }
+                        }
+                    }
+                },
+                "f3": {
+                    "TYPE": "TypeSwitcher",
+                    "TYPE_FIELD": "TYPE",
+                    "IMPLICIT_TYPE": "TIPO3",
+                    "ALLOWED_TYPES": {
+                        "TIPO3": {
+                            "TYPE": "Container",
+                            "FIELDS": {
+                                "f3": {"TYPE": "String", "MINLENGTH": 2},
+                                "f4": {"TYPE": "Integer"}
+                            }
+                        },
+                        "TIPO4": {
+                            "TYPE": "Container",
+                            "FIELDS": {
+                                "f1": {"TYPE": "String", "MINLENGTH": 2},
+                                "f2": {"TYPE": "Integer"}
+                            }
+                        }
+                    }
+                },
+                "f4": {
+                    "TYPE": "TypeSwitcher",
+                    "TYPE_FIELD": "TYPE",
+                    "CONTENT_FIELD": "value",
+                    "IMPLICIT_TYPE": "TIPO6",
+                    "ALLOWED_TYPES": {
+                        "TIPO6": {
+                            "TYPE": "Container",
+                            "FIELDS": {
+                                "f3": {"TYPE": "String", "MINLENGTH": 2},
+                                "f4": {"TYPE": "Integer"}
+                            }
+                        },
+                        "TIPO7": {
+                            "TYPE": "Container",
+                            "FIELDS": {
+                                "f1": {"TYPE": "String", "MINLENGTH": 2},
+                                "f2": {"TYPE": "Integer"}
+                            }
+                        }
+                    }
+                },
+                s1: {
+                    "TYPE": "String",
+                    "MINLENGTH": 3,
+                    "MAXLENGTH": 4
+                },
+                s2: {
+                    "TYPE": "String",
+                    "REGEXP": "/aa/"
+                }
+            }
+        };
+        var typeTest = new Siviglia.model.BaseTypedObject(def);
+
+    </script>
+    <style type="text/css">
+        .resultError {
+            background-color: red;
+
+        }
+
+        .result {
+            margin: 2px;
+            padding: 3px;
+            color: honeydew;
+        }
+
+        .resultOk {
+            background-color: green;
+
+        }
+    </style>
+</head>
+<body>
+<div id="result"></div>
+
+<script>
+    var testNumber = 0;
+
+    function countListeners() {
+        var s = 0;
+        for (var k in Siviglia.Dom.existingListeners)
+            s++;
+        return s;
+    }
+
+    function runTest(name, cb, expectedResult) {
+        testNumber++;
+        var className = "result resultError";
+        var message = "ERROR";
+        try {
+            var rs = cb.apply(null);
+            if (JSON.stringify(rs) == JSON.stringify(expectedResult)) {
+                className = "result resultOk";
+                message = "OK!";
+            }
+        } catch (e) {
+            message += " " + e;
+        }
+        var nDiv = document.createElement("div");
+        nDiv.className = className;
+        nDiv.innerHTML = "Test " + testNumber + " (" + name + ") : " + message;
+        document.getElementById("result").appendChild(nDiv);
+    }
+
+    runTest("String", function () {
+        var t1 = new Siviglia.model.BaseTypedObject(def);
+        var flag = 0;
+        var nExcp = 0;
+        t1._s1.addListener("CHANGE", null, function () {
+            flag++;
+        })
+        try {
+            t1.s1 = "aa";
+        } catch (e) {
+            nExcp++;
+        }
+        try {
+            t1.s1 = "zzzzzz";
+        } catch (e) {
+            nExcp++;
+        }
+        t1.s1 = "aaa";
+
+        var n = countListeners();
+        t1.destruct();
+        var n1 = countListeners();
+        return nExcp == 2 && n == 1 && n1 == 0;
+    }, true);
+
+    runTest("String 2", function () {
+        var t1 = new Siviglia.model.BaseTypedObject(def);
+        var nExcp = 0;
+        try {
+            t1.s2 = "bb";
+        } catch (e) {
+            nExcp++;
+        }
+        try {
+            t1.s2 = "zzzaazz";
+        } catch (e) {
+            nExcp++;
+        }
+        t1.destruct();
+        return nExcp == 1;
+    }, true);
+
+
+    runTest("Comprobacion nulo 1", function () {
+        var t1 = new Siviglia.model.BaseTypedObject(def);
+        return t1.f2
+    }, null);
+    runTest("Comprobacion nulo 2", function () {
+        var t1 = new Siviglia.model.BaseTypedObject(def);
+        return t1.f3
+    }, null);
+    runTest("Comprobacion nulo 3", function () {
+        var t1 = new Siviglia.model.BaseTypedObject(def);
+        return t1.f4
+    }, null);
+    runTest("Comprobacion TS 1", function () {
+        var t1 = new Siviglia.model.BaseTypedObject(def);
+        t1.f2 = {TYPE: "TIPO1"};
+        return typeof t1.f2.f3 !== "undefined" && typeof t1.f2._f3 !== "undefined" && typeof t1.f2.f4 !== "undefined" && typeof t1.f2._f4 !== "undefined";
+    }, true);
+    runTest("Comprobacion TS 2", function () {
+        var t1 = new Siviglia.model.BaseTypedObject(def);
+        t1.f3 = {};
+        return typeof t1.f3.f3 !== "undefined" && typeof t1.f3._f3 !== "undefined" && typeof t1.f3.f4 !== "undefined" && typeof t1.f3._f4 !== "undefined";
+    }, true);
+    runTest("Comprobacion TS 3", function () {
+        var t1 = new Siviglia.model.BaseTypedObject(def);
+        t1.f3 = {};
+        t1.f3 = {"TYPE": "TIPO4"}
+        return typeof t1.f3.f3 == "undefined" && typeof t1.f3._f3 == "undefined" && typeof t1.f3.f4 == "undefined" && typeof t1.f3._f4 == "undefined";
+    }, true);
+
+    runTest("Comprobacion TS 4", function () {
+        var t1 = new Siviglia.model.BaseTypedObject(def);
+        t1.f4 = {};
+        t1.f4 = {value: {f3: "hola", f4: 25}};
+        t1.f4.value.f3 = "pepito"
+        return t1.f4.value.f3;
+    }, "pepito");
+    runTest("Comprobacion Listener TS 1", function () {
+        var t1 = new Siviglia.model.BaseTypedObject(def);
+        t1.f4 = {};
+        t1.f4 = {value: {f3: "hola", f4: 25}};
+        var flag = 0;
+        t1._f4.addListener("CHANGE", null, function () {
+            flag = 1;
+        })
+        var n = countListeners();
+        t1.f4.TYPE = "TIPO7";
+        t1.destruct();
+        var n2 = countListeners();
+        return flag == 1 && n2 == 0 && n == 1;
+    }, true);
+    runTest("Comprobacion Listener TS 2", function () {
+        var t1 = new Siviglia.model.BaseTypedObject(def);
+        t1.f4 = {};
+        t1.f4 = {value: {f3: "hola", f4: 25}};
+        var flag = 0;
+        t1._f4.addListener("CHANGE", null, function () {
+            flag = 1;
+        })
+        var n = countListeners();
+        t1.f4 = null;
+        t1.destruct();
+        var n2 = countListeners();
+        return flag == 1 && n2 == 0 && n == 1;
+    }, true);
+    runTest("Comprobacion Listener TS 3", function () {
+        var t1 = new Siviglia.model.BaseTypedObject(def);
+        t1.f4 = {value: {f3: "hola", f4: 25}};
+        var flag = 0;
+        t1._f4.addListener("CHANGE", null, function () {
+            flag++;
+            console.log("fire1")
+        }, "Listener t4");
+        t1.f4._value.addListener("CHANGE", null, function () {
+            flag++;
+            console.log("fire2")
+        }, "Listener value")
+        t1.f4.value._f3.addListener("CHANGE", null, function () {
+            flag++;
+            console.log("fire3")
+        }, "Listener f3")
+        var n = countListeners();
+        t1.f4.value.f3 = "adios";
+        t1.f4.TYPE = "TIPO7";
+        t1.destruct();
+        var n2 = countListeners();
+        return flag == 2 && n2 == 0 && n == 3;
+    }, true);
+    runTest("Comprobacion save() en BaseTypedObject", function () {
+        var t2 = new Siviglia.model.BaseTypedObject({
+            "FIELDS": {
+                "f1": {"TYPE": "String", "REQUIRED": true},
+                "f2": {"TYPE": "String"}
+            }
+        });
+        t2.f2 = "Lala";
+        var e1 = 0;
+        try {
+            t2.save();
+        } catch (e) {
+            e1 = 1;
+        }
+        t2.f1 = "qqq";
+        try {
+            t2.save();
+        } catch (e) {
+            e1 = 2;
+        }
+        return e1;
+    }, 1);
+
+    runTest("Comprobacion de getPath en BaseTypedObject / TypeSwitcher", function () {
+        var t1 = new Siviglia.model.BaseTypedObject(
+            {
+                "FIELDS": {
+                    "f3": {
+                        "TYPE": "TypeSwitcher",
+                        "TYPE_FIELD": "TYPE",
+                        "CONTENT_FIELD": "value",
+                        "ALLOWED_TYPES": {
+                            "TIPO3": {
+                                "TYPE": "Container",
+                                "FIELDS": {
+                                    "sf3": {"TYPE": "String", "MINLENGTH": 2},
+                                    "sf4": {"TYPE": "Integer"}
+                                }
+                            },
+                            "TIPO4": {
+                                "TYPE": "Container",
+                                "FIELDS": {
+                                    "sf1": {"TYPE": "String", "MINLENGTH": 2},
+                                    "sf2": {"TYPE": "Integer"}
+                                }
+                            }
+                        }
+                    },
+                }
+            }
+        );
+        t1.f3 = {TYPE: "TIPO3", value: {sf3: "lala"}};
+        var path = t1.f3.value._sf3.getFullPath();
+        return path == "/f3/value/sf3";
+    }, true);
+
+    runTest("Comprobacion de KEEP_ON_EMPTY en BaseTypedObject", function () {
+        var t2 = new Siviglia.model.BaseTypedObject({
+            "FIELDS": {
+                "f1": {"TYPE": "String", "KEEP_ON_EMPTY": true},
+                "f2": {"TYPE": "String", "KEEP_ON_EMPTY": false}
+            }
+        });
+        var r = t2.getPlainValue();
+        return typeof r["f2"] == "undefined" && r.f1 === null;
+    }, true);
+
+    runTest("Comprobacion de SET_ON_EMPTY en BaseTypedObject", function () {
+        var t2 = new Siviglia.model.BaseTypedObject({
+            "FIELDS": {
+                "f1": {"TYPE": "String", "KEEP_ON_EMPTY": false},
+                "f2": {"TYPE": "String"}
+            }
+        });
+        var r = t2.getPlainValue();
+        return r == null;
+    }, true);
+    runTest("Comprobacion de DEFAULT en BaseTypedObject", function () {
+        var t2 = new Siviglia.model.BaseTypedObject({
+            "FIELDS": {
+                "f2": {"TYPE": "String"},
+                "TIPO2": {
+                    "TYPE": "Container",
+                    "FIELDS": {
+                        "f1": {"TYPE": "String", "MINLENGTH": 2},
+                        "f2": {"TYPE": "Integer"}
+                    }
+                }
+            },
+            "DEFAULT": {f2: "hola", TIPO2: {f1: "adios", f2: 50}}
+        });
+
+        return t2.f2 == "hola" && t2.TIPO2.f2 == 50;
+    }, true);
+    runTest("Comprobacion de save() en Container", function () {
+
+        var t2 = new Siviglia.model.BaseTypedObject({
+            "FIELDS": {
+                "f2": {"TYPE": "String"},
+                "TIPO2": {
+                    "TYPE": "Container",
+                    "FIELDS": {
+                        "f1": {"TYPE": "String", "MINLENGTH": 2, "REQUIRED": true},
+                        "TIPO7": {
+                            "TYPE": "Container",
+                            "FIELDS": {
+                                "f1": {"TYPE": "String", "MINLENGTH": 2},
+                                "f2": {"TYPE": "Integer"}
+                            }
+                        }
+                    }
+                }
+            },
+
+        });
+        var e = 0;
+        t2.TIPO2 = {"TIPO7": {f1: "Prueba", f2: 55}};
+        try {
+            t2.save();
+        } catch (q) {
+            e++;
+        }
+        t2.TIPO2.f1 = "lala";
+        t2.save();
+        return e == 1;
+
+    }, true);
+    runTest("Comprobacion de getPath() en Container", function () {
+
+        var t2 = new Siviglia.model.BaseTypedObject({
+            "FIELDS": {
+                "f2": {"TYPE": "String"},
+                "TIPO2": {
+                    "TYPE": "Container",
+                    "FIELDS": {
+                        "f1": {"TYPE": "String", "MINLENGTH": 2},
+                        "TIPO7": {
+                            "TYPE": "Container",
+                            "FIELDS": {
+                                "f1": {"TYPE": "String", "MINLENGTH": 2},
+                                "f2": {"TYPE": "Integer"}
+                            }
+                        }
+                    }
+                }
+            },
+
+        });
+        t2.TIPO2 = {"f1": "hola", "TIPO7": {f1: "Prueba", f2: 55}};
+        var path = t2.TIPO2.TIPO7._f2.getFullPath();
+        return path == "/TIPO2/TIPO7/f2";
+
+    }, true)
+
+    runTest("Comprobacion de SET_ON_EMPTY / KEEP_ON_EMPTY en Container", function () {
+
+        var t2 = new Siviglia.model.BaseTypedObject({
+            "FIELDS": {
+                "f1": {
+                    "TYPE": "Container",
+                    "SET_ON_EMPTY": true,
+                    "FIELDS": {
+                        "f1": {"TYPE": "String", "MINLENGTH": 2},
+                        "f2": {"TYPE": "Integer"}
+                    }
+                },
+                "TIPO2": {
+                    "TYPE": "Container",
+                    "SET_ON_EMPTY": false,
+                    "FIELDS": {
+                        "f1": {"TYPE": "String", "MINLENGTH": 2, "KEEP_ON_EMPTY": true},
+                        "TIPO7": {
+                            "TYPE": "Container",
+                            "FIELDS": {
+                                "f1": {"TYPE": "String", "MINLENGTH": 2},
+                                "f2": {"TYPE": "Integer"}
+                            }
+                        }
+                    }
+                }
+            }
+
+        });
+        // NOTA: El path /TIPO2, tiene SET_ON_EMPTY a falso, pero a su vez tiene el campo f1 que tiene KEEP_ON_EMPTY a true.
+        var r = t2.getPlainValue();
+        // Lo que tiene que haber aqui es:
+        // r.f1 : al tener SET_ON_EMPTY a true, pero sus campos son nulos, r.f1=={}
+        // r.TIPO2 debe ser igual a {f1:null}
+        var nKeys = 0;
+        for (var k in r.f1)
+            nKeys++;
+        return nKeys == 0 && typeof r.TIPO2 !== "undefined" && r.TIPO2 != null && typeof r.TIPO2.TIPO7 == "undefined" && r.TIPO2.f1 == null;
+
+    }, true)
+    runTest("Comprobacion de listener de error en Container", function () {
+
+        var t2 = new Siviglia.model.BaseTypedObject({
+            "FIELDS": {
+                "f2": {"TYPE": "String"},
+                "f1": {'TYPE': "Integer", "REQUIRED": true}
+            },
+
+        });
+        t2.f2 = "hola";
+        var nExcp = 0;
+        t2._f1.addListener("ERROR", null, function () {
+            nExcp++;
+        });
+        try {
+            t2.save();
+        } catch (e) {
+        }
+        t2.f1 = 20;
+        t2.save();
+
+        t2.destruct();
+        return nExcp == 1 && countListeners() == 0;
+    }, true)
+
+    runTest("Comprobacion de getPath / DEFAULT en Dictionary", function () {
+        var t1 = new Siviglia.model.BaseTypedObject(
+            {
+                "FIELDS": {
+                    "f3": {
+                        "TYPE": "Dictionary",
+
+                        "VALUETYPE": {
+
+                            "TYPE": "Container",
+                            "FIELDS": {
+                                "sf3": {"TYPE": "String", "MINLENGTH": 2},
+                                "sf4": {"TYPE": "Integer"}
+                            }
+                        },
+                        "DEFAULT": {
+
+                            "uno": {sf3: "Hola", sf4: 1},
+                            "dos": {sf3: "Hola", sf4: 1},
+                            "tres": {sf3: "Hola", sf4: 1},
+
+                        }
+
+
+                    }
+                }
+
+            }
+        );
+        var path = t1.f3.uno._sf3.getFullPath();
+        return path == "/f3/uno/sf3";
+    }, true);
+    runTest("Comprobacion de SET_ON_EMPTY en Dictionary", function () {
+        var t1 = new Siviglia.model.BaseTypedObject(
+            {
+                "FIELDS": {
+                    "f3": {
+                        "TYPE": "Dictionary",
+                        "SET_ON_EMPTY": true,
+                        "VALUETYPE": {
+                            "TYPE": "Container",
+                            "FIELDS": {
+                                "sf3": {"TYPE": "String", "MINLENGTH": 2},
+
+                            }
+                        },
+                    },
+                    "f4": {
+                        "TYPE": "Dictionary",
+                        "VALUETYPE": {
+                            "TYPE": "Container",
+                            "FIELDS": {
+                                "sf3": {"TYPE": "String", "MINLENGTH": 2},
+                            }
+                        },
+                    }
+                }
+
+            }
+        );
+
+        t1.f3 = {};
+        t1.f4 = {};
+        var r = t1.getPlainValue();
+
+        return typeof r.f3 == "object" && typeof r.f4 == "undefined";
+    }, true);
+
+    runTest("Test simple de dictionary", function () {
+        var t1 = new Siviglia.model.BaseTypedObject(
+            {
+                "FIELDS": {
+                    "f3": {
+                        "TYPE": "Dictionary",
+                        "SET_ON_EMPTY": true,
+                        "VALUETYPE": {
+                            "TYPE": "Container",
+                            "FIELDS": {
+                                "sf3": {"TYPE": "String", "MINLENGTH": 2},
+
+                            }
+                        },
+                    },
+                    "f4": {
+                        "TYPE": "Dictionary",
+                        "VALUETYPE": {
+                            "TYPE": "Container",
+                            "FIELDS": {
+                                "sf3": {"TYPE": "String", "MINLENGTH": 2},
+                            }
+                        },
+                    }
+                }
+
+            }
+        );
+
+        t1.f3 = {uno: {sf3: "a1"}, dos: {sf3: "a2"}};
+        t1.f3.cinco = {sf3: "a4"}
+        var nKeys = 0;
+        for (var k in t1.f3)
+            nKeys++;
+        return nKeys == 3 && t1.f3.cinco.sf3 == "a4";
+    }, true);
+
+    runTest("Comprobacion de DEFAULT en  TypeSwitcher (1)", function () {
+        var t1 = new Siviglia.model.BaseTypedObject(
+            {
+                "FIELDS": {
+                    "f3": {
+                        "TYPE": "TypeSwitcher",
+                        "TYPE_FIELD": "TYPE",
+                        "CONTENT_FIELD": "value",
+                        "ALLOWED_TYPES": {
+                            "TIPO3": {
+                                "TYPE": "Container",
+                                "FIELDS": {
+                                    "sf3": {"TYPE": "String", "MINLENGTH": 2},
+                                    "sf4": {"TYPE": "Integer"}
+                                }
+                            },
+                            "TIPO4": {
+                                "TYPE": "Container",
+                                "FIELDS": {
+                                    "sf1": {"TYPE": "String", "MINLENGTH": 2},
+                                    "sf2": {"TYPE": "Integer"}
+                                }
+                            }
+                        },
+                        "DEFAULT": {
+                            "TYPE": "TIPO3",
+                            "value": {
+                                sf3: "aaa",
+                                "sf4": 10
+                            }
+                        }
+                    },
+                }
+            }
+        );
+
+        var v = t1.f3.value.sf4;
+        return v == 10;
+    }, true);
+
+    runTest("Comprobaciones de TypeSwitcher (1)", function () {
+        var t1 = new Siviglia.model.BaseTypedObject(
+            {
+                "FIELDS": {
+                    "f3": {
+                        "TYPE": "TypeSwitcher",
+                        "TYPE_FIELD": "TYPE",
+                        "CONTENT_FIELD": "value",
+                        "ALLOWED_TYPES": {
+                            "TIPO3": {
+                                "TYPE": "Container",
+                                "FIELDS": {
+                                    "sf3": {"TYPE": "String", "MINLENGTH": 2},
+                                    "sf4": {"TYPE": "Integer"}
+                                }
+                            },
+                            "TIPO4": {
+                                "TYPE": "Container",
+                                "FIELDS": {
+                                    "sf1": {"TYPE": "String", "MINLENGTH": 2},
+                                    "sf2": {"TYPE": "Integer"}
+                                }
+                            }
+                        },
+                        "DEFAULT": {
+                            "TYPE": "TIPO3",
+                            "value": {
+                                sf3: "aaa",
+                                "sf4": 10
+                            }
+                        }
+                    },
+                }
+            }
+        );
+        var nChanges = 0;
+        t1._f3.addListener("CHANGE", null, function () {
+            nChanges++
+        });
+        // Comprobamos que, en este punto, ya que t1.f3.TYPE=="TIPO3" (por el valor por defecto),
+        // existen sf3 y sf4:
+        var initStatus = (t1.f3.value.sf3 === "aaa" && typeof t1.f3.value.sf2 == "undefined" && nChanges == 0);
+        // Se cambia ahora el tipo del typeswitcher.Tienen que haber desaparecido los tipos anteriores,
+        // y aparecer los nuevos campos, aunque esten a nulo.
+        t1.f3.TYPE = "TIPO4";
+        var secondStatus = (t1.f3.value.sf1 == null && typeof t1.f3.value.sf3 == "undefined" && nChanges == 1);
+        // Se deshace el cambio.
+        t1.f3.TYPE = "TIPO3";
+        var thirdStatus = (t1.f3.value.sf3 == null && typeof t1.f3.value.sf1 == "undefined" && nChanges == 2);
+        t1.destruct();
+        return initStatus && secondStatus && thirdStatus && countListeners() === 0;
+    }, true);
+
+
+    // Mismo test que el anterior, pero sin CONTENT_FIELD
+    runTest("Comprobaciones de TypeSwitcher (2)", function () {
+        var t1 = new Siviglia.model.BaseTypedObject(
+            {
+                "FIELDS": {
+                    "f3": {
+                        "TYPE": "TypeSwitcher",
+                        "TYPE_FIELD": "TYPE",
+                        "ALLOWED_TYPES": {
+                            "TIPO3": {
+                                "TYPE": "Container",
+                                "FIELDS": {
+                                    "sf3": {"TYPE": "String", "MINLENGTH": 2},
+                                    "sf4": {"TYPE": "Integer"}
+                                }
+                            },
+                            "TIPO4": {
+                                "TYPE": "Container",
+                                "FIELDS": {
+                                    "sf1": {"TYPE": "String", "MINLENGTH": 2},
+                                    "sf2": {"TYPE": "Integer"}
+                                }
+                            }
+                        },
+                        "DEFAULT": {
+                            "TYPE": "TIPO3",
+                            sf3: "aaa",
+                            "sf4": 10
+                        }
+                    },
+                }
+            }
+        );
+        // Comprobamos que, en este punto, ya que t1.f3.TYPE=="TIPO3" (por el valor por defecto),
+        // existen sf3 y sf4:
+        var initStatus = (t1.f3.sf3 === "aaa" && typeof t1.f3.sf2 == "undefined");
+        // Se cambia ahora el tipo del typeswitcher.Tienen que haber desaparecido los tipos anteriores,
+        // y aparecer los nuevos campos, aunque esten a nulo.
+        t1.f3.TYPE = "TIPO4";
+        var secondStatus = (t1.f3.sf1 == null && typeof t1.f3.sf3 == "undefined");
+        // Se deshace el cambio.
+        t1.f3.TYPE = "TIPO3";
+        var thirdStatus = (t1.f3.sf3 == null && typeof t1.f3.sf1 == "undefined");
+        t1.destruct();
+        return initStatus && secondStatus && thirdStatus && countListeners() == 0;
+    }, true);
+
+    runTest("Comprobaciones de Array (1)", function () {
+        var t1 = new Siviglia.model.BaseTypedObject(
+            {
+                "FIELDS": {
+                    "f3": {
+                        "TYPE": "Array",
+                        "ELEMENTS": {"TYPE": "String", "MINLENGTH": 2}
+                    }
+                }
+            }
+        );
+        var firstStatus = (typeof t1.f3 === "undefined");
+        var nErrors = 0;
+        var nChanges = 0;
+        t1._f3.addListener("ERROR", null, function () {
+            nErrors++
+        });
+        t1._f3.addListener("CHANGE", null, function () {
+            nChanges++
+        });
+        var nExcp = 0;
+        try {
+            t1.f3 = ["u"];
+        } catch (e) {
+            nExcp++;
+        }
+        var secondStatus = (typeof t1.f3 === "undefined" && nErrors == 1 && nChanges == 0 && nExcp == 1);
+        t1.f3 = ["uu"];
+        var thirdStatus = (t1.f3.length == 1 && nErrors == 1 && t1.f3[0] == "uu" && nChanges == 1);
+        t1.destruct();
+        return firstStatus && secondStatus && thirdStatus && countListeners() == 0;
+    }, true);
+
+    runTest("Comprobaciones de Array (2)", function () {
+        var t1 = new Siviglia.model.BaseTypedObject(
+            {
+                "FIELDS": {
+                    "f3": {
+                        "TYPE": "Array",
+                        "ELEMENTS": {"TYPE": "String", "MINLENGTH": 2}
+                    }
+                }
+            }
+        );
+        var firstStatus = (typeof t1.f3 === "undefined");
+        var nErrors = 0;
+        var nChanges = 0;
+        t1._f3.addListener("ERROR", null, function () {
+            nErrors++
+        });
+        t1._f3.addListener("CHANGE", null, function () {
+            nChanges++
+        });
+        var nExcp = 0;
+        try {
+            t1.f3 = [];
+            t1.f3.push("a");
+        } catch (e) {
+            nExcp++;
+        }
+        var secondStatus = (t1.f3.length == 0 && nErrors == 1 && nChanges == 1 && nExcp == 1);
+        t1.f3.push("aaa");
+        var thirdStatus = (t1.f3.length == 1 && nErrors == 1 && nChanges == 2 && nExcp == 1);
+        t1.f3.shift();
+        var fourthStatus = (t1.f3.length == 0 && nErrors == 1 && nChanges == 3);
+        t1.destruct();
+        return firstStatus && secondStatus && thirdStatus && fourthStatus && countListeners() == 0;
+    }, true);
+    // Mismo test anterior, pero con objetos dentro del array.
+    runTest("Comprobaciones de Array (3)", function () {
+        var t1 = new Siviglia.model.BaseTypedObject(
+            {
+                "FIELDS": {
+                    "f3": {
+                        "TYPE": "Array",
+                        "ELEMENTS": {
+                            "TYPE": "Container",
+                            "FIELDS": {
+                                "sf1": {"TYPE": "String", "MINLENGTH": 2},
+                                "sf2": {"TYPE": "Integer"}
+                            }
+                        }
+                    }
+                }
+            }
+        );
+
+        var nErrors = 0;
+        var nChanges = 0;
+        t1._f3.addListener("ERROR", null, function () {
+            nErrors++
+        });
+        t1._f3.addListener("CHANGE", null, function () {
+            nChanges++
+        });
+        var nExcp = 0;
+        try {
+            t1.f3 = [{sf1: "a", sf2: 15}];
+        } catch (e) {
+            nExcp++;
+        }
+        var secondStatus = (typeof t1.f3 == "undefined" && nErrors == 1 && nChanges == 0 && nExcp == 1);
+        t1.f3 = [{sf1: "aaa", sf2: 20}];
+        var thirdStatus = (t1.f3.length == 1 && nErrors == 1 && nChanges == 1 && nExcp == 1);
+        var curPath = t1.f3[0]._sf1.getFullPath();
+        var fourthStatus = (curPath == "/f3/0/sf1");
+        t1.destruct();
+        return secondStatus && thirdStatus && fourthStatus && countListeners() == 0;
+    }, true);
+
+    runTest("Comprobaciones de Enum (1)", function () {
+        var t1 = new Siviglia.model.BaseTypedObject(
+            {
+                "FIELDS": {
+                    "f3": {
+                        "TYPE": "Enum",
+                        "VALUES": ["Value1", "Value2", "Value3"],
+                        "DEFAULT": "Value3"
+                    }
+                }
+            }
+        );
+
+        var nChanges = 0;
+        t1._f3.addListener("CHANGE", null, function () {
+            nChanges++
+        });
+        var nExcp = 0;
+        try {
+            t1.f3 = "Value4";
+        } catch (e) {
+            nExcp++;
+        }
+        var secondStatus = (t1.f3 == null && nChanges == 0 && nExcp == 1);
+        t1.f3 = "Value1";
+        var thirdStatus = (t1._f3.getLabel() == "Value1" && nChanges == 1 && nExcp == 1);
+        t1.f3 = 2;
+        var fourthStatus = (t1._f3.getLabel() == "Value3" && nChanges == 2 && nExcp == 1);
+
+        t1.destruct();
+        return secondStatus && thirdStatus && fourthStatus && countListeners() == 0;
+    }, true);
+
+    runTest("Comprobaciones de Integer", function () {
+        var t1 = new Siviglia.model.BaseTypedObject(
+            {
+                "FIELDS": {
+                    "f3": {
+                        "TYPE": "Integer",
+                        "MIN": 10,
+                        "MAX": 20,
+                        "DEFAULT": 15
+                    }
+                }
+            }
+        );
+        var nChanges = 0;
+        t1._f3.addListener("CHANGE", null, function () {
+            nChanges++
+        });
+        var nExcp = 0;
+        var firstStatus = (t1.f3 == 15);
+        try {
+            t1.f3 = 8;
+        } catch (e) {
+            nExcp++;
+        }
+        var secondStatus = (t1.f3 == null && nChanges == 0 && nExcp == 1);
+        try {
+            t1.f3 = 22;
+        } catch (e) {
+            nExcp++;
+        }
+        var secondStatus = (t1.f3 == null && nChanges == 0 && nExcp == 2);
+        t1.f3 = 16;
+        var thirdStatus = (t1.f3 == 16 && nChanges == 1);
+
+
+        t1.destruct();
+        return firstStatus && secondStatus && thirdStatus && countListeners() == 0;
+    }, true);
+
+    runTest("Comprobaciones de String", function () {
+        var t1 = new Siviglia.model.BaseTypedObject(
+            {
+                "FIELDS": {
+                    "f3": {
+                        "TYPE": "String",
+                        "MINLENGTH": 2,
+                        "MAXLENGTH": 7,
+                        "DEFAULT": "Valido"
+                    },
+                    "f4": {
+                        "TYPE": "String",
+                        "REGEXP": "/aa/"
+                    },
+
+                }
+            }
+        );
+        var nChanges = 0;
+        t1._f3.addListener("CHANGE", null, function () {
+            nChanges++
+        });
+        t1._f4.addListener("CHANGE", null, function () {
+            nChanges++
+        });
+        var nExcp = 0;
+        var firstStatus = (t1.f3 == "Valido");
+        try {
+            t1.f3 = "a"
+        } catch (e) {
+            nExcp++;
+        }
+        var secondStatus = (t1.f3 == null && nChanges == 0 && nExcp == 1);
+        try {
+            t1.f3 = "aaaaaaaa"
+        } catch (e) {
+            nExcp++;
+        }
+        var thirdStatus = (t1.f3 == null && nChanges == 0 && nExcp == 2);
+        t1.f3 = "bbb";
+        var fourthStatus = (t1.f3 == "bbb" && nChanges == 1 && nExcp == 2);
+        try {
+            t1.f4 = "ccc";
+        } catch (e) {
+            nExcp++;
+        }
+        var fifthStatus = (t1.f4 === null && nExcp == 3);
+        t1.f4 = "aaaa";
+
+        var sixthStatus = (t1.f4 == "aaaa" && nChanges == 2 && nExcp == 3);
+
+
+        t1.destruct();
+        return firstStatus && secondStatus && thirdStatus &&
+            fifthStatus && sixthStatus && countListeners() == 0;
+    }, true);
+
+    runTest("Comprobaciones de DateTime", function () {
+        var t1 = new Siviglia.model.BaseTypedObject(
+            {
+                "FIELDS": {
+                    "f3": {
+                        "TYPE": "DateTime",
+                        "DEFAULT": "NOW"
+                    },
+                    "f4": {
+                        "TYPE": "DateTime",
+                        "STARTYEAR": 2000,
+                        "ENDYEAR": 2020
+                    },
+                    "f5": {
+                        "TYPE": "DateTime",
+                        "STRICTLYPAST": true
+                    },
+                    "f6": {
+                        "TYPE": "DateTime",
+                        "STRICTLYFUTURE": true
+                    }
+                }
+            }
+        );
+        var convertDate = function (c) {
+            var M = c.getMonth() + 1;
+            var D = c.getDate();
+            var H = c.getHours();
+            var m = c.getMinutes();
+            var s = c.getSeconds();
+            M = (M < 10) ? ('0' + M) : M;
+            D = (D < 10) ? ('0' + D) : D;
+            H = (H < 10) ? ('0' + H) : H;
+            m = (m < 10) ? ('0' + m) : m;
+            s = (s < 10) ? ('0' + s) : s;
+            return c.getFullYear() + '-' + M + '-' + D + ' ' + H + ':' + m + ':' + s;
+        }
+        var nChanges = 0;
+        t1._f3.addListener("CHANGE", null, function () {
+            nChanges++
+        });
+        t1._f4.addListener("CHANGE", null, function () {
+            nChanges++
+        });
+        t1._f5.addListener("CHANGE", null, function () {
+            nChanges++
+        });
+        t1._f6.addListener("CHANGE", null, function () {
+            nChanges++
+        });
+
+        var nExcp = 0;
+        var timestamp1 = t1._f3.getDateValue().getTime();
+        var timestamp2 = (new Date()).getTime();
+        var status = (timestamp2 - timestamp1 < 1000);
+
+        try {
+            t1.f4 = "1999-12-30 00:00:00";
+        } catch (e) {
+            nExcp++;
+        }
+        status = status && (t1.f4 == null && nChanges == 0 && nExcp == 1);
+        try {
+            t1.f4 = "2021-01-01 00:00:00"
+        } catch (e) {
+            nExcp++;
+        }
+        status = status && (t1.f4 == null && nChanges == 0 && nExcp == 2);
+        t1.f4 = "2010-01-01 00:00:00";
+        status = status && (t1.f4 == "2010-01-01 00:00:00" && nChanges == 1 && nExcp == 2);
+
+
+        try {
+            t1.f5 = "2050-01-01 00:00:00";
+        } catch (e) {
+            nExcp++;
+        }
+        status = status && (t1.f5 === null && nExcp == 3);
+        t1.f5 = "2010-01-01 00:00:00";
+        status = status && (t1.f5 == "2010-01-01 00:00:00" && nChanges == 2 && nExcp == 3);
+
+        try {
+            t1.f6 = "2010-01-01 00:00:00";
+        } catch (e) {
+            nExcp++;
+        }
+        status = status && (t1.f6 === null && nExcp == 4);
+        t1.f6 = "2050-01-01 00:00:00";
+        status = status && (t1.f6 == "2050-01-01 00:00:00" && nChanges == 3 && nExcp == 4);
+
+
+        var res = convertDate(t1._f6.getDateValue())
+        status = status && (res == t1.f6);
+        t1.destruct();
+        return status;
+    }, true);
+
+    runTest("Source de Enum (1)", function () {
+        var t1 = new Siviglia.model.BaseTypedObject(
+            {
+                "FIELDS": {
+                    "f3": {
+                        "TYPE": "Enum",
+                        "VALUES": ["Value1", "Value2", "Value3"],
+                        "DEFAULT": "Value3"
+                    }
+                }
+            }
+        );
+        var source = t1._f3.getSource();
+        var loaded = 0;
+        var changed = 0;
+        var data = null;
+        source.addListener("EVENT_LOADED", null, function () {
+            loaded = 1;
+        });
+        source.addListener("CHANGE", null, function (ev, params) {
+            changed = 1;
+            console.dir(params);
+            data = params.value
+        });
+        source.fetch();
+        t1.destruct();
+        return loaded === 1 && changed === 1 && data.length === 3 && data[2]["LABEL"] === "Value3" && data[2]["VALUE"] === 2 && countListeners() === 0;
+    }, true);
+
+
+    runTest("Sources de String (Array)", function () {
+        var t1 = new Siviglia.model.BaseTypedObject(
+            {
+                "FIELDS": {
+                    "f3": {
+                        "TYPE": "String",
+                        "SOURCE": {
+                            "TYPE": "Array",
+                            "VALUES": ["Value1", "Value2", "Value3"],
+                            "LABEL": "LABEL",
+                            "VALUE": "LABEL"
+                        }
+                    }
+                }
+            }
+        );
+
+        var changed = 0;
+        var source = t1._f3.getSource();
+        source.addListener("CHANGE", null, function (ev, params) {
+            changed = 1;
+        });
+        var nExcp = 0;
+        try {
+            t1.f3 = "Value4";
+        } catch (e) {
+            nExcp++;
+        }
+        var status = t1.f3 === null && nExcp === 1;
+        t1.f3 = "Value3";
+        status = status && t1.f3 === "Value3" && changed == 1;
+        t1.destruct();
+        return status && countListeners() == 0;
+    }, true);
+
+    // Prueba de distintas dependencias de String
+    runTest("Sources de String (Array Path)", function () {
+        var def =
+            {
+                "FIELDS": {
+                    "f1": {
+                        "TYPE": "String",
+                        "SOURCE": {
+                            "TYPE": "Array",
+                            "LABEL": "Label",
+                            "VALUE": "Id",
+                            "DATA": [
+                                {"Label": "a", "Id": "a"},
+                                {"Label": "d", "Id": "d"}
+                            ]
+                        }
+                    },
+                    "f2": {
+                        "TYPE": "String",
+                        "SOURCE": {
+                            "TYPE": "Array",
+                            "LABEL": "Label",
+                            "VALUE": "Id",
+                            "DATA": [
+                                {"Label": "b", "Id": "b"},
+                                {"Label": "c", "Id": "c"}
+                            ]
+                        }
+                    },
+                    "f3": {
+                        "TYPE": "Integer",
+                        "SOURCE": {
+                            "TYPE": "Array",
+                            "LABEL": "[%Label%] [%SubLabel%]",
+                            "VALUE": "Id",
+                            "DATA": {
+                                "a": {
+                                    "b": [
+                                        {"Id": 1, "Label": "Primero", "SubLabel": "1º"}
+                                    ],
+                                    "c": [
+                                        {"Id": 2, "Label": "Segundo", "SubLabel": "2º"}
+                                    ]
+                                },
+                                "d": {
+                                    "c": [
+                                        {"Id": 3, "Label": "Tercero", "SubLabel": "3º"},
+                                        {"Id": 4, "Label": "Cuarto", "SubLabel": "4º"}
+                                    ]
+                                }
+                            },
+                            "PATH": "/{#../f1}/{#../f2}"
+
+                        }
+                    }
+                }
+            };
+
+        var btype = new Siviglia.model.BaseTypedObject(def);
+        // Primera prueba: Si el source no esta listo, deben saltar excepciones.
+        var nChanges = 0;
+        var nValids=0;
+        var curData = null;
+        var nExcp=0;
+        var s = btype._f3.getSource(btype);
+        s.addListener("CHANGE", function (evType, data) {
+            nChanges++;
+            if(data.valid)
+                nValids++;
+            curData = data.value;
+        });
+        try {
+            btype.f3=155;
+
+        } catch (e) {
+           nExcp++;
+        }
+        // Aqui no puede haber aun valor.
+        var status = (btype.f3===null && nExcp===1 && nChanges===1 && nValids===0 && curData===null);
+
+        // Cambiamos uno de los valores
+        btype.f1 = "a";
+        // Aun no se puede establecer el valor de f3
+        try {
+            btype.f3=155;
+
+        } catch (e) {
+            nExcp++;
+        }
+        status = status && (btype.f3===null && nExcp===2 && nChanges===1 && nValids===0 && curData===null);
+
+        btype.f2 = "b";
+        // En cuanto se establece el valor de f2, tiene que haberse cargado los datos del source de f3
+        status = status && (nChanges===2 && nValids===1 && curData!==null && curData.length==1 && curData[0].Id==1);
+
+        // No se puede establecer el valor de f3 a 2, solo a 1:
+        try {
+            btype.f3=155;
+
+        } catch (e) {
+            nExcp++;
+        }
+        status = status && (nExcp==3);
+
+        btype.f3=1;
+
+        // Prueba dos : el fetch deberia devolver null, porque la combinacion f1=d y f2=b no esta soportada:
+
+        btype.f1 = "d";
+        status = status && (nChanges===3 && nValids===1 && curData==null);
+
+
+        // Se cambia f2 a "c":
+        btype.f2 = "c";
+        status = status && (nChanges===4 && nValids===2 && curData!==null && curData.length==2 && curData[0].Id==3);
+
+        btype.destruct();
+        status = status && countListeners()==0;
+        $n=11;
+        return status;
+
+    }, true);
+
+    runTest("Source tipo PATH", function () {
+        var t1 = new Siviglia.model.BaseTypedObject(
+            {
+                "FIELDS": {
+                    "f3": {
+                        "TYPE": "String",
+                        "SOURCE":{
+                            "TYPE":"Path",
+                            "PATH":"#../f4/[[KEYS]]",
+                            "LABEL":"LABEL",
+                            "VALUE":"VALUE"
+                        }
+                    },
+                    "f4": {
+                        "TYPE": "Dictionary",
+                        "VALUETYPE":{
+                            "TYPE":"String"
+                        }
+                    }
+                }
+            }
+        );
+        var nChanges3 = 0;
+        t1._f3.addListener("CHANGE", null, function () {
+            nChanges3++
+        });
+        var nChanges4 = 0;
+        t1._f4.addListener("CHANGE", null, function () {
+            nChanges4++
+        });
+        var nExcp = 0;
+
+        try{
+            t1.f3="aa";
+        }catch(e)
+        {
+            nExcp++;
+        }
+        t1.f4={"aa":"uno","bb":"dos"};
+        t1.f3="aa";
+
+
+    }, true);
+
+
+
+</script>
+</body>
+</html>

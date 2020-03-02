@@ -183,7 +183,7 @@
                                                         "MODEL": "/model/reflection/Model",
                                                         "DATASOURCE": "FieldList",
                                                         "PARAMS": {
-                                                            "model": "[%/*modelSelector%]"
+                                                            "model": "[%#../modelSelector%]"
                                                         },
                                                         "LABEL": "NAME",
                                                         "VALUE": "FIELD"
@@ -222,7 +222,10 @@
                                                         }
                                                     }
                                                 },
+                                            simpleArray:{
+                                                "TYPE":"Array",
 
+                                            },
                                             simpleTypeSwitcher:
                                                 {
                                                     "TYPE": "TypeSwitcher",
@@ -322,10 +325,14 @@
 
 <div style="display:none">
     <div data-sivWidget="Test.SimpleWidget" data-widgetParams="" data-widgetCode="Test.SimpleWidget">
-        <div data-sivView="Siviglia.inputs.jqwidgets.Dictionary" data-sivParams='{"type":"/*typedObj/_simpleDictionary"}'>
+        <!--<div data-sivView="Siviglia.inputs.jqwidgets.Dictionary" data-sivParams='{"type":"/*typedObj/_simpleDictionary"}'>
         </div>
-        <!--<div data-sivView="Siviglia.inputs.jqwidgets.Container" data-sivParams='{"type":"/*typedObj/_simpleContainer"}'>
+        <div data-sivView="Siviglia.inputs.jqwidgets.Container" data-sivParams='{"type":"/*typedObj/_simpleContainer"}'>
         </div>-->
+        <div data-sivView="Siviglia.inputs.jqwidgets.ComboBox" data-sivParams='{"type":"/*typedObj/_modelSelector"}'>
+        </div>
+        <div data-sivView="Siviglia.inputs.jqwidgets.ComboBox" data-sivParams='{"type":"/*typedObj/_fieldSelector"}'>
+        </div>
         <input type="button" data-sivEvent="click" data-sivCallback="show" value="show">
     </div>
 </div>

@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <script src="/node_modules/jquery/dist/jquery.js"></script>
+</head>
+<body>
+<script>
+    var it;
+    function subFunc()
+    {
+        var t=$.Deferred();
+        setTimeout(function(){t.resolve()},1000);
+        return t;
+    }
+    function* getType()
+    {
+        yield 1;
+        yield subFunc().then(function(){it.next();});
+        console.log("DONE");
+    }
+    it=getType();
+    it.next();
+
+    console.log("FINISHED");
+</script>
+
+</body>
+</html>
