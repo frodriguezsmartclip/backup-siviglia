@@ -495,6 +495,10 @@ Siviglia.Utils.buildClass({
                 {
                     this.disabledEvents=disable;
                 },
+                eventsDisabled:function()
+                {
+                    return this.disabledEvents;
+                },
                 fireEvent: function (event, data, target) {
                     if(this.disabledEvents)
                         return;
@@ -647,7 +651,7 @@ Siviglia.Utils.buildClass(
                                 throw "Unknown path "+spec;
                             if(typeof v=="object" && v!==null)
                             {
-                                if(v.hasOwnProperty("__type__"))
+                                if(typeof v["__type__"]!=="undefined")
                                 {
                                     if(this.prefix!="@") {
                                         v.addListener("CHANGE", this, "onChange", "BaseCursor:" + spec);
@@ -1256,11 +1260,31 @@ Siviglia.Path.eventize=function(obj,propName) {
 Siviglia.Path.Proxify=function(obj,ev)
 {
     var curVal=obj;
+    // Lo siguiente, no se puede hacer:
+    // (Ver si el objeto es un proxy de un BaseType, y aniadir el listener al basetype)
+    //obj.__parentbto__.addListener("CHANGE",null,function(evName,params){
+    // ev.fireEvent("CHANGE",params);
+    //});
+    // Si hay un partenbto, o sea, obj es un proxy de un BaseType, ocurriria lo siguiente:
+    // Actualemente, ese BaseType tiene el objeto "obj" como valor.
+    // Si el listener no se pone directamente sobre *ese* proxy, sino sobre el basetype que
+    // lo contiene, puede pasar lo siguiente:
+    // Si el basetype cambia completamente de valor (creando un proxy nuevo), lanzara un evento
+    // CHANGE, que disparará a este listener, que esta asociado al *antiguo* valor.
+    // Y eso es porque se esta escuchando al padre del proxy, no al proxy en si mismo.
+
+    if(typeof obj.__isProxy__ !== "undefined") {
+        obj.__ev__.addListener("CHANGE",null,function(event,params){ev.fireEvent("CHANGE",params)});
+        return obj;
+    }
+
     var isArray=(obj.constructor.toString().indexOf("rray")>0);
     var __disableEvents__=false;
     var objProxy = new Proxy(obj,{
         get:function(target,prop)
         {
+            if(prop==="__isProxy__")
+                return true;
             if(prop=="__disableEvents__")
                 return __disableEvents__;
             return curVal[prop];

@@ -175,6 +175,7 @@ Siviglia.Utils.buildClass(
                     },
                     getPlainValue:function()
                     {
+                        this.save();
                         var subVal=this.__value;
                         var nSet=0;
                         var nFields=0;
@@ -229,7 +230,8 @@ Siviglia.Utils.buildClass(
                         {
                             var cd=this.__definition.FIELDS[k];
                             var c=this.__fields[k];
-                            c.validate(val[k]);
+                            if(typeof val[k]!=="undefined")
+                                c.validate(val[k]);
                         }
                         return true;
                     },
@@ -418,6 +420,8 @@ Siviglia.Utils.buildClass(
                                 this.valueSet=true;
                                 this._setValue(this.getDefaultValue());
                             }
+                            else
+                                this.value=null;
                         }
                         this.EventManager();
                         this.PathAble();
@@ -488,10 +492,13 @@ Siviglia.Utils.buildClass(
                                 if(this.hasSource())
                                 {
                                     var s=this.getSource();
-                                    s.fetch();
-                                    if(!s.contains(val))
-                                    {
-                                        throw new Siviglia.types.BaseTypeException(Siviglia.types.BaseTypeException.ERR_INVALID,{value:val});
+                                    // TODO: PARCHE GIGANTESCO AQUI: SI ES UN SOURCE
+                                    // ASINCRONO (REMOTO), NO SE VALIDA!!
+                                    if(!s.isAsync()) {
+                                        s.fetch();
+                                        if (!s.contains(val)) {
+                                            throw new Siviglia.types.BaseTypeException(Siviglia.types.BaseTypeException.ERR_INVALID, {value: val});
+                                        }
                                     }
                                 }
                                 return true;
@@ -585,6 +592,7 @@ Siviglia.Utils.buildClass(
                             },
                             getPlainValue:function()
                             {
+                                this.save();
                                 return this.getValue();
                             },
                             hasDefaultValue: function () {
@@ -816,6 +824,10 @@ Siviglia.Utils.buildClass(
                         {
                             _setValue: function (val) {
                                 this.value = (val === true || val === "1" || val === "true");
+                            },
+                            _validate:function(val)
+                            {
+                                return val==true;
                             }
                         }
                 },
@@ -1233,6 +1245,14 @@ Siviglia.Utils.buildClass(
                                 }
                                 this.value = val;
 
+                            },
+                            _validate:function(val)
+                            {
+                                if((""+val).match(/[0-9]+(:?\.[0-9]*)/))
+                                {
+                                    return true;
+                                }
+                                throw new Siviglia.types.BaseTypeException(Siviglia.types.BaseTypeException.ERR_INVALID);
                             }
                         }
                 },
@@ -1339,6 +1359,12 @@ Siviglia.Utils.buildClass(
                     inherits: 'BaseType',
                     construct: function (def, val) {
                         this.BaseType('Text', def, val);
+                    },
+                    methods:{
+                        _validate:function(val)
+                        {
+                            return true;
+                        }
                     }
                 },
 
@@ -1405,6 +1431,10 @@ Siviglia.Utils.buildClass(
                         return this.innerBaseTypedObject.ready();
                     },
                     isContainer:function(){return true},
+                    getField:function(key)
+                    {
+                        return this.innerBaseTypedObject.__getField(key).getType();
+                    },
                     getKeys: function () {
                         var res = [];
                         for (var k in this.definition["FIELDS"]) {
@@ -1520,9 +1550,11 @@ Siviglia.Utils.buildClass(
                 inherits:'BaseKeyContainerType',
                 construct:function(def,value)
                 {
+                    this.definition=def;
                     this.sampleType=Siviglia.types.TypeFactory.getType(this,def["VALUETYPE"],null);
                     this.innerBaseTypedObject=new Siviglia.model.BaseTypedObject({"FIELDS":{}},{});
                     this.innerBaseTypedObject.setParent(this);
+                    this.proxyEv=null;
                     this["[[KEYS]]"]=[];
 /*
                     Object.defineProperty(this,"[[KEYS]]",{
@@ -1544,7 +1576,9 @@ Siviglia.Utils.buildClass(
                     this.BaseKeyContainerType('Dictionary',def,value)
                 },
                 destruct:function(){
-                   // this.keysHolder.destruct();
+                   if(this.keysEv)
+                       this.keysEv.destruct();
+
                 },
                 methods:{
                     ready:function()
@@ -1583,16 +1617,53 @@ Siviglia.Utils.buildClass(
                     buildProxy:function(val)
                     {
                         var m=this;
+                        var __disableEvents__=false;
+                        if(this.keysEv)
+                            this.keysEv.destruct();
+                        if(this.proxyEv)
+                            this.proxyEv.destruct();
+                        this.keysEv=new Siviglia.Dom.EventManager();
+                        this.proxyEv=new Siviglia.Dom.EventManager();
+                        var ev=this.proxyEv;
 
                         this.proxy=new Proxy(val,{
+                            getOwnPropertyDescriptor:function(target, prop) {
+                                if(m.innerBaseTypedObject.__fieldExists(prop))
+                                {
+                                    return {configurable:true,enumerable:true}
+                                }
+                                if(prop==="[[KEYS]]" || prop==="_[[KEYS]]")
+                                    return {configurable:true,enumerable:false}
 
+                                if(prop==="__disableEvents__")
+                                    return {configurable:true,enumerable:false}
+
+                            },
                             get:function(target,prop,receiver)
                             {
-                                return m.innerBaseTypedObject[prop];
+                                if(prop==="__isProxy__")
+                                    return true;
+                                if(prop==="__ev__")
+                                    return ev;
+
+                                if(m.innerBaseTypedObject.__fieldExists(prop))
+                                    return m.innerBaseTypedObject[prop];
+                                if(prop==="__disableEvents__")
+                                    return __disableEvents__;
+                                if(prop==="_[[KEYS]]")
+                                    return m.keysEv;
+                                return m[prop];
                             },
                             set:function(target,prop,value)
                             {
 
+                                if(prop=="_ev_listeners")
+                                    debugger;
+                                if(prop==="__disableEvents__")
+                                {
+                                    __disableEvents__=value;
+                                    return true;
+                                }
                                 if(!m.innerBaseTypedObject.__fieldExists(prop)) {
                                     m.innerBaseTypedObject.__addField(prop, m.definition.VALUETYPE, value);
                                     var cb={
@@ -1619,11 +1690,17 @@ Siviglia.Utils.buildClass(
                                     Object.defineProperty(m,"_"+prop,cb2);
 
                                     m["[[KEYS]]"]=m.getKeys();
-                                    m.onChange();
+                                    if(__disableEvents__===false) {
+                                        ev.fireEvent("CHANGE", {object: target, value: value});
+                                        m.onChange();
+                                    }
                                 }
                                 else {
                                     m.innerBaseTypedObject[prop] = value;
-                                    m.onChange();
+                                    if(__disableEvents__===false) {
+                                        ev.fireEvent("CHANGE", {object: target, value: value});
+                                        m.onChange();
+                                    }
                                 }
                                 return true;
                             },
@@ -1631,12 +1708,19 @@ Siviglia.Utils.buildClass(
                             {
                                 m.innerBaseTypedObject.__removeField(prop);
                                 delete target[prop];
+                                delete target["_"+prop];
                                 m["[[KEYS]]"]=m.getKeys();
-                                m.onChange();
+                                if(__disableEvents__===false) {
+                                    m.onChange();
+                                    ev.fireEvent("CHANGE", {object: target, value: m.proxy});
+
+                                }
                             }
                         })
+                        this.proxy.__disableEvents__=true;
                         for(var k in val)
                             this.proxy[k]=val[k];
+                        this.proxy.__disableEvents__=false;
 
                     },
                     getValue:function()
@@ -1647,6 +1731,7 @@ Siviglia.Utils.buildClass(
                     {
                         if(!this.valueSet)
                             return null;
+                        this.save();
                         var res={};
                         var nSet=0;
                         var nFields=0;
@@ -1717,6 +1802,8 @@ Siviglia.Utils.buildClass(
                 this.subNode = null;
                 this.currentType = null;
                 this.intermediateObject=null;
+                // Workaround para eventize:
+                this.valueEventManager=null;
                 this.BaseType("TypeSwitcher", definition, value);
             },
             destruct: function () {
@@ -1724,7 +1811,12 @@ Siviglia.Utils.buildClass(
                 if(this.intermediateObject) {
                     this.intermediateObject["_" + this.definition.CONTENT_FIELD].destruct();
                 }
+                if(this.valueEventManager)
+                {
+                    this.valueEventManager.destruct();
+                }
                 this.intermediateObject=null;
+                this.valueEventManager=null;
                 this.reset();
             },
             methods: {
@@ -1739,9 +1831,16 @@ Siviglia.Utils.buildClass(
                 _setValue: function (val) {
                     this.receivedValue = val;
                     this.reset();
-                    var subType=this.getTypeFromValue(val);
-                    this.currentType = subType;
+                    this.currentType = this.getTypeFromValue(val);
                     var m=this;
+                    // Se resetea el event manager para el valor.
+                    if(this.valueEventManager!=null)
+                    {
+                        this.valueEventManager.destruct();
+
+                    }
+                    this.valueEventManager=new Siviglia.Dom.EventManager();
+                    var ev=this.valueEventManager;
 
                     var def={
                         set:function(value)
@@ -1761,6 +1860,7 @@ Siviglia.Utils.buildClass(
 
                             m.disableEvents(false);
                             m.onChange();
+                            ev.fireEvent("CHANGE",{value:val})
                         },
                         get:function()
                         {
@@ -1782,6 +1882,7 @@ Siviglia.Utils.buildClass(
                         {
                             m.subNode.setValue(v);
                             m.onChange();
+                            ev.fireEvent("CHANGE",{value:val});
                         }
                     };
                     var cb2={
@@ -1803,11 +1904,21 @@ Siviglia.Utils.buildClass(
                     {
                         target=val;
                     }
+
+
+
                     var typeDefinition=this.getTypeDefinition(this.currentType);
-                    this.subNode=Siviglia.types.TypeFactory.getType(this,typeDefinition, target);
+                    var curNode=Siviglia.types.TypeFactory.getType(this,typeDefinition, target);
+                    this.subNode=curNode;
                     this.subNode.setParent(this);
                     if(typeof this.definition.CONTENT_FIELD!=="undefined")
                         this.subNode.setFieldName(this.definition.CONTENT_FIELD);
+
+                    //WorkAround para eventize:
+                    Object.defineProperty(val,"__isProxy__",{enumerable:false,get:function(){return true;}})
+                    // Importante que este objeto devuelva curNode, y no m.subNode. Esto hace que cuando eventize no ataca al BaseType,
+                    // sino directamente a su valor, se quede siempre escuchando al valor, y no al basetype.
+                    Object.defineProperty(val,"__ev__",{enumerable:false,get:function(){return ev;}})
                 },
                 _validate:function(val)
                 {
@@ -1828,8 +1939,8 @@ Siviglia.Utils.buildClass(
                         if(typeof val[this.definition.CONTENT_FIELD]=="undefined")
                             return true;
                     }
-                    var typeDefinition=this.getTypeDefinition(cType);
-                    var instance=Siviglia.types.TypeFactory.getType(this,typeDefinition, null);
+                    var def=this.getTypeDefinition(cType);
+                    var instance=Siviglia.types.TypeFactory.getType(this,def, null);
                     var result=instance.validate(target);
                     instance.destruct();
                     return result;
@@ -1854,6 +1965,7 @@ Siviglia.Utils.buildClass(
                     return this.value;
                 },
                 getPlainValue: function () {
+                    this.save();
                     var res={};
                     if(this.subNode==null || this.subNode.isEmpty())
                     {
@@ -1875,6 +1987,7 @@ Siviglia.Utils.buildClass(
                     }
                     return res;
                 },
+
                 isValidType:function(v)
                 {
                     var list=this.getAllowedTypes();
@@ -1886,13 +1999,19 @@ Siviglia.Utils.buildClass(
                     return false;
                 },
                 getAllowedTypes:function(){
+                    if(Siviglia.type(this.definition.ALLOWED_TYPES)==="array")
+                    {
+                        var res={};
+                        this.definition.ALLOWED_TYPES.map(function(item){res[item]=item});
+                        return res;
+                    }
                     return this.definition.ALLOWED_TYPES;
                 },
                 getSource: function () {
                     var result = [];
 
                     if(Siviglia.isset(this.definition.ALLOWED_TYPES)) {
-                        for (var k  in  this.definition.ALLOWED_TYPES) {
+                        for (var k  in  this.getAllowedTypes()) {
                             result.push({LABEL: k, VALUE: k});
                         }
                     }
@@ -1902,6 +2021,10 @@ Siviglia.Utils.buildClass(
 
                     return this.currentType;
 
+                },
+                getCurrentTypeObj:function()
+                {
+                    return this.subNode;
                 },
                 setCurrentType:function(type)
                 {
@@ -1920,19 +2043,21 @@ Siviglia.Utils.buildClass(
             inherits: 'BaseType',
             construct: function (definition, value) {
                 var m=this;
-                this.children=[];
                 this["[[KEYS]]"]=[];
+                this.children=[];
                 this.BaseType("Array", definition, value);
+                this.proxy=null;
+                this.proxyEv=null;
             },
             methods: {
                 _validate: function (val){
                     if(val.constructor.toString().substr(0,14)!=="function Array")
                         throw new Siviglia.types.BaseTypeException(Siviglia.types.BaseTypeException.ERR_INVALID,{value:val});
-                    var sampleInstance=this.getValueInstance();
+                    var sampleInstance=this.getValueInstance(0);
                     var nErrors=0;
                     for(var k=0;k<val.length;k++) {
                         try {
-                            sampleInstance.validate(val);
+                            sampleInstance.validate(val[k]);
                         }
                         catch(e)
                         {
@@ -1947,19 +2072,31 @@ Siviglia.Utils.buildClass(
                 },
                 _setValue: function (val) {
                   var m=this;
+
+                  if(this.proxyEv!==null)
+                      this.proxyEv.destruct();
+
+                    var ev = new Siviglia.Dom.EventManager();
+                    this.proxyEv=ev;
                   // Estamos en setValue, no queremos que se disparen "onChanges" de mas:
-                    this.disableEvents(true);
-                    this.updateChildren(val);
-                    this.disableEvents(false);
-                  this.value=val;
-                  if(this.value!==null) {
+
+                    if(val===null)
+                    {
+                        this.value=null;
+                        return;
+                    }
+                    this.reset();
                       this.proxy = new Proxy(val, {
                           apply: function (target, thisArg, argumentsList) {
-                              var out=target.apply(thisArg, argumentsList);
-                              return out;
+                              return target.apply(thisArg, argumentsList);
                           },
                           get:function(target,prop,receiver)
                           {
+                              if(prop==="__isProxy__")
+                                  return true;
+                              if(prop==="__ev__")
+                                  return ev;
+
                               if(prop=="length")
                                   return target[prop];
                               if(!isNaN(prop)) {
@@ -1970,11 +2107,14 @@ Siviglia.Utils.buildClass(
                           },
                           deleteProperty:function(target,prop)
                           {
-                                m.children[prop].destruct();
                                 var ret=val[prop];
                                 delete val[prop];
-                                m["[[KEYS]]"]=m.getKeys();
+                                delete m.children[prop];
+                                delete target["_"+prop];
+                                if(!m.eventsDisabled()) {
                                     m.onChange();
+                                    ev.fireEvent("CHANGE", {object: target, value: m.proxy});
+                                }
                                 return ret;
                           },
                           set:function(target,prop,value,receiver)
@@ -1982,28 +2122,42 @@ Siviglia.Utils.buildClass(
 
                               if(prop=="length")
                               {
-                                  val.length=value;
-
+                                  if(val.length!==value) {
+                                      val.length = value;
+                                      m["[[KEYS]]"] = m.getKeys();
+                                      if(!m.eventsDisabled) {
+                                          ev.fireEvent("CHANGE", {object: target, property: prop, value: undefined});
+                                          m.onChange();
+                                      }
+                                  }
                                   return true;
                               }
                               if(!isNaN(prop)) {
                                   prop = parseInt(prop);
                                   try {
-                                      if (typeof m.children[prop] === "undefined") {
-                                          instance = m.getValueInstance();
-
+                                      if (typeof target[prop] !== "undefined") {
+                                          instance = m.getValueInstance(prop);
                                           instance.setValue(value);
-
-                                          m.children.push(instance);
-                                          val.push(value);
-
-
+                                          target[prop]=value;
                                       } else {
+                                          var instance = m.getValueInstance(prop);
+                                          m.children[prop]=instance;
                                           m.children[prop].setValue(value);
-                                          val[prop] = value;
+                                          target[prop]=value;
+                                          Object.defineProperty(target,"_"+prop,{
+                                              get:function(){return instance},
+                                              set:function(v){
+                                                  instance=v;
+                                                  return true;}
+                                              ,enumerable:false})
+
                                       }
                                       m["[[KEYS]]"] = m.getKeys();
-                                      m.onChange();
+                                      if(!m.eventsDisabled()) {
+                                          m.onChange();
+                                          ev.fireEvent("CHANGE", {object: target, value: value});
+                                      }
+
                                       return true;
                                   }catch(e)
                                   {
@@ -2016,31 +2170,38 @@ Siviglia.Utils.buildClass(
                           }
 
                       });
-
+                      this.value=this.proxy;
+                    this.disableEvents(true);
+                      this.updateChildren(val);
+                    this.disableEvents(false);
                       this["[[KEYS]]"]=this.getKeys();
-                  }
                 },
                 updateChildren:function(val)
                 {
-                    try {
-                        if (this.children) {
-                            for (var k = 0; k < this.children.length; k++)
-                                this.children[k].destruct();
+
+                    for (var k = 0; k < val.length; k++) {
+
+                        instance = this.getValueInstance(k);
+                        this.children[k]=instance;
+                        instance.setValue(val[k]);
+                        val[k]=instance.getValue();
+                        Object.defineProperty(val,"_"+k,{
+                                get:function(){return instance},
+                                set:function(v){
+                                    instance=v;
+                                    return true;}
+                                ,enumerable:false})
                         }
-                        this.children = [];
-                        var instance;
-                        for (var k = 0; k < val.length; k++) {
-                            instance = this.getValueInstance();
-                            instance.setValue(val[k]);
-                            this.children.push(instance);
-                        }
+                        if(!this.eventsDisabled())
                         this.onChange();
-                    }catch(e)
-                    {
-                        this.disableEvents(false);
-                        this.fireEvent("ERROR",{})
-                        throw new Siviglia.types.BaseTypeException(Siviglia.types.BaseTypeException.ERR_INVALID,{});
+                },
+                reset:function() {
+                    this.disableEvents(true);
+                    for (var k = 0; k < this.children.length; k++) {
+                        this.children[k].destruct();
                     }
+                    this.children = [];
+                    this.disableEvents(false);
                 },
                 getValue:function()
                 {
@@ -2048,6 +2209,7 @@ Siviglia.Utils.buildClass(
                 },
                 getPlainValue:function()
                 {
+                    this.save();
                     var res=[];
                     for(var k=0;k<this.proxy.length;k++)
                     {
@@ -2064,9 +2226,9 @@ Siviglia.Utils.buildClass(
                     return res;
                 },
                 getKeys: function () {
-                    if (!this.children) return [];
+                    if (!this.value) return [];
                     var res = [];
-                    for (var k = 0; k < this.children.length; k++){
+                    for (var k = 0; k < this.proxy.length; k++){
                         res.push({"LABEL":this.children[k].definition.LABEL,"VALUE":k})
                     }
                     return res;
@@ -2082,12 +2244,20 @@ Siviglia.Utils.buildClass(
                 },
                 getSourceLabel:function(){return "[[VALUE]]";},
                 getSourceValue:function(){return "[[VALUE]]";},
-                getValueInstance: function () {
+                getValueInstance: function (idx) {
 
                     var t= Siviglia.types.TypeFactory.getType(this,this.definition["ELEMENTS"],null);
                     t.setParent(this);
-                    t.setFieldName(this.children.length);
+                    if(this.proxy!==null)
+                        t.setFieldName(idx);
+                    else
+                        t.setFieldName("0");
                     return t;
+                },
+                areContentsSimple:function()
+                {
+                    var n=this.getValueInstance(0);
+                    return !n.isContainer();
                 },
                 intersect:function(val)
                 {
@@ -2095,14 +2265,14 @@ Siviglia.Utils.buildClass(
                         return val;
                     if (val.length == 0)
                         return val;
-                    var keys = this.getKeys()
+                    var keys = this.getKeys();
                     return array_compare(val, this.value, false);
 
                 },
                 save:function()
                 {
-                    if(this.children!==null)
-                        this.children.map(function(i){i.save()});
+                    if(this.value!==null)
+                        this.value.map(function(i){i.save()});
                 }
             }
         },
@@ -2303,7 +2473,7 @@ Siviglia.Utils.buildClass(
 
 /* big.js v1.0.1 https://github.com/MikeMcl/big.js/LICENCE */
 (function(e){"use strict";function a(e){var t,n,r,i=this;if(!(i instanceof a))return new a(e);if(e instanceof a){i.s=e.s,i.e=e.e,i.c=e.c.slice();return}if(e===0&&1/e<0)e="-0";else if(!o.test(e+=""))throw NaN;i.s=e.charAt(0)=="-"?(e=e.slice(1),-1):1,(t=e.indexOf("."))>-1&&(e=e.replace(".","")),(n=e.search(/e/i))>0?(t<0&&(t=n),t+=+e.slice(n+1),e=e.substring(0,n)):t<0&&(t=e.length);for(n=0;e.charAt(n)=="0";n++);if(n==(r=e.length))i.c=[i.e=0];else{for(;e.charAt(--r)=="0";);i.e=t-n-1,i.c=[];for(t=0;n<=r;i.c[t++]=+e.charAt(n++));}}function f(e,t,n,r){var i=e.c,s=e.e+t+1;if(n!==0&&n!==1&&n!==2)throw"!Big.RM!";n=n&&(i[s]>5||i[s]==5&&(n==1||r||s<0||i[s+1]!=null||i[s-1]&1));if(s<1||!i[0])e.c=n?(e.e=-t,[1]):[e.e=0];else{i.length=s--;if(n)for(;++i[s]>9;)i[s]=0,s--||(++e.e,i.unshift(1));for(s=i.length;!i[--s];i.pop());}return e}function l(e,t,n){var i=t-(e=new a(e)).e,s=e.c;s.length>++t&&f(e,i,a.RM),i=s[0]?n?t:(s=e.c,e.e+i+1):i+1;for(;s.length<i;s.push(0));return i=e.e,n==1||n==2&&(t<=i||i<=r)?(e.s<0&&s[0]?"-":"")+(s.length>1?(s.splice(1,0,"."),s.join("")):s[0])+(i<0?"e":"e+")+i:e.toString()}a.DP=20,a.RM=1;var t=1e6,n=1e6,r=-7,i=21,s=a.prototype,o=/^-?\d+(?:\.\d+)?(?:e[+-]?\d+)?$/i,u=new a(1);s.cmp=function(e){var t,n=this,r=n.c,i=(e=new a(e)).c,s=n.s,o=e.s,u=n.e,f=e.e;if(!r[0]||!i[0])return r[0]?s:i[0]?-o:0;if(s!=o)return s;t=s<0;if(u!=f)return u>f^t?1:-1;for(s=-1,o=(u=r.length)<(f=i.length)?u:f;++s<o;)if(r[s]!=i[s])return r[s]>i[s]^t?1:-1;return u==f?0:u>f^t?1:-1},s.div=function(e){var n=this,r=n.c,i=(e=new a(e)).c,s=n.s==e.s?1:-1,o=a.DP;if(o!==~~o||o<0||o>t)throw"!Big.DP!";if(!r[0]||!i[0]){if(r[0]==i[0])throw NaN;if(!i[0])throw s/0;return new a(s*0)}var l,c,h,p,d,v=i.slice(),m=l=i.length,g=r.length,y=r.slice(0,l),b=y.length,w=new a(u),E=w.c=[],S=0,x=o+(w.e=n.e-e.e)+1;w.s=s,s=x<0?0:x,v.unshift(0);for(;b++<l;y.push(0));do{for(h=0;h<10;h++){if(l!=(b=y.length))p=l>b?1:-1;else for(d=-1,p=0;++d<l;)if(i[d]!=y[d]){p=i[d]>y[d]?1:-1;break}if(!(p<0))break;for(c=b==l?i:v;b;){if(y[--b]<c[b]){for(d=b;d&&!y[--d];y[d]=9);--y[d],y[b]+=10}y[b]-=c[b]}for(;!y[0];y.shift());}E[S++]=p?h:++h,y[0]&&p?y[b]=r[m]||0:y=[r[m]]}while((m++<g||y[0]!=null)&&s--);return!E[0]&&S!=1&&(E.shift(),w.e--),S>x&&f(w,o,a.RM,y[0]!=null),w},s.minus=function(e){var t,n,r,i,s=this,o=s.s,u=(e=new a(e)).s;if(o!=u)return e.s=-u,s.plus(e);var f=s.c,l=s.e,c=e.c,h=e.e;if(!f[0]||!c[0])return c[0]?(e.s=-u,e):new a(f[0]?s:0);if(f=f.slice(),o=l-h){t=(i=o<0)?(o=-o,f):(h=l,c);for(t.reverse(),u=o;u--;t.push(0));t.reverse()}else{r=((i=f.length<c.length)?f:c).length;for(o=u=0;u<r;u++)if(f[u]!=c[u]){i=f[u]<c[u];break}}i&&(t=f,f=c,c=t,e.s=-e.s);if((u=-((r=f.length)-c.length))>0)for(;u--;f[r++]=0);for(u=c.length;u>o;){if(f[--u]<c[u]){for(n=u;n&&!f[--n];f[n]=9);--f[n],f[u]+=10}f[u]-=c[u]}for(;f[--r]==0;f.pop());for(;f[0]==0;f.shift(),--h);return f[0]||(f=[h=0]),e.c=f,e.e=h,e},s.mod=function(e){e=new a(e);var t,n=this,r=n.s,i=e.s;if(!e.c[0])throw NaN;return n.s=e.s=1,t=e.cmp(n)==1,n.s=r,e.s=i,t?new a(n):(r=a.DP,i=a.RM,a.DP=a.RM=0,n=n.div(e),a.DP=r,a.RM=i,this.minus(n.times(e)))},s.plus=function(e){var t,n=this,r=n.s,i=(e=new a(e)).s;if(r!=i)return e.s=-i,n.minus(e);var s=n.e,o=n.c,u=e.e,f=e.c;if(!o[0]||!f[0])return f[0]?e:new a(o[0]?n:r*0);if(o=o.slice(),r=s-u){t=r>0?(u=s,f):(r=-r,o);for(t.reverse();r--;t.push(0));t.reverse()}o.length-f.length<0&&(t=f,f=o,o=t);for(r=f.length,i=0;r;i=(o[--r]=o[r]+f[r]+i)/10^0,o[r]%=10);i&&(o.unshift(i),++u);for(r=o.length;o[--r]==0;o.pop());return e.c=o,e.e=u,e},s.pow=function(e){var t=e<0,r=new a(this),i=u;if(e!==~~e||e<-n||e>n)throw"!pow!";for(e=t?-e:e;;){e&1&&(i=i.times(r)),e>>=1;if(!e)break;r=r.times(r)}return t?u.div(i):i},s.round=function(e,n){var r=new a(this);if(e==null)e=0;else if(e!==~~e||e<0||e>t)throw"!round!";return f(r,e,n==null?a.RM:n),r},s.sqrt=function(){var e,t,n,r=this,i=r.c,s=r.s,o=r.e,u=new a("0.5");if(!i[0])return new a(r);if(s<0)throw NaN;s=Math.sqrt(r.toString()),s==0||s==1/0?(e=i.join(""),e.length+o&1||(e+="0"),t=new a(Math.sqrt(e).toString()),t.e=((o+1)/2|0)-(o<0||o&1)):t=new a(s.toString()),s=t.e+(a.DP+=4);do n=t,t=u.times(n.plus(r.div(n)));while(n.c.slice(0,s).join("")!==t.c.slice(0,s).join(""));return f(t,a.DP-=4,a.RM),t},s.times=function(e){var t,n=this,r=n.c,i=(e=new a(e)).c,s=r.length,o=i.length,u=n.e,f=e.e;e.s=n.s==e.s?1:-1;if(!r[0]||!i[0])return new a(e.s*0);e.e=u+f,s<o&&(t=r,r=i,i=t,f=s,s=o,o=f);for(f=s+o,t=[];f--;t.push(0));for(u=o-1;u>-1;u--){for(o=0,f=s+u;f>u;o=t[f]+i[u]*r[f-u-1]+o,t[f--]=o%10|0,o=o/10|0);o&&(t[f]=(t[f]+o)%10)}o&&++e.e,!t[0]&&t.shift();for(f=t.length;!t[--f];t.pop());return e.c=t,e},s.toString=s.valueOf=function(){var e=this,t=e.e,n=e.c.join(""),s=n.length;if(t<=r||t>=i)n=n.charAt(0)+(s>1?"."+n.slice(1):"")+(t<0?"e":"e+")+t;else if(t<0){for(;++t;n="0"+n);n="0."+n}else if(t>0)if(++t>s)for(t-=s;t--;n+="0");else t<s&&(n=n.slice(0,t)+"."+n.slice(t));else s>1&&(n=n.charAt(0)+"."+n.slice(1));return e.s<0&&e.c[0]?"-"+n:n},s.toExponential=function(e){if(e==null)e=this.c.length-1;else if(e!==~~e||e<0||e>t)throw"!toExp!";return l(this,e,1)},s.toFixed=function(e){var n,s=this,o=r,u=i;r=-(i=1/0),e==null?n=s.toString():e===~~e&&e>=0&&e<=t&&(n=l(s,s.e+e),s.s<0&&s.c[0]&&n.indexOf("-")<0&&(n="-"+n)),r=o,i=u;if(!n)throw"!toFix!";return n},s.toPrecision=function(e){if(e==null)return this.toString();if(e!==~~e||e<1||e>t)throw"!toPre!";return l(this,e-1,2)},typeof module!="undefined"&&module.exports?module.exports=a:typeof define=="function"&&define.amd?define(function(){return a}):e.Big=a})(this);
-
+Siviglia.types.typeCache={};
 Siviglia.Utils.buildClass(
 {
     context:'Siviglia.types',
@@ -2320,24 +2490,77 @@ Siviglia.Utils.buildClass(
 
                 getType:function(parent,def,val)
                 {
-                    var typePromise=$.Deferred();
-                    var type=def['TYPE'];
+                    var type;
+                    var mode="obj";
+                    if(typeof def==="object")
+                    {
+                        type=def['TYPE'];
+                    }
+                    else
+                    {
+                        type=def;
+                        mode="str";
+                    }
+
                     if(type[0]=="/")
                         type=type.substr(1);
                     var typeDotted=type.replace(/[\\|/]/g,".");
                     var fullTypeDotted="Siviglia.types."+typeDotted;
                     var ctx=Siviglia.Utils.stringToContextAndObject(fullTypeDotted);
-                    if(!ctx.object)
+                    if(typeof ctx["context"][ctx["object"]]==="undefined")
                     {
-                        // Se mira si es un tipo custom definido por un paquete.En ese caso, el nombre
-                        // tendria la forma /models/xxx/types/yyyy
+                        if(typeof Siviglia.types.typeCache[type]=="undefined") {
+                            // Se mira si es un tipo custom definido por un paquete.En ese caso, el nombre
+                            // tendria la forma /models/xxx/types/yyyy
+                            $.ajax(
+                                {
+                                    async: false,
+                                    type: 'GET',
+                                    dataType: "json",
+                                    url: Siviglia.config.metadataUrl + "/js/types/" + type,
+                                    success:function(data){
+                                        if (data === null)
+                                            throw new Siviglia.types.BaseTypeException(Siviglia.types.BaseTypeException.ERR_TYPE_NOT_FOUND, {type: type});
+                                        Siviglia.types.typeCache[type] = data;
+                                    },
+                                    complete: function (data) {
 
-                        throw "Unknown Type : "+def["TYPE"];
+                                    },
+                                    error: function (data) {
+                                        throw new Siviglia.types.BaseTypeException(Siviglia.types.BaseTypeException.ERR_TYPE_NOT_FOUND, {type: type});
+                                    }
+
+                                }
+                            );
+                        }
+                        if(typeof Siviglia.types.typeCache[type]=="undefined")
+                            throw "Unknown Type : "+def["TYPE"];
+                        var definition=Siviglia.types.typeCache[type];
+                        if(definition.type==="definition")
+                        {
+                            return this.getType(parent,definition.content,val);
+                        }
+                        else
+                        {
+                            // Si estamos aqui, es que es una clase javascript "custom".
+                            // Ademas, acaba de cargarse por Ajax, ya que, en caso contrario, se habría
+                            // encontrado ya la clase, a traves de ctx.context[ctx.object].
+                            // Asi que creamos el elemento <script> para parsear y ejecutar el script recibido.
+                            var scr=document.createElement("script");
+                            scr.text=definition.content;
+                            document.body.appendChild(scr);
+                            ctx=Siviglia.Utils.stringToContextAndObject(fullTypeDotted);
+                        }
                     }
                     // Se comprueba ahora si existe un Proxy para este tipo de objeto:
                     var newType;
-                    newType=new ctx.context[ctx.object](def,val);
+                    // Si lo que nos pasaron como tipo fue simplemente una string, se instancia
+                    // pasando como definicion un objeto vacio. Ese objeto llamara a BaseType con la
+                    // definicion correcta que necesite.
+                    if(mode!="obj")
+                        def={};
 
+                    newType=new ctx.context[ctx.object](def,val);
                     newType.setParent(parent);
                     return newType;
                 },

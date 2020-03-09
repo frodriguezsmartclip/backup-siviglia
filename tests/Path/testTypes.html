@@ -16,6 +16,20 @@
     </style>
     <script src="../../SivigliaTypes.js"></script>
     <script>
+        var Siviglia = Siviglia || {};
+        Siviglia.config = {
+            baseUrl: 'http://editor.adtopy.com/',
+            staticsUrl: 'http://statics.adtopy.com/',
+            metadataUrl:'http://metadata.adtopy.com/',
+            jsFramework: 'jquery',
+            locale: 'es-ES',
+            mapper: 'BackofficeMapper',
+            datasourcePrefix: 'datasource/'
+            //jsFramework:'dojo'
+        };
+        Siviglia.Model.initialize(Siviglia.config);
+    </script>
+    <script>
         var def = {
             "FIELDS": {
                 "f1": {
@@ -125,7 +139,8 @@
 
 <script>
     var testNumber = 0;
-
+    var runningTests=false;
+    var cbStack=[];
     function countListeners() {
         var s = 0;
         for (var k in Siviglia.Dom.existingListeners)
@@ -133,23 +148,61 @@
         return s;
     }
 
-    function runTest(name, cb, expectedResult) {
-        testNumber++;
+    function showResult(name,testNumber,expected,result,exception)
+    {
         var className = "result resultError";
         var message = "ERROR";
-        try {
-            var rs = cb.apply(null);
-            if (JSON.stringify(rs) == JSON.stringify(expectedResult)) {
+        if(!exception)
+        {
+            if (JSON.stringify(expected) == JSON.stringify(result)) {
                 className = "result resultOk";
                 message = "OK!";
             }
-        } catch (e) {
-            message += " " + e;
         }
+        else
+            message="ERROR:"+exception;
+
         var nDiv = document.createElement("div");
         nDiv.className = className;
         nDiv.innerHTML = "Test " + testNumber + " (" + name + ") : " + message;
         document.getElementById("result").appendChild(nDiv);
+    }
+    function checkTests()
+    {
+        if(runningTests==true)
+        {
+            return;
+        }
+        while(cbStack.length>0)
+        {
+            var cItem=cbStack.shift();
+            try {
+                var rs = cItem.cb.apply(null);
+                if(rs && rs.then)
+                {
+                    // Es una promesa.
+                    runningTests=true;
+                    rs.then(function(r){
+                        showResult(cItem.name,cItem.number,cItem.expectedResult,r,null);
+                        runningTests=false;
+                        checkTests();
+                    })
+                    return;
+                }
+                else
+                    showResult(cItem.name,cItem.number,cItem.expectedResult,rs,null);
+
+            } catch (e) {
+                showResult(cItem.name,cItem.number,cItem.expectedResult,rs,e);
+            }
+
+        }
+    }
+    function runTest(name, cb, expectedResult) {
+        testNumber++;
+        cbStack.push({name:name,cb:cb,expectedResult:expectedResult,number:testNumber});
+        checkTests();
+
     }
 
     runTest("String", function () {
@@ -281,6 +334,39 @@
         t1.destruct();
         var n2 = countListeners();
         return flag == 2 && n2 == 0 && n == 3;
+    }, true);
+
+    // Comprobacion de objetos copia. Ver tests de Array mas abajo.
+    runTest("Comprobacion Listener TS 4", function () {
+        debugger;
+        var t1 = new Siviglia.model.BaseTypedObject(def);
+        t1.f4 = {value: {f3: "hola", f4: 25}};
+        var flag = 0;
+        t1._f4.addListener("CHANGE", null, function () {
+            flag++;
+            console.log("fire1")
+        }, "Listener t4");
+        t1.f4._value.addListener("CHANGE", null, function () {
+            flag++;
+            console.log("fire2")
+        }, "Listener value")
+        var n = countListeners();
+
+        // Se crea un objeto que va a contener la copia:
+        var h={};
+        h.q=t1._f4.getValue();
+        Siviglia.Path.eventize(h,"q");
+        var nRefChanges=0;
+        h._q.addListener("CHANGE",function(){nRefChanges++;});
+        t1.f4.value.f3="adios";
+        var status=nRefChanges==1 && flag==3;
+
+        t1.f4.TYPE = "TIPO7";
+        var status=status && nRefChanges==1 && flag==4;
+
+        t1.destruct();
+        var n2 = countListeners();
+        return flag == 4 && n2 == 0 && n == 3;
     }, true);
     runTest("Comprobacion save() en BaseTypedObject", function () {
         var t2 = new Siviglia.model.BaseTypedObject({
@@ -606,6 +692,67 @@
         return nKeys == 3 && t1.f3.cinco.sf3 == "a4";
     }, true);
 
+    // Comprobacion de que no se disparan listeners en los objetos que mantienen copias
+    // (ver ejemplo de Array, mas abajo)
+    runTest("Test simple de dictionary (2)", function () {
+        var t1 = new Siviglia.model.BaseTypedObject(
+            {
+                "FIELDS": {
+                    "f3": {
+                        "TYPE": "Dictionary",
+                        "SET_ON_EMPTY": true,
+                        "VALUETYPE": {
+                            "TYPE": "Container",
+                            "FIELDS": {
+                                "sf3": {"TYPE": "String", "MINLENGTH": 2},
+
+                            }
+                        },
+                    }
+                }
+
+            }
+        );
+
+        var nChanges = 0;
+        t1._f3.addListener("CHANGE", null, function () {
+            nChanges++
+        });
+
+        t1.f3 = {uno: {sf3: "a1"}, dos: {sf3: "a2"}};
+
+        var h={};
+        h.q=t1._f3.getValue();
+        Siviglia.Path.eventize(h,"q");
+        var nRefChanges=0;
+        h._q.addListener("CHANGE",function(){nRefChanges++;});
+        // Mientras siga siendo el mismo objeto, se deben seguir recibiendo eventos:
+        t1.f3.tres={sf3:"cc"};
+        var status=(nRefChanges==1 && nChanges==2);
+
+        // Ahora se cambia el valor completamente.Esto no deberia generar eventos en h.q
+        t1.f3={"cuatro":{sf3:"dd"},"cinco":{sf3:"ee"}};
+        status = status && (nRefChanges==1 && nChanges==3);
+
+        delete t1.f3.cuatro;
+        var ss=t1.f3["[[KEYS]]"];
+        status = status && ss.length==1 && (ss[0].LABEL=="cinco") &&
+            (typeof t1.f3.cuatro === "undefined") &&
+            (typeof t1.f3["_cuatro"] === "undefined");
+
+        t1.destruct();
+
+        // Sin embargo, hay que tener en cuenta que el listener de h.q es ahora "anonimo".
+        // h.q no tiene un destruct (era un objeto plano), pero mantiene una referencia a un EventListener,
+        // por lo que aun debe haber 1 listener activo.
+        status = status && countListeners()==1;
+
+        // Se limpian manualmente los listeners.
+        Siviglia.Dom.existingListeners=[];
+        return status;
+    }, true);
+
+
     runTest("Comprobacion de DEFAULT en  TypeSwitcher (1)", function () {
         var t1 = new Siviglia.model.BaseTypedObject(
             {
@@ -748,6 +895,7 @@
     }, true);
 
     runTest("Comprobaciones de Array (1)", function () {
+
         var t1 = new Siviglia.model.BaseTypedObject(
             {
                 "FIELDS": {
@@ -758,7 +906,7 @@
                 }
             }
         );
-        var firstStatus = (typeof t1.f3 === "undefined");
+        var firstStatus = (t1.f3 === null);
         var nErrors = 0;
         var nChanges = 0;
         t1._f3.addListener("ERROR", null, function () {
@@ -773,7 +921,7 @@
         } catch (e) {
             nExcp++;
         }
-        var secondStatus = (typeof t1.f3 === "undefined" && nErrors == 1 && nChanges == 0 && nExcp == 1);
+        var secondStatus = (t1.f3 === null && nErrors == 1 && nChanges == 0 && nExcp == 1);
         t1.f3 = ["uu"];
         var thirdStatus = (t1.f3.length == 1 && nErrors == 1 && t1.f3[0] == "uu" && nChanges == 1);
         t1.destruct();
@@ -791,7 +939,7 @@
                 }
             }
         );
-        var firstStatus = (typeof t1.f3 === "undefined");
+        var firstStatus = (t1.f3 === null);
         var nErrors = 0;
         var nChanges = 0;
         t1._f3.addListener("ERROR", null, function () {
@@ -848,13 +996,69 @@
         } catch (e) {
             nExcp++;
         }
-        var secondStatus = (typeof t1.f3 == "undefined" && nErrors == 1 && nChanges == 0 && nExcp == 1);
+        var secondStatus = (t1.f3 == null && nErrors == 1 && nChanges == 0 && nExcp == 1);
         t1.f3 = [{sf1: "aaa", sf2: 20}];
         var thirdStatus = (t1.f3.length == 1 && nErrors == 1 && nChanges == 1 && nExcp == 1);
         var curPath = t1.f3[0]._sf1.getFullPath();
         var fourthStatus = (curPath == "/f3/0/sf1");
         t1.destruct();
         return secondStatus && thirdStatus && fourthStatus && countListeners() == 0;
+    }, true);
+    // Se comprueba que cuando se hace getValue() de un tipo, y se sobreescribe el tipo,
+    // no se reciben nuevos eventos.
+    // Supongamos un Array con valor [2,3,4]. Si alguien asigna a "obj" un getValue() de eso, se queda
+    // con ese array.Si al tipo Array se le asigna un nuevo valor ([5,6,7]), obj NO es notificado.
+    // Es decir, obj esta escuchando a su propia copia, no al BaseType.
+    runTest("Comprobaciones de Array (4)", function () {
+        var t1 = new Siviglia.model.BaseTypedObject(
+            {
+                "FIELDS": {
+                    "f3": {
+                        "TYPE": "Array",
+                        "ELEMENTS": {
+                            "TYPE": "String"
+                        }
+                    }
+                }
+            }
+        );
+
+        var nErrors = 0;
+        var nChanges = 0;
+        t1._f3.addListener("ERROR", null, function () {
+            nErrors++
+        });
+        t1._f3.addListener("CHANGE", null, function () {
+            nChanges++
+        });
+
+        t1.f3=["aa","bb"];
+        // Generamos una copia eventizada, para escuchar cambios.
+        var h={};
+        h.q=t1._f3.getValue();
+        Siviglia.Path.eventize(h,"q");
+        var nRefChanges=0;
+        h._q.addListener("CHANGE",function(){nRefChanges++;});
+
+        // Mientras siga siendo el mismo objeto, se deben seguir recibiendo eventos:
+        t1.f3.push("cc");
+        var status=(nRefChanges==1 && nChanges==2);
+
+        // Ahora se cambia el valor completamente.Esto no deberia generar eventos en h.q
+        t1.f3=["dd","ee","ff"];
+        status = status && (nRefChanges==1 && nChanges==3);
+        t1.destruct();
+
+        // Sin embargo, hay que tener en cuenta que el listener de h.q es ahora "anonimo".
+        // h.q no tiene un destruct (era un objeto plano), pero mantiene una referencia a un EventListener,
+        // por lo que aun debe haber 1 listener activo.
+        status = status && countListeners()==1;
+
+        // Se limpian manualmente los listeners.
+        Siviglia.Dom.existingListeners=[];
+
+
+        return status && countListeners() == 0;
     }, true);
 
     runTest("Comprobaciones de Enum (1)", function () {
@@ -1309,12 +1513,213 @@
         {
             nExcp++;
         }
+        var nSources=0;
+        t1._f3.getSource().addListener("CHANGE",null,function(){
+           nSources++;
+        });
         t1.f4={"aa":"uno","bb":"dos"};
+        var status=(nChanges4==1 && nChanges3==0 && nSources==1);
         t1.f3="aa";
-
-
+        status = status && (nChanges3==1 && t1.f3=="aa");
+        t1.f4["cc"]="tres";
+        status=status && (nChanges4==2 && nSources==2);
+        t1.f3="cc";
+        status=status && (nChanges3==2 && t1.f3=="cc");
+        t1.destruct();
+        status = status && countListeners()===0;
+        return status;
     }, true);
 
+    runTest("Source tipo PATH (2)", function () {
+        var t1 = new Siviglia.model.BaseTypedObject(
+            {
+                "FIELDS": {
+                    "f3": {
+                        "TYPE": "Integer",
+                        "SOURCE":{
+                            "TYPE":"Path",
+                            "PATH":"#../f4",
+                            "LABEL":"[%sf1%]",
+                            "VALUE":"sf2"
+                        }
+                    },
+                    "f4": {
+                        "TYPE": "Array",
+                        "ELEMENTS": {
+                            "TYPE": "Container",
+                            "FIELDS": {
+                                "sf1": {"TYPE": "String", "MINLENGTH": 2},
+                                "sf2": {"TYPE": "Integer"}
+                            }
+                        }
+                    }
+                }
+            }
+        );
+        var nChanges3 = 0;
+        t1._f3.addListener("CHANGE", null, function () {
+            nChanges3++
+        });
+        var nChanges4 = 0;
+        t1._f4.addListener("CHANGE", null, function () {
+            nChanges4++
+        });
+        var nExcp = 0;
+
+        try{
+            t1.f3=1;
+        }catch(e)
+        {
+            nExcp++;
+        }
+        var nSources=0;
+        t1._f3.getSource().addListener("CHANGE",null,function(){
+            nSources++;
+        });
+        t1.f4=[{"sf1":"AA",sf2:1},{sf1:"BB",sf2:2}];
+        var status=(nChanges4==1 && nChanges3==0 && nSources==1);
+        t1.f3=2;
+        status = status && (nChanges3==1 && t1.f3==2);
+        t1.f4.push({sf1:"cc",sf2:3});
+        status=status && (nChanges4==2 && nSources==2);
+        t1.f3=3;
+        status=status && (nChanges3==2 && t1.f3==3);
+
+        try{
+        t1.f3=10;
+        }catch(e)
+        {
+            nExcp++;
+        }
+
+        status=status && (nChanges3==2 && t1.f3==null && nExcp==2);
+        t1.destruct();
+        status = status && countListeners()===0;
+        return status;
+    }, true);
+
+    runTest("Source tipo Remoto", function () {
+        var t1 = new Siviglia.model.BaseTypedObject(
+            {
+                "FIELDS": {
+                    "f4":{
+                        "TYPE":"String"
+                    },
+                    "f3": {
+                        "TYPE": "Integer",
+                        "SOURCE":{
+                            "TYPE":"Url",
+                            "URL":"/packages/Siviglia/tests/data/[%#../f4%].json",
+                            "LABEL":"[%a%]",
+                            "VALUE":"b"
+                        }
+                    }
+                }
+            }
+        );
+        var p=$.Deferred();
+        var status=true;
+        var s=t1._f3.getSource();
+        var nValid=0;
+        var nChanged=0;
+        var expectOk;
+        s.addListener("CHANGE",function(ev,params){
+            nChanged++;
+            if(params.valid)
+            {
+                nValid++;
+            }
+            if(expectOk==1)
+            {
+                p.resolve(nValid===1);
+            }
+        });
+        s.fetch();
+
+        status=status && nChanged===1 && nValid===0;
+        if(!status)
+            return status;
+        expectOk=1;
+        t1.f4="data1";
+
+        return p;
+    }, true);
+
+    runTest("Source tipo Datasource (Framework)", function () {
+        var t1 = new Siviglia.model.BaseTypedObject(
+            {
+                "FIELDS": {
+                    "f4":{
+                        "TYPE":"String"
+                    },
+                    "f3": {
+                        "TYPE": "Integer",
+                        "SOURCE":{
+                            "TYPE":"Url",
+                            "URL":"/packages/Siviglia/tests/data/[%#../f4%].json",
+                            "LABEL":"[%a%]",
+                            "VALUE":"b"
+                        }
+                    }
+                }
+            }
+        );
+        var p=$.Deferred();
+        var status=true;
+        var s=t1._f3.getSource();
+        var nValid=0;
+        var nChanged=0;
+        var expectOk;
+        s.addListener("CHANGE",function(ev,params){
+            nChanged++;
+            if(params.valid)
+            {
+                nValid++;
+            }
+            if(expectOk==1)
+            {
+                p.resolve(nValid===1);
+            }
+        });
+        s.fetch();
+
+        status=status && nChanged===1 && nValid===0;
+        if(!status)
+            return status;
+        expectOk=1;
+        t1.f4="data1";
+
+        return p;
+    }, true);
+
+    runTest("Tipo Custom Remoto, definido via Metadata", function () {
+        var t1 = new Siviglia.model.BaseTypedObject(
+            {
+                "FIELDS": {
+                    "f4":{
+                        "TYPE":"/model/reflection/Types/types/_String"
+                    }
+                }
+            }
+        );
+        t1.f4.LABEL="Probando";
+        return t1.f4.LABEL=="Probando";
+    }, true);
+    runTest("Tipo Custom Remoto: BaseType, definido via Metadata", function () {
+        var t1 = new Siviglia.model.BaseTypedObject(
+            {
+                "FIELDS": {
+                    "f4":{
+                        "TYPE":"/model/reflection/Types/types/BaseType"
+                    }
+                }
+            }
+        );
+        t1.f4.LABEL="Probando";
+        t1.f4.TYPE={TYPE:"/model/reflection/Types/types/DateTime"};
+        t1.f4.TYPE.STRICTLYPAST=true;
+        return t1.f4.LABEL=="Probando" && t1.f4.TYPE._STRICTLYPAST.definition.TYPE=="Boolean";
+    }, true);
 
 
 </script>

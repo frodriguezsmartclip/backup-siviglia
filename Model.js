@@ -361,7 +361,7 @@ Siviglia.Utils.buildClass({
         Transport:{
             methods:
             {
-                doGet:function(url,okcallback,errCallback)
+                doGet:function async (url,okcallback,errCallback)
                 {
                     var h= $.Deferred();
                     $.ajax({
@@ -390,7 +390,7 @@ Siviglia.Utils.buildClass({
                                 if(errCallback)
                                     return errCallback(response);
                                 else
-                                    showError(response);
+                                    throw response;
                             },
                             error:function(error){
                                     if(error.error && error.error==2)
@@ -400,7 +400,7 @@ Siviglia.Utils.buildClass({
                                         return;
                                     }
                                     if(!errCallback)
-                                        showError(error);
+                                        throw error;
                                     if(errCallback)
                                         return errCallback(error);
                             }
@@ -423,11 +423,11 @@ Siviglia.Utils.buildClass({
                                 if(errCallback)
                                     return errCallback(response);
                                 else
-                                    showError(response);
+                                    throw response;
                             },
                             error:function(error){
                                 errCallback(error);
-                                //showError(error);
+                                //throw error;
                             }
                         });
                 },
@@ -533,7 +533,7 @@ Siviglia.Utils.buildClass({
                             defer.resolve(data);
                         },
                         function(error){
-                            showError(error);
+                            throw error;
                         }
                     );
                     return defer;
@@ -583,7 +583,7 @@ Siviglia.Utils.buildClass({
                         function(error)
                         {
                             p.reject(error);
-                            showError(error);
+                            throw error;
                         }
                     );
                     return p;
@@ -636,7 +636,7 @@ Siviglia.Utils.buildClass({
 
                     if(!response.data) {
                         h.reject(error);
-                        showError(error);
+                        throw error;
                     }
                     if(!p.DATASOURCES)
                     {
@@ -682,14 +682,14 @@ Siviglia.Utils.buildClass({
                             if(!response.data)
                             {
                                 h.reject(error);
-                                showError(error);
+                                throw error;
                             }
                             h.resolve(response.data);
                         },
                         function(error)
                         {
                             h.reject(error);
-                            showError(error);
+                            throw error;
                         });
                     return h;
                 },
@@ -718,7 +718,7 @@ Siviglia.Utils.buildClass({
                         function(error)
                         {
                             p.reject(error);
-                            showError(error);
+                            throw error;
                         }
                     );
                     return p;
@@ -790,7 +790,7 @@ Siviglia.Utils.buildClass({
                             function(error)
                             {
                                 /*if(!error.result)
-                                showError(error);*/
+                                throw error;*/
                                 p.reject(error);
                             }
                         );
@@ -814,7 +814,7 @@ Siviglia.Utils.buildClass({
                     },
                     function(error)
                     {
-                        showError(error);
+                        throw error;
                         p.reject(error);
                     }
                 )
@@ -833,7 +833,7 @@ Siviglia.Utils.buildClass({
                     function(d){
                         c.definition=d;
                         p.resolve(d);
-                    },function(error){showError(error);});
+                    },function(error){throw error;});
             return p;
         },
         getMemoryDataSource:function(dsName,params)
@@ -848,7 +848,7 @@ Siviglia.Utils.buildClass({
                             },
                             function(error)
                             {
-                                showError(error);
+                                throw error;
                                 p.reject(error);
                             });
 
@@ -881,7 +881,7 @@ Siviglia.Utils.buildClass({
             },
             function(error)
             {
-                showError(error);
+                throw error;
                 p.reject(error);
             });
             return p;
@@ -896,7 +896,7 @@ Siviglia.Utils.buildClass({
                 },
                 function(error)
                 {
-                    showError(error);
+                    throw error;
                 }
             );
         },
@@ -944,7 +944,7 @@ Siviglia.Utils.buildClass({
                 var m=Siviglia.Model.ModelName(d);
                 return m.namespace;},
                 function(error)
-                {showError(error);}
+                {throw error;}
             );
         },
         getPrefix:function()

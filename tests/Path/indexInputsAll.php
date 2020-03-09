@@ -3,6 +3,7 @@
     <script src="/node_modules/jquery/dist/jquery.js"></script>
     <script src="../../Siviglia.js"></script>
     <script src="../../SivigliaStore.js"></script>
+    <script src="../../SivigliaTypes.js"></script>
     <script src="../../Model.js"></script>
     <style type="text/css">
         .estilo1 {color:red}
@@ -21,6 +22,7 @@
         Siviglia.config={
             baseUrl:'http://editor.adtopy.com/',
             staticsUrl:'http://statics.adtopy.com/',
+            metadataUrl:'http://metadata.adtopy.com/',
             jsFramework:'jquery',
             locale:'es-ES',
             mapper:'BackofficeMapper',
@@ -261,6 +263,19 @@
                                             }
                                         }
                                     );
+                                    this.simpleArray=new Siviglia.types.Array(
+                                        {
+                                            "TYPE":"Array",
+                                            "ELEMENTS":{
+                                                "TYPE":"String"
+                                            }
+
+                                        }
+                                    );
+                                    this.simpleArray.setValue([
+                                        "uno","dos","tres"
+                                    ]);
+
                                     this.typeCol.push(this.stringType);
                                     this.typeCol.push(this.enumType);
                                     this.typeCol.push(this.integerType);
@@ -343,12 +358,14 @@
         </div>
         <div data-sivView="Siviglia.inputs.jqwidgets.ComboBox" data-sivParams='{"type":"/*fieldSelector"}'>
         </div>-->
-        <div data-sivView="Siviglia.inputs.jqwidgets.Container" data-sivParams='{"type":"/*simpleContainer"}'>
+        <!--<div data-sivView="Siviglia.inputs.jqwidgets.Container" data-sivParams='{"type":"/*simpleContainer"}'>
         </div>
-        <!--<div data-sivView="Siviglia.inputs.jqwidgets.Dictionary" data-sivParams='{"type":"/*simpleDictionary"}'>
-        </div>
-        <div data-sivView="Siviglia.inputs.jqwidgets.TypeSwitcher" data-sivParams='{"type":"/*simpleTypeSwitcher"}'>
+        <div data-sivView="Siviglia.inputs.jqwidgets.Dictionary" data-sivParams='{"type":"/*simpleDictionary"}'>
         </div>-->
+        <!--<div data-sivView="Siviglia.inputs.jqwidgets.TypeSwitcher" data-sivParams='{"type":"/*simpleTypeSwitcher"}'>
+        </div>-->
+        <div data-sivView="Siviglia.inputs.jqwidgets.Array" data-sivParams='{"type":"/*simpleArray"}'>
+        </div>
         <!--
         <div data-sivView="Siviglia.inputs.jqwidgets.ComboBox" data-sivParams='{"type":"/*comboType2a","inputParams":{"searchField":"label","valueField":"val"}}'>
         </div>

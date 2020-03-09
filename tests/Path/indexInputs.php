@@ -26,6 +26,7 @@
         Siviglia.config = {
             baseUrl: 'http://editor.adtopy.com/',
             staticsUrl: 'http://statics.adtopy.com/',
+            metadataUrl:'http://metadata.adtopy.com/',
             jsFramework: 'jquery',
             locale: 'es-ES',
             mapper: 'BackofficeMapper',

@@ -17,10 +17,10 @@ Siviglia.Utils.buildClass(
                               {
                                   var typeMap={
                                       "Array":"ArrayDataSource",
-                                      "DataSource":"FrameworkDataSource",
+                                      "DataSource":"TypedFrameworkDataSource",
                                       "Url":"RemoteDataSource",
                                       "Path":"PathDefinedDataSource",
-                                      "TypedDataSource:":"TypedFrameworkDataSource"
+
                                   };
                                   var type=typeMap[source.TYPE];
                                   if(typeof type=="undefined")
@@ -57,6 +57,7 @@ Siviglia.Utils.buildClass(
                             this.pstring=null;
                             this.data=null;
                             this.EventManager();
+
                         },
                         destruct:function()
                         {
@@ -69,6 +70,10 @@ Siviglia.Utils.buildClass(
                         },
                         methods:
                             {
+                                isAsync:function()
+                                {
+                                    return false;
+                                },
                                 processSource:function(source)
                                 {
                                     return source;
@@ -79,12 +84,7 @@ Siviglia.Utils.buildClass(
                                 },
                                 fetch:function()
                                 {
-                                    if(!this.pstring) {
-                                        var parametrized=JSON.stringify(this.source);
-                                        this.pstring = new Siviglia.Path.ParametrizableString(parametrized, this.stack);
-                                        this.pstring.addListener("CHANGE",this,"onListener");
-                                    }
-                                    this.pstring.parse();
+
                                 },
                                 _dofetch:function(source)
                                 {
@@ -202,6 +202,7 @@ Siviglia.Utils.buildClass(
                                                 this.valsArray = this.pstring.getPath();
                                             } catch (e) {
                                                 this.valsArray = null;
+                                                this.onData(null);
                                             }
                                         }
                                     }
@@ -211,6 +212,31 @@ Siviglia.Utils.buildClass(
                                 }
                             }
                     },
+                /*
+                En el objectDefinedDataSource, el parametro source es un objeto de la
+                complejidad que sea.El asunto es que ese objeto, se procesa y se convierte en una simple
+                cadena, en processSource.
+                Asi, cuanlquier referencia a un path dentro de la definicion, sera resuelta, y luego, en
+                el _dofetch, y en el onListener, se deshace el cambio, volviendo a ser el objeto de la complejidad inicial.
+                 */
+                    ObjectDefinedDataSource:
+                        {
+                            inherits:"BaseDataSource",
+                            methods:
+                                {
+                                    processSource:function(source)
+                                    {
+                                        return source;
+                                    },
+                                    onListener:function(evName, params)
+                                    {
+                                        var source=params.value;
+                                        this._dofetch(JSON.parse(source));
+                                    }
+
+                                }
+
+                        },
                 /**
                  * Un PathDefinedDataSource, no utiliza una parametrizable string.Su resultado no es una string, es el valor de la
                  * variable apuntada por el path.
@@ -220,6 +246,11 @@ Siviglia.Utils.buildClass(
                 PathDefinedDataSource:
                         {
                            inherits:"BaseDataSource",
+                            destruct:function()
+                            {
+                                if(this.pathController)
+                                    this.pathController.destruct();
+                            },
                             methods:
                                 {
                                     fetch:function()
@@ -227,11 +258,20 @@ Siviglia.Utils.buildClass(
                                         var source=this.source["PATH"];
                                         if(source[0]!="#")
                                             source="#"+source;
-                                        if(!this.pstring) {
-                                            this.pstring = new Siviglia.Path.ParametrizableString(this.source["PATH"], this.stack);
-                                            this.pstring.addListener("CHANGE",this,"onListener");
+                                        if(!this.pathController) {
+                                            var str = this.source["PATH"];
+                                            this.pathController = new Siviglia.Path.PathResolver(this.stack, str);
+                                            this.pathController.addListener("CHANGE", this, "onListener");
+                                            try {
+                                                var res = this.pathController.getPath();
+                                                if (this.pathController.isValid()) {
+                                                    this.onData(res);
+                                                }
+                                            }catch(e)
+                                            {
+                                                this.onData(null);
+                                            }
                                         }
-                                        this.pstring.parse();
                                     },
                                     // Su valor, es el que haya resuelto el listener de la parametrizable string.
                                     onListener:function(event,params)
@@ -258,17 +298,37 @@ Siviglia.Utils.buildClass(
                     construct:function(source,controller,stack)
                     {
                         this.ObjectDefinedDataSource(source,controller,stack);
-                        this.transport=new Siviglia.Model.Transport();
+
+
                     },
                     methods:
                         {
+                            isAsync:function()
+                            {
+                                return true;
+                            },
+                            fetch:function()
+                            {
+                                if(!this.pstring) {
+                                    var parametrized=JSON.stringify(this.source.URL);
+                                    this.pstring = new Siviglia.Path.ParametrizableString(parametrized, this.stack);
+                                    this.pstring.addListener("CHANGE",this,"onListener");
+                                }
+                                try {
+                                    this.pstring.parse();
+
+                                }catch(e)
+                                {
+                                    this.onData(null);
+                                }
+                            },
                             _dofetch:function(def)
                             {
-                                if(typeof def=="string")
-                                    def=JSON.parse(def);
+                                //if(typeof def=="string")
+                                //    def=JSON.parse(def);
                                 var m=this;
                                 var parameters=def.PARAMS;
-                                var options=def.options;
+                                var options=def.OPTIONS;
                                 var allP={};
                                 if(parameters)
                                 {
@@ -280,24 +340,25 @@ Siviglia.Utils.buildClass(
                                     for(var k in options)
                                         allP[k]=options[k];
                                 }
-                                var baseUrl=def.url;
-                                if(typeof def.params!=="undefined")
-                                {
-                                    var url=new URL(baseUrl);
-                                    var search=url.searchParams;
-                                    for(var k in def.params)
-                                        search.append(k,def.params[k]);
-                                    baseUrl=url.toString();
-                                }
+
+                                var baseUrl=def;
+
 
                                 this.fireEvent(Siviglia.Data.BaseDataSource.EVENT_LOADING);
-                                this.transport.doGet(baseUrl).then(function(data){
-
-                                    m.onData(data);
-                                },function(e){
-
-                                    m.fireEvent(Siviglia.Data.BaseDataSource.EVENT_LOAD_ERROR);
-                                });
+                                try {
+                                    $.ajax({
+                                        async: true,
+                                        dataType: 'json',
+                                        data: '',
+                                        type: 'GET',
+                                        url: baseUrl,
+                                    }).then(function(data){
+                                        m.onData(data);
+                                    });
+                                }catch(e)
+                                {
+                                    this.fireEvent(Siviglia.Data.BaseDataSource.EVENT_LOAD_ERROR);
+                                }
                             }
 
                         }
