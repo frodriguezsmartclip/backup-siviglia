@@ -1,0 +1,172 @@
+<html>
+<head>
+    <script src="/node_modules/jquery/dist/jquery.js"></script>
+    <script src="../../../Siviglia.js"></script>
+    <!-- Estan las diferentes formas de obtener fuentes de datos, para los tipos.
+    Ejemplos: ajax, fuente de datos array, un path.   -->
+    <script src="../../../SivigliaStore.js"></script>
+
+    <!-- La capa de más alto nivel. "Dame este modelo, cargarlo, guardalo, dame el datasource de este
+    modelo, etc... TODO referido a modelos.  -->
+    <script src="../../../Model.js"></script>
+
+    <!-- Gestion de tipos por el lado del cliente (al igual que hay en el lado del servidor) -->
+    <script src="../../../SivigliaTypes.js"></script>
+    <style type="text/css">
+        .uno {border: 2px solid black;}
+        .dos {border: 2px solid red;}
+    </style>
+<script>
+        //var contextStack = new Siviglia.Path.ContextStack();
+        var obj = {
+            paises: {"espana": ["Madrid","Sevilla","Barcelona"],
+                    "francia": ["Paris","asdas","asdasdas"]
+            },
+            clname: "uno",
+            myId: 5
+        };
+        var obj2 = {
+            //a:1
+            //h:"b"
+            h:"espana"
+        };
+
+        
+       /* setTimeout(function(){
+            obj.paises.Inglaterra=["Londres","Northanpoton"];
+        },3000);
+        */
+
+        function callMe(node,params){
+            console.dir(node);
+            console.dir(params);
+        }
+
+        Siviglia.Utils.buildClass({
+            "context": "Test",
+            "classes":{
+                "Test1":{
+                    "inherits": "Siviglia.UI.Expando.View",
+                    methods:{
+                        preInitialize:function(params){
+                            this.pepito2=params.uno;
+                            this.pepito="HOLA";
+                        },
+                        initialize:function(params){},
+                        initNode:function(node,params){
+                            //node.html("<div style='color: red'>"+params.curPais+"</div>");
+                            var asd = "Test.Test2";
+                            if (params.curPais =="francia"){
+                                asd = "Test.Test3";
+                            }
+                            var widget= new Test.Test2(
+                                // primer parametro, nombre de la plantilla
+                                //"Test.Test2",   //nombre widget
+                                asd,
+                                {country: params.curPais},  // parametros
+                                {},         // unsued
+                                $('<div></div>'),   // nodo
+                                this.__context      // contexto
+                            );
+                            widget.__build();       // construyo
+                            node.append(widget.rootNode);   // append
+                        }
+                    }
+                },
+                "Test2":{
+                    "inherits": "Siviglia.UI.Expando.View",
+                    methods:{
+                        preInitialize:function(params){
+                            this.country=params.country;
+                        },
+                        initialize:function(params){},
+                    }
+                }
+            }
+        })
+
+     /*   setTimeout(function(){
+            delete obj.paises.espana;
+        },3000);
+        */
+
+/*
+        setTimeout(function(){
+            obj.clname="dos";
+        },3000);
+
+        setTimeout(function(){
+            obj.myId=24;
+        },3000);
+        
+        */
+        // contextos reservados * y @
+
+      
+</script>
+</head>
+<body>
+<!-- expandiendo el ::class|[%#clname%] -->
+<!-- loop-expando USA un Path-->
+<!-- itera sobre arrays y dictionarios
+
+    en el valor de "current", va a tener el valor actual de la iteracion
+    current-index -> indice actual  ([%@current-index%])
+
+    hacer un nest.
+-->
+
+<!-- 
+<div data-sivLoop="#paises" data-contextIndex="current">
+    <div data-sivLoop="#paises/{@current}" data-contextIndex="innerCurrent">
+     <a data-sivValue="Una ciudad de [%@current-index%] es [%#paises/{%@current-index%}/2%]::class|[%#clname%]::href|http://www.pepito.com/user?usreId=[%#myId%]"></a>
+        <a data-sivValue="Una ciudad de [%@current-index%] es [%@innerCurrent%]"></a>
+    </div>
+</div>
+-->
+
+<div style="display:none">
+    <div data-sivWidget="Test.Test1" data-widgetCode="Test.Test1">
+        <div data-sivValue="[%*pepito%]"></div> <!-- referencia  -->
+        <div data-sivValue="[%*pepito2%]"></div> <!-- referencia  -->
+
+        <div data-sivLoop="#paises" data-contextIndex="current">
+            <a data-sivValue="Una ciudad de [%@current-index%] es [%#paises/{%@current-index%}/2%]::class|[%#clname%]::href|http://www.pepito.com/user?usreId=[%#myId%]"></a>
+            <div data-sivEvent="click" data-sivCallback="callMe" data-sivParams='{"current":"@current-index"}'>click</div>
+            <div data-sivCall="initNode" data-sivParams='{"curPais": "@current-index"}'></div>
+        </div>
+        
+    </div>
+
+    <div data-sivWidget="Test.Test2" data-widgetCode="Test.Test2">
+        <div style="background-color: yellow" data-sivValue="/*country"></div>
+    </div>
+
+    <div data-sivWidget="Test.Test3" data-widgetCode="Test.Test2">
+        <div style="background-color: blue" data-sivValue="/*country"></div>
+    </div>    
+
+</div>
+
+<!-- 
+
+data-sivWidget="Test.Test1" nombre del widget
+
+queremoc crear una instancia del anterior
+
+ -->
+
+<div data-sivView="Test.Test1" data-sivParams='{"uno":1}'></div>
+<div data-sivView="Test.Test1" data-sivParams='{"uno":2}'></div>
+<div data-sivView="Test.Test1" data-sivParams='{"uno":3}'></div>
+<div data-sivView="Test.Test1" data-sivParams='{"uno":4}'></div>
+
+
+<script>
+    var parser=new Siviglia.UI.HTMLParser();
+    parser.addContext("#",obj);
+    parser.addContext("!",obj2);
+    parser.parse($(document.body));
+</script>
+</body>
+</html>

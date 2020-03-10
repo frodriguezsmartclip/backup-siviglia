@@ -1,0 +1,77 @@
+<html>
+<head>
+    <script src="/node_modules/jquery/dist/jquery.js"></script>
+    <script src="../../../Siviglia.js"></script>
+    <!-- Estan las diferentes formas de obtener fuentes de datos, para los tipos.
+    Ejemplos: ajax, fuente de datos array, un path.   -->
+    <script src="../../../SivigliaStore.js"></script>
+
+    <!-- La capa de más alto nivel. "Dame este modelo, cargarlo, guardalo, dame el datasource de este
+    modelo, etc... TODO referido a modelos.  -->
+    <script src="../../../Model.js"></script>
+
+    <!-- Gestion de tipos por el lado del cliente (al igual que hay en el lado del servidor) -->
+    <script src="../../../SivigliaTypes.js"></script>
+    <style type="text/css">
+        .uno {border: 2px solid black;}
+        .dos {border: 2px solid red;}
+    </style>
+<script>
+        //var contextStack = new Siviglia.Path.ContextStack();
+        var obj = {
+            paises: {"espana": ["Madrid","Sevilla","Barcelona"],
+                    "francia": ["Paris","asdas","asdasdas"]
+            },
+            clname: "uno",
+            myId: 5
+        };
+        var obj2 = {
+            //a:1
+            //h:"b"
+            h:"espana"
+        };
+
+        setTimeout(function(){
+            obj2.h="francia";
+        },3000);
+
+        setTimeout(function(){
+            obj.clname="dos";
+        },3000);
+
+        setTimeout(function(){
+            obj.myId=24;
+        },3000);
+
+ /*       var plainCtx = new Siviglia.Path.BaseObjectContext(obj, "#", contextStack);
+        var plainCtx2 = new Siviglia.Path.BaseObjectContext(obj2, "!", contextStack);
+
+        // [%xxx%]
+        var ps = new Siviglia.Path.ParametrizableString("Una ciudad de [%!h%] es [%#paises/{%!h%}/2%]",contextStack);
+        ps.addListener("CHANGE",null,function(evName,params){
+            console.dir(params);
+        });
+        ps.parse();
+*/
+
+        
+
+        // HTMLParser busca expandos
+
+      
+</script>
+</head>
+<body>
+<!-- expandiendo el ::class|[%#clname%] -->
+<a data-sivValue="Una ciudad de [%!h%] es [%#paises/{%!h%}/2%]::class|[%#clname%]::href|http://www.pepito.com/user?usreId=[%#myId%]"></a>
+
+<script>
+    var parser=new Siviglia.UI.HTMLParser();
+    parser.addContext("#",obj);
+    parser.addContext("!",obj2);
+    parser.parse($(document.body));
+
+
+</script>
+</body>
+</html>

@@ -1,0 +1,94 @@
+<html>
+<head>
+    <script src="/node_modules/jquery/dist/jquery.js"></script>
+    <script src="../../../Siviglia.js"></script>
+    <!-- Estan las diferentes formas de obtener fuentes de datos, para los tipos.
+    Ejemplos: ajax, fuente de datos array, un path.   -->
+    <script src="../../../SivigliaStore.js"></script>
+
+    <!-- La capa de más alto nivel. "Dame este modelo, cargarlo, guardalo, dame el datasource de este
+    modelo, etc... TODO referido a modelos.  -->
+    <script src="../../../Model.js"></script>
+
+    <!-- Gestion de tipos por el lado del cliente (al igual que hay en el lado del servidor) -->
+    <script src="../../../SivigliaTypes.js"></script>
+<script>
+        Siviglia.Utils.buildClass({
+            context: "Test",
+            classes:{
+                "Test":{
+                    // le gusta este orden, constructor, destructor metodos
+                    construct:function(){ console.log("construct Test")},
+                    destruct:function(){console.log("destruct Test")},
+                    methods:{
+                        metodo1:function(){console.log("metodo1 Test")},
+                        metodo2:function(){console.log("metodo2 Test")},
+                    }
+                },
+                "Test2":{
+                    inherits:"Test", 
+                    // Si no se pone punto, significa que está en el mismo contexto
+                    // Test.Test  es = a poner solo Test1
+                    //inherits: "Clase1, clase2, etc" por comas se pueden heredar más clases
+                    construct:function(){
+                        console.log("construct Test2");
+                        this.Test();
+                    },
+                    destruct:function(){console.log("destruct Test2")},
+                    methods:{
+                        metodo1:function(){
+                            this.Test$metodo1();
+                            console.log("metodo1 Test2");
+                        },
+                        metodo3:function(){console.log("metodo3 Test2")}
+                    }
+                },
+            }
+        });
+        var s=new Test.Test();  // instancia de Test
+        s.metodo1();
+        s.destruct();
+
+        //instancia de textos
+        var s2=new Test.Test2();
+        // desde s2, queremos llamar al constructor del padre con this.Test();
+
+        // llamar a un metodo NO sobreescrito
+        s2.metodo3(); 
+        //llamar a un metodo SI sobrerescrito this.Test$metodo1();
+        s2.metodo1();
+
+        // destructor al s2
+        s2.destruct();  // los destructores llaman a todos los padres y siempre llaman en cascada
+
+
+/* sites\statics\html\packages\Siviglia\Siviglia.js  linea 354
+
+Siviglia.Dom.EventManager  --> Gestor de eventos de siviglia
+
+Las funciones más usadas:
+
+- addlistener
+- fireEvent
+
+AddListener (tipo, null ,function, description)
+
+
+
+
+
+*/
+
+</script>
+</head>
+<body>
+
+
+<script>
+    var obj1={"uno": 1};
+    var parser=new Siviglia.UI.HTMLParser();
+    parser.addContext("/",obj1);
+    parser.parse($(document.body));
+</script>
+</body>
+</html>

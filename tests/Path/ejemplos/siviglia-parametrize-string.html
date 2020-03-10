@@ -1,0 +1,59 @@
+<html>
+<head>
+    <script src="/node_modules/jquery/dist/jquery.js"></script>
+    <script src="../../../Siviglia.js"></script>
+    <!-- Estan las diferentes formas de obtener fuentes de datos, para los tipos.
+    Ejemplos: ajax, fuente de datos array, un path.   -->
+    <script src="../../../SivigliaStore.js"></script>
+
+    <!-- La capa de más alto nivel. "Dame este modelo, cargarlo, guardalo, dame el datasource de este
+    modelo, etc... TODO referido a modelos.  -->
+    <script src="../../../Model.js"></script>
+
+    <!-- Gestion de tipos por el lado del cliente (al igual que hay en el lado del servidor) -->
+    <script src="../../../SivigliaTypes.js"></script>
+<script>
+        var contextStack = new Siviglia.Path.ContextStack();
+        var obj = {
+            //a:1
+            //a:{b:1,c:2}
+            paises: {"espana": ["Madrid","Sevilla","Barcelona"],
+                    "francia": ["Paris","lyon","bayona"],
+                    "italia": []
+            }
+        };
+        var obj2 = {
+            //a:1
+            //h:"b"
+            h:"espana"
+        };
+        var plainCtx = new Siviglia.Path.BaseObjectContext(obj, "#", contextStack);
+        var plainCtx2 = new Siviglia.Path.BaseObjectContext(obj2, "!", contextStack);
+
+        // [%xxx%]
+        var ps = new Siviglia.Path.ParametrizableString("Una ciudad de [%!h%] es [%#paises/{%!h%}/2%]",contextStack);
+        ps.addListener("CHANGE",null,function(evName,params){
+            console.dir(params);
+        });
+        ps.parse();
+
+        setTimeout(function(){
+            obj2.h="francia";
+        },3000);
+
+        // HTMLParser busca expandos
+
+      
+</script>
+</head>
+<body>
+
+
+<script>
+    var obj1={"uno": 1};
+    var parser=new Siviglia.UI.HTMLParser();
+    parser.addContext("/",obj1);
+    parser.parse($(document.body));
+</script>
+</body>
+</html>

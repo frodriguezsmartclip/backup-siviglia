@@ -327,17 +327,17 @@
             "Segunda":{"Dos":22,"Uno":"wannn"}
         });
         ins.removeItem("Segunda");*/
-    </script>
+</script>
 </head>
 <body>
 <?php include_once("../../jQuery/JqxWidgets.html");?>
 <div style="display:none">
     <div data-sivWidget="Test.SimpleWidget" data-widgetParams="" data-widgetCode="Test.SimpleWidget">
 
-        <!--<div data-sivView="Siviglia.inputs.jqwidgets.String" data-sivParams='{"type":"/*stringType"}'>
+        <div data-sivView="Siviglia.inputs.jqwidgets.String" data-sivParams='{"type":"/*stringType"}'>
         </div>
 
-        <div data-sivView="Siviglia.inputs.jqwidgets.Enum" data-sivParams='{"type":"/*enumType"}'>
+        <!--<div data-sivView="Siviglia.inputs.jqwidgets.Enum" data-sivParams='{"type":"/*enumType"}'>
         </div>-->
 
 <!--        <div data-sivView="Siviglia.inputs.jqwidgets.Integer" data-sivParams='{"type":"/*integerType"}'>
@@ -364,8 +364,8 @@
         </div>-->
         <!--<div data-sivView="Siviglia.inputs.jqwidgets.TypeSwitcher" data-sivParams='{"type":"/*simpleTypeSwitcher"}'>
         </div>-->
-        <div data-sivView="Siviglia.inputs.jqwidgets.Array" data-sivParams='{"type":"/*simpleArray"}'>
-        </div>
+        <!-- <div data-sivView="Siviglia.inputs.jqwidgets.Array" data-sivParams='{"type":"/*simpleArray"}'>
+        </div> -->
         <!--
         <div data-sivView="Siviglia.inputs.jqwidgets.ComboBox" data-sivParams='{"type":"/*comboType2a","inputParams":{"searchField":"label","valueField":"val"}}'>
         </div>
@@ -373,7 +373,7 @@
         </div>
         <div data-sivView="Siviglia.inputs.jqwidgets.ComboBox" data-sivParams='{"type":"/*comboType2c","inputParams":{"searchField":"message","valueField":"a"},"sourceParams":{"mysource":"/*comboType2b"}}'>
         </div>-->
-        <input type="button" data-sivEvent="click" data-sivCallback="show" value="show">
+        <!-- <input type="button" data-sivEvent="click" data-sivCallback="show" value="show"> -->
     </div>
 </div>
 <div data-sivView="Test.SimpleWidget"></div>

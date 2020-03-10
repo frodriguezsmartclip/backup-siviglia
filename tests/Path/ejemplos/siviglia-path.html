@@ -1,0 +1,75 @@
+<html>
+<head>
+    <script src="/node_modules/jquery/dist/jquery.js"></script>
+    <script src="../../../Siviglia.js"></script>
+    <!-- Estan las diferentes formas de obtener fuentes de datos, para los tipos.
+    Ejemplos: ajax, fuente de datos array, un path.   -->
+    <script src="../../../SivigliaStore.js"></script>
+
+    <!-- La capa de más alto nivel. "Dame este modelo, cargarlo, guardalo, dame el datasource de este
+    modelo, etc... TODO referido a modelos.  -->
+    <script src="../../../Model.js"></script>
+
+    <!-- Gestion de tipos por el lado del cliente (al igual que hay en el lado del servidor) -->
+    <script src="../../../SivigliaTypes.js"></script>
+<script>
+        var contextStack = new Siviglia.Path.ContextStack();
+        var obj = {
+            //a:1
+            a:{b:1,c:2}
+        };
+        var plainCtx = new Siviglia.Path.BaseObjectContext(obj, "#", contextStack);
+
+        //path valido #a
+
+        //una vez construido lo anterior, ya podemos preguntar por paths
+
+        // BaseCursos -> un "iterador" de directorios, para saber como moverse entre directorios
+        // PathResolver, resuelve esto
+
+        var pathResolver = new Siviglia.Path.PathResolver(contextStack,"#a/d");
+        //pathrresolver hereda de eventManager
+        pathResolver.addListener("CHANGE",null,function(evName,params){
+            console.dir(params);
+        });
+        pathResolver.getPath();
+
+        // path No es algo que exista, si no que pueda llegar a existe
+        setTimeout(function(){
+            obj.a.d=14;
+        },3000);
+
+        setTimeout(function(){
+            //obj.a.d=27;
+            delete obj.a.d;
+        },4000);
+
+        /*
+Salida de ejemplo:
+
+Object
+value: 1
+valid: true   --> 
+target: undefined
+src: construct {contexts: construct, remlisteners: Array(0), path: "#a", cursors: Array(1), valid: true, …}
+__proto__: Object
+        
+        */
+
+        // Siviglia.Path. dada una serie de contexto, resolver un contexto
+        // contexto de javascript, resolverlo como un sistema de directorio
+        // {z:{q:"c"}}   a/b/{%*z/q%}   --> a/b/c
+
+</script>
+</head>
+<body>
+
+
+<script>
+    var obj1={"uno": 1};
+    var parser=new Siviglia.UI.HTMLParser();
+    parser.addContext("/",obj1);
+    parser.parse($(document.body));
+</script>
+</body>
+</html>
