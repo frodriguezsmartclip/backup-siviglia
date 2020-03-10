@@ -357,16 +357,36 @@
         h.q=t1._f4.getValue();
         Siviglia.Path.eventize(h,"q");
         var nRefChanges=0;
+        // El objeto "copia", monta un listener para contar los cambios que él ve.
         h._q.addListener("CHANGE",function(){nRefChanges++;});
-        t1.f4.value.f3="adios";
-        var status=nRefChanges==1 && flag==3;
 
+        // Cambiar un campo interno, no dispara ningun evento sobre el typeSwitcher
+        t1.f4.value.f3="adios";
+        var status=nRefChanges==0 && flag==0;
+
+        // Aqui, se cambia el tipo, desde el typeSwitcher, lo cual debe generar un evento
+        // que se puede leer desde la copia.
         t1.f4.TYPE = "TIPO7";
-        var status=status && nRefChanges==1 && flag==4;
+        // Al haberse leido desde la copia, nRefChanges debe ser 1,  y flag, 1
+        var status=status && nRefChanges==1 && flag==1;
+
+        // Hacemos 1 cambio, desde la copia:
+        h.q.TYPE="TIPO6";
+        // Este cambio debe haberse leido desde los dos listeners:
+        status=status && nRefChanges==2 && flag==2;
+
+        // Ahora, se CAMBIA el valor completo del Typeswitcher. La copia
+        // debe seguir escuchando al objeto antiguo, por lo que cualquier cambio
+        // a partir de entonces, solo dispara el listener del typeswitcher, no de la copia.
+        t1.f4={"TYPE":"TIPO7","value":{"f1":"aaa"}};
+        status = status && nRefChanges==2 && flag==3;
 
         t1.destruct();
+        // Y ese objeto copia, aun tiene el listener, porque no se puede destruir (aun)
         var n2 = countListeners();
-        return flag == 4 && n2 == 0 && n == 3;
+        // Limpiamos los listeners para que no influyan en los siguientes tests
+        Siviglia.Dom.existingListeners=[];
+        return flag == 3 && n2 == 1 && n == 2;
     }, true);
     runTest("Comprobacion save() en BaseTypedObject", function () {
         var t2 = new Siviglia.model.BaseTypedObject({
@@ -1056,6 +1076,11 @@
 
         // Se limpian manualmente los listeners.
         Siviglia.Dom.existingListeners=[];
+
+        // Scomprobacion de path.
+        var fPath=t1.f3._0.getFullPath();
+
+        status=status && t1.f3._0.getFullPath()=="/f3/0";
 
 
         return status && countListeners() == 0;

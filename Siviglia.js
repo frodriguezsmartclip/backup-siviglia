@@ -672,6 +672,7 @@ Siviglia.Utils.buildClass(
                     {
                         //if(this.__lastTyped==true)
                         //    return this.pointer.getValue();
+
                         return this.pointer;
                     },
                     addPathListener:function(parent,propName)
@@ -1470,6 +1471,8 @@ Siviglia.Utils.buildClass(
                     },
                     methods: {
                         update: function (val) {
+                            if(typeof val.__type__!=="undefined")
+                                val=val.getValue();
                             if (Siviglia.isString(val)) {
                                 var parts = val.split("::");
                                 for (var k = 0; k < parts.length; k++) {
@@ -1577,6 +1580,8 @@ Siviglia.Utils.buildClass(
                         },
                         updateParams:function(pName,pValue)
                         {
+                            if(typeof pValue.__type__!=="undefined")
+                                val=pValue.getValue();
                             this.paramValues[pName]=pValue;
                             if(this.disableEvents==false)
                                 this.fireEvent("CHANGE", {value: this.paramValues});
@@ -1642,6 +1647,8 @@ Siviglia.Utils.buildClass(
                             this.oManager = new Siviglia.UI.HTMLParser(this.ownStack);
 
                             var val = params.value;
+                            if(typeof params.value.__type__!=="undefined")
+                                val=params.value.getValue();
                             if (!val)
                                 val = [];
 

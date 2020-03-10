@@ -931,7 +931,8 @@
                                 onRemoveItem:function(node,params)
                                 {
                                     var idx=params.index;
-                                    this.type.getValue().splice(0,idx);
+                                    var v=this.type.getValue();
+                                    v.splice(idx,1);
                                 },
                                 onNewItem:function()
                                 {
@@ -939,6 +940,10 @@
                                         this.value.push(this.newInstance.getValue());
                                     this.newItemSelector._setInputValue("");
                                     this.newItemSelector.inputNode.focus();
+                                },
+                                onTypeChanged:function()
+                                {
+
                                 }
 
                             }
@@ -1482,7 +1487,7 @@
             <div data-sivWidget="Siviglia.inputs.jqwidgets.Array" data-widgetParams="parentObject,parentNode,value" data-widgetCode="Siviglia.inputs.jqwidgets.Array" class="ArrayType">
                 <!--<p class="text-info description" data-sivValue="/*description"></p>-->
                 <div data-sivIf="[%/*hasSimpleType%] == true" >
-                    <div data-sivLoop="/*value" data-contextIndex="current" class="arrayValues" style="min-height:20px;margin-bottom:5px">
+                    <div data-sivLoop="/*type" data-contextIndex="current" class="arrayValues" style="min-height:20px;margin-bottom:5px">
                         <span style="border:2px solid red;margin:3px;padding:2px;border-radius:5px">
                             <span  data-sivValue="/@current"></span>
                             <button style="color:red" data-sivEvent="click" data-sivCallback="onRemoveItem" data-sivParams='{"index":"/@current-index"}'>x</button>
@@ -1500,7 +1505,10 @@
                             <span class="remove ion-close-circled " style="color:red;padding-left:5px" data-sivEvent="click" data-sivCallback="onRemoveClicked" data-sivParams='{"key":"/@current"}'></span>
                         </span>
                     </div>
+                    <div data-sivId="newItemNode" data-sivCall="buildNewItemWidget"></div>
+                    <button data-sivId="addSimpleItem"  data-sivEvent="click" data-sivCallback="onNewItem">Add</button>
                 </div>
+
 
 
             </div>
