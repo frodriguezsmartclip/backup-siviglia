@@ -373,8 +373,6 @@ Siviglia.Utils.buildClass({
                     return;
                 }
                 this.destroyListeners();
-
-
             },
             methods: {
                 addListener: function (evType, object, method, description) {
@@ -1315,7 +1313,7 @@ Siviglia.Path.Proxify=function(obj,ev)
         {
             delete curVal[prop];
             if(!__disableEvents__)
-                ev.fireEvent("CHANGE",{object:obj,property:propName,value:undefined});
+                ev.fireEvent("CHANGE",{object:obj,property:prop,value:undefined});
         }
     });
     return objProxy;
@@ -1643,6 +1641,8 @@ Siviglia.Utils.buildClass(
                                 this.childNodes[k].remove();
 
                             this.reset();
+                            if(params.valid===false)
+                                return;
                             this.ownStack = this.stack.getCopy();
                             this.oManager = new Siviglia.UI.HTMLParser(this.ownStack);
 
@@ -1656,7 +1656,11 @@ Siviglia.Utils.buildClass(
                             var newNode;
                             var cb = (function (key, value) {
                                 contextRoot = {};
-                                var contextContext = new Siviglia.Path.BaseObjectContext(contextRoot, "@", this.ownStack);
+                                if(!this.ownStack.hasPrefix("@"))
+                                    var contextContext = new Siviglia.Path.BaseObjectContext(contextRoot, "@", this.ownStack);
+                                else {
+                                    contextRoot = this.ownStack.getRoot("@");
+                                }
                                 contextRoot[this.contextParam] = value;
                                 contextRoot[this.contextParam + "-index"] = key;
                                 var reference = this.node[0];
