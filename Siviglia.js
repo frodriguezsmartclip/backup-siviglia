@@ -974,7 +974,8 @@ Siviglia.Utils.buildClass({
                                     }catch (e)
                                     {
                                         this.parsing=false;
-                                        throw new Siviglia.Utils.ParametrizableStringException("Parameter not found:"+match[1]);
+                                        console.error("PATH NOT FOUND::"+match[1])
+                                        throw new Siviglia.Path.ParametrizableStringException("Parameter not found:"+match[1]);
                                     }
                                 }
                                 var t=Siviglia.issetOr(match[2],null);
@@ -1146,7 +1147,7 @@ Siviglia.Utils.buildClass({
                                         curValue=this.getValue(tag);
                                     }catch (e){
                                         this.parsing=false;
-                                        throw new Siviglia.Utils.ParametrizableStringException("Parameter not found:"+tag);
+                                        throw new Siviglia.Path.ParametrizableStringException("Parameter not found:"+tag);
                                     }
                                     var result=false;
                                     switch(sparts[1]) {
@@ -1578,8 +1579,9 @@ Siviglia.Utils.buildClass(
                         },
                         updateParams:function(pName,pValue)
                         {
-                            if(typeof pValue.__type__!=="undefined")
-                                val=pValue.getValue();
+                            //if(typeof pValue.__type__!=="undefined")
+                            //    val=pValue.getValue();
+
                             this.paramValues[pName]=pValue;
                             if(this.disableEvents==false)
                                 this.fireEvent("CHANGE", {value: this.paramValues});

@@ -288,7 +288,7 @@
 
                                         }
                                     );
-                                    this.complexArray=[{f1:"aa",f2:22}];
+                                    this.complexArray.setValue([{f1:"aa",f2:22}]);
 
                                     this.typeCol.push(this.stringType);
                                     this.typeCol.push(this.enumType);
@@ -347,8 +347,6 @@
 <?php include_once("../../jQuery/JqxWidgets.html");?>
 <div style="display:none">
     <div data-sivWidget="Test.SimpleWidget" data-widgetParams="" data-widgetCode="Test.SimpleWidget">
-        <div data-sivValue="/*complexArray/0/f1"></div>
-        <div data-sivIf='"[%/*complexArray/0/f1%]"=="qaa"'>SI ES</div>
 
 
         <!--<div data-sivView="Siviglia.inputs.jqwidgets.String" data-sivParams='{"type":"/*stringType"}'>
@@ -376,15 +374,15 @@
         <div data-sivView="Siviglia.inputs.jqwidgets.ComboBox" data-sivParams='{"type":"/*fieldSelector"}'>
         </div>-->
         <!--<div data-sivView="Siviglia.inputs.jqwidgets.Container" data-sivParams='{"type":"/*simpleContainer"}'>
+        </div>-->
+        <!--<div data-sivView="Siviglia.inputs.jqwidgets.Dictionary" data-sivParams='{"type":"/*simpleDictionary"}'>
+        </div>-->
+        <div data-sivView="Siviglia.inputs.jqwidgets.TypeSwitcher" data-sivParams='{"type":"/*simpleTypeSwitcher"}'>
         </div>
-        <div data-sivView="Siviglia.inputs.jqwidgets.Dictionary" data-sivParams='{"type":"/*simpleDictionary"}'>
+        <!--<div data-sivView="Siviglia.inputs.jqwidgets.Array" data-sivParams='{"type":"/*simpleArray"}'>
         </div>-->
-        <!--<div data-sivView="Siviglia.inputs.jqwidgets.TypeSwitcher" data-sivParams='{"type":"/*simpleTypeSwitcher"}'>
-        </div>-->
-        <div data-sivView="Siviglia.inputs.jqwidgets.Array" data-sivParams='{"type":"/*simpleArray"}'>
+        <div data-sivView="Siviglia.inputs.jqwidgets.Array" data-sivParams='{"type":"/*complexArray"}'>
         </div>
-        <!--<div data-sivView="Siviglia.inputs.jqwidgets.Array" data-sivParams='{"type":"/*complexArray"}'>
-        </div>-->
         <!--
         <div data-sivView="Siviglia.inputs.jqwidgets.ComboBox" data-sivParams='{"type":"/*comboType2a","inputParams":{"searchField":"label","valueField":"val"}}'>
         </div>
