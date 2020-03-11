@@ -373,8 +373,6 @@ Siviglia.Utils.buildClass({
                     return;
                 }
                 this.destroyListeners();
-
-
             },
             methods: {
                 addListener: function (evType, object, method, description) {
@@ -672,6 +670,7 @@ Siviglia.Utils.buildClass(
                     {
                         //if(this.__lastTyped==true)
                         //    return this.pointer.getValue();
+
                         return this.pointer;
                     },
                     addPathListener:function(parent,propName)
@@ -975,7 +974,8 @@ Siviglia.Utils.buildClass({
                                     }catch (e)
                                     {
                                         this.parsing=false;
-                                        throw new Siviglia.Utils.ParametrizableStringException("Parameter not found:"+match[1]);
+                                        console.error("PATH NOT FOUND::"+match[1])
+                                        throw new Siviglia.Path.ParametrizableStringException("Parameter not found:"+match[1]);
                                     }
                                 }
                                 var t=Siviglia.issetOr(match[2],null);
@@ -1147,7 +1147,7 @@ Siviglia.Utils.buildClass({
                                         curValue=this.getValue(tag);
                                     }catch (e){
                                         this.parsing=false;
-                                        throw new Siviglia.Utils.ParametrizableStringException("Parameter not found:"+tag);
+                                        throw new Siviglia.Path.ParametrizableStringException("Parameter not found:"+tag);
                                     }
                                     var result=false;
                                     switch(sparts[1]) {
@@ -1314,7 +1314,7 @@ Siviglia.Path.Proxify=function(obj,ev)
         {
             delete curVal[prop];
             if(!__disableEvents__)
-                ev.fireEvent("CHANGE",{object:obj,property:propName,value:undefined});
+                ev.fireEvent("CHANGE",{object:obj,property:prop,value:undefined});
         }
     });
     return objProxy;
@@ -1470,6 +1470,8 @@ Siviglia.Utils.buildClass(
                     },
                     methods: {
                         update: function (val) {
+                            if(typeof val.__type__!=="undefined")
+                                val=val.getValue();
                             if (Siviglia.isString(val)) {
                                 var parts = val.split("::");
                                 for (var k = 0; k < parts.length; k++) {
@@ -1577,6 +1579,9 @@ Siviglia.Utils.buildClass(
                         },
                         updateParams:function(pName,pValue)
                         {
+                            //if(typeof pValue.__type__!=="undefined")
+                            //    val=pValue.getValue();
+
                             this.paramValues[pName]=pValue;
                             if(this.disableEvents==false)
                                 this.fireEvent("CHANGE", {value: this.paramValues});
@@ -1638,10 +1643,14 @@ Siviglia.Utils.buildClass(
                                 this.childNodes[k].remove();
 
                             this.reset();
+                            if(params.valid===false)
+                                return;
                             this.ownStack = this.stack.getCopy();
                             this.oManager = new Siviglia.UI.HTMLParser(this.ownStack);
 
                             var val = params.value;
+                            if(typeof params.value.__type__!=="undefined")
+                                val=params.value.getValue();
                             if (!val)
                                 val = [];
 
@@ -1649,7 +1658,11 @@ Siviglia.Utils.buildClass(
                             var newNode;
                             var cb = (function (key, value) {
                                 contextRoot = {};
-                                var contextContext = new Siviglia.Path.BaseObjectContext(contextRoot, "@", this.ownStack);
+                                if(!this.ownStack.hasPrefix("@"))
+                                    var contextContext = new Siviglia.Path.BaseObjectContext(contextRoot, "@", this.ownStack);
+                                else {
+                                    contextRoot = this.ownStack.getRoot("@");
+                                }
                                 contextRoot[this.contextParam] = value;
                                 contextRoot[this.contextParam + "-index"] = key;
                                 var reference = this.node[0];

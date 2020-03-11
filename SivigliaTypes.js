@@ -2135,22 +2135,17 @@ Siviglia.Utils.buildClass(
                               if(!isNaN(prop)) {
                                   prop = parseInt(prop);
                                   try {
-                                      if (typeof target[prop] !== "undefined") {
-                                          instance = m.getValueInstance(prop);
-                                          instance.setValue(value);
-                                          target[prop]=value;
-                                      } else {
-                                          var instance = m.getValueInstance(prop);
-                                          m.children[prop]=instance;
-                                          m.children[prop].setValue(value);
-                                          target[prop]=value;
+                                      instance = m.getValueInstance(prop);
+                                      instance.setValue(value);
+                                      m.children[prop]=instance;
+                                      target[prop]=value;
+                                      if (typeof target["_"+prop] === "undefined") {
                                           Object.defineProperty(target,"_"+prop,{
                                               get:function(){return instance},
                                               set:function(v){
                                                   instance=v;
                                                   return true;}
                                               ,enumerable:false})
-
                                       }
                                       m["[[KEYS]]"] = m.getKeys();
                                       if(!m.eventsDisabled()) {
@@ -2178,20 +2173,23 @@ Siviglia.Utils.buildClass(
                 },
                 updateChildren:function(val)
                 {
+                    var m=this;
 
                     for (var k = 0; k < val.length; k++) {
-
-                        instance = this.getValueInstance(k);
-                        this.children[k]=instance;
-                        instance.setValue(val[k]);
-                        val[k]=instance.getValue();
-                        Object.defineProperty(val,"_"+k,{
+                        (function(n){
+                        var instance = m.getValueInstance(n);
+                        m.children[n]=instance;
+                        instance.setValue(val[n]);
+                        val[n]=instance.getValue();
+                        Object.defineProperty(val,"_"+n,{
                                 get:function(){return instance},
                                 set:function(v){
                                     instance=v;
                                     return true;}
                                 ,enumerable:false})
+                        })(k);
                         }
+
                         if(!this.eventsDisabled())
                         this.onChange();
                 },

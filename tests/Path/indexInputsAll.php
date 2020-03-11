@@ -275,6 +275,20 @@
                                     this.simpleArray.setValue([
                                         "uno","dos","tres"
                                     ]);
+                                    this.complexArray=new Siviglia.types.Array(
+                                        {
+                                            "TYPE":"Array",
+                                            "ELEMENTS":{
+                                                "TYPE":"Container",
+                                                "FIELDS":{
+                                                    "f1":{"TYPE":"String"},
+                                                    "f2":{"TYPE":"Integer"}
+                                                }
+                                            }
+
+                                        }
+                                    );
+                                    this.complexArray.setValue([{f1:"aa",f2:22}]);
 
                                     this.typeCol.push(this.stringType);
                                     this.typeCol.push(this.enumType);
@@ -334,6 +348,7 @@
 <div style="display:none">
     <div data-sivWidget="Test.SimpleWidget" data-widgetParams="" data-widgetCode="Test.SimpleWidget">
 
+
         <!--<div data-sivView="Siviglia.inputs.jqwidgets.String" data-sivParams='{"type":"/*stringType"}'>
         </div> -->
 
@@ -359,13 +374,20 @@
         <div data-sivView="Siviglia.inputs.jqwidgets.ComboBox" data-sivParams='{"type":"/*fieldSelector"}'>
         </div>-->
         <!--<div data-sivView="Siviglia.inputs.jqwidgets.Container" data-sivParams='{"type":"/*simpleContainer"}'>
+        </div>-->
+        <!--<div data-sivView="Siviglia.inputs.jqwidgets.Dictionary" data-sivParams='{"type":"/*simpleDictionary"}'>
+        </div>-->
+        <div data-sivView="Siviglia.inputs.jqwidgets.TypeSwitcher" data-sivParams='{"type":"/*simpleTypeSwitcher"}'>
         </div>
-        <div data-sivView="Siviglia.inputs.jqwidgets.Dictionary" data-sivParams='{"type":"/*simpleDictionary"}'>
+        <!--<div data-sivView="Siviglia.inputs.jqwidgets.Array" data-sivParams='{"type":"/*simpleArray"}'>
         </div>-->
-        <!--<div data-sivView="Siviglia.inputs.jqwidgets.TypeSwitcher" data-sivParams='{"type":"/*simpleTypeSwitcher"}'>
-        </div>-->
+<<<<<<< HEAD
         <!-- <div data-sivView="Siviglia.inputs.jqwidgets.Array" data-sivParams='{"type":"/*simpleArray"}'>
         </div> -->
+=======
+        <div data-sivView="Siviglia.inputs.jqwidgets.Array" data-sivParams='{"type":"/*complexArray"}'>
+        </div>
+>>>>>>> master
         <!--
         <div data-sivView="Siviglia.inputs.jqwidgets.ComboBox" data-sivParams='{"type":"/*comboType2a","inputParams":{"searchField":"label","valueField":"val"}}'>
         </div>
