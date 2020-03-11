@@ -334,11 +334,11 @@
 <div style="display:none">
     <div data-sivWidget="Test.SimpleWidget" data-widgetParams="" data-widgetCode="Test.SimpleWidget">
 
-        <div data-sivView="Siviglia.inputs.jqwidgets.String" data-sivParams='{"type":"/*stringType"}'>
-        </div>
+        <!--<div data-sivView="Siviglia.inputs.jqwidgets.String" data-sivParams='{"type":"/*stringType"}'>
+        </div> -->
 
-        <!--<div data-sivView="Siviglia.inputs.jqwidgets.Enum" data-sivParams='{"type":"/*enumType"}'>
-        </div>-->
+        <div data-sivView="Siviglia.inputs.jqwidgets.Enum" data-sivParams='{"type":"/*enumType"}'>
+        </div>
 
 <!--        <div data-sivView="Siviglia.inputs.jqwidgets.Integer" data-sivParams='{"type":"/*integerType"}'>
         </div>
@@ -350,7 +350,7 @@
         </div>
 
         <div data-sivView="Siviglia.inputs.jqwidgets.Boolean" data-sivParams='{"type":"/*booleanType"}'>
-        </div>
+        </div> 
 
         <div data-sivView="Siviglia.inputs.jqwidgets.ComboBox" data-sivParams='{"type":"/*comboType","inputParams":{"searchField":"message","valueField":"a"}}'>
         </div>

@@ -1,0 +1,110 @@
+    <html>
+    <head>
+        <title>news siviglia</title>
+        <script src="/node_modules/jquery/dist/jquery.js"></script>
+        <script src="../../../Siviglia.js"></script>
+        <script src="../../../SivigliaStore.js"></script>
+        <script src="../../../Model.js"></script>    
+        <script src="../../../SivigliaTypes.js"></script>
+        <style type="text/css">
+            .contenedor1 {background-color: grey;}
+            .titulo {background-color: green;}
+            .titulo2 {color: red}
+            .noticia {border: 1px solid #000;}
+        </style>
+    <script>
+            var contenedor_noticias = {
+                // widget contenedor de noticias
+                pais:
+                {
+                    "espana":[
+                        {"Titulo":"el iphone vale más de 5000€","Contenido":"Contenido 1. Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book."},
+                        {"Titulo":"VR es la nueva forma de viajar","Contenido":"Contenido 2. Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book."},
+                        {"Titulo":"El cod vid 19 afecta a la comunidad de madrid","Contenido":"Contenido 3. Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book."},
+                        {"Titulo":"Cierran durante 15 dias los colegios","Contenido":"Contenido 4. Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book."},
+                    ],
+                    "internacional":[
+                        {"Titulo":"Title international 1","Contenido":"Contenido 5. Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book."},
+                        {"Titulo":"Title international 2","Contenido":"Contenido 6. Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book."},
+                        {"Titulo":"Title international 3","Contenido":"Contenido 7. Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book."},
+                        {"Titulo":"Title international 4","Contenido":"Contenido 8. Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book."},
+                    ]
+                },
+                clname: "contenedor1",
+                class_title: "titulo",
+                class_noticia: "noticia"
+            };
+
+            var noticia = {
+                noti:"espana"
+            }
+        
+        Siviglia.Utils.buildClass({
+                "context": "Widget",
+                "classes":{
+                    "NewsContainer":{
+                        "inherits": "Siviglia.UI.Expando.View",
+                        methods:{
+                            preInitialize:function(params){
+                                this.titulo=params.titulo;
+                            },
+                            initialize:function(params){},
+                            initNode:function(node,params){
+                                var widget = new Widget.Noticia(
+                                    "Widget.Noticia",
+                                    {seccion: params.curSectionNews},
+                                    {},
+                                    $('<div></div>'),
+                                    this.__context
+                                );
+                                widget.__build();
+                                node.append(widget.rootNode);
+                            }
+                        }
+                    },
+                    "Noticia":{
+                        "inherits": "Siviglia.UI.Expando.View",
+                        methods:{
+                            preInitialize:function(params){
+                                //console.dir(params);
+                                this.news=params.seccion;
+                            },
+                            initialize:function(params){},
+                        }
+                    }
+                }
+            })
+
+            setTimeout(function(){
+                contenedor_noticias.clname="titulo2";
+            },5000);
+    </script>
+    </head>
+    <body>
+    <div style="display:none">
+        <div data-sivWidget="Widget.NewsContainer" data-widgetCode="Widget.NewsContainer">
+            <h1 data-sivValue="[%*titulo%]::class|[%#clname%]"></h1>
+
+            <div data-sivLoop="#pais" data-contextIndex="current">
+                <h2 data-sivValue="Noticias de la seccion [%@current-index%]::class|[%#clname%]"></h2>
+                <div data-sivLoop="/@current" data-contextIndex="currentNews">
+                    <p data-sivCall="initNode" data-sivParams='{"curSectionNews": "@currentNews"}'></p>
+                </div>
+            </div>
+        </div>
+
+        <div data-sivWidget="Widget.Noticia" data-widgetCode="Widget.Noticia">
+            <h3 data-sivValue="[%*news/Titulo%]::class|[%#class_title%]"></h3>
+            <p data-sivValue="[%*news/Contenido%]::class|[%#class_noticia%]"></p>
+        </div>      
+    </div>
+
+    <div data-sivView="Widget.NewsContainer" data-sivParams='{"titulo": "noticias del dia" }'></div>
+
+    <script>
+        var parser=new Siviglia.UI.HTMLParser();
+        parser.addContext("#",contenedor_noticias);    
+        parser.parse($(document.body));
+    </script>
+    </body>
+    </html>
