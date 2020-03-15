@@ -256,7 +256,7 @@ Siviglia.Utils.buildClass(
                             width: 200,
                             validationMessage: "Invalid value",
                             height: 25, textAlign: "right", readOnly: false,
-                            promptChar: "_",
+                            promptChar: "*",
                             decimalDigits: 2,
                             decimalSeparator: ".", groupSeparator: ",", groupSize: 3, symbol: "", symbolPosition: "left", digits: 8, negative: false, negativeSymbol: "-", disabled: false, inputMode: "advanced", spinButtons: false, spinButtonsWidth: 18, spinButtonsStep: 1, autoValidate: true, spinMode: "advanced", enableMouseWheel: true, touchMode: "auto", rtl: false, events: ["valueChanged", "textchanged", "mousedown", "mouseup", "keydown", "keyup", "keypress", "change"], aria: {"aria-valuenow": {name: "decimal", type: "number"}, "aria-valuemin": {name: "min", type: "number"}, "aria-valuemax": {name: "max", type: "number"}, "aria-disabled": {name: "disabled", type: "boolean"}}, invalidArgumentExceptions: ["invalid argument exception"]};
                          */

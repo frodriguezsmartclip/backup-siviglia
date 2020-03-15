@@ -377,19 +377,19 @@
         </div>-->
         <!--<div data-sivView="Siviglia.inputs.jqwidgets.Dictionary" data-sivParams='{"type":"/*simpleDictionary"}'>
         </div>-->
-        <div data-sivView="Siviglia.inputs.jqwidgets.TypeSwitcher" data-sivParams='{"type":"/*simpleTypeSwitcher"}'>
-        </div>
+        <!--<div data-sivView="Siviglia.inputs.jqwidgets.TypeSwitcher" data-sivParams='{"type":"/*simpleTypeSwitcher"}'>
+        </div>-->
         <!--<div data-sivView="Siviglia.inputs.jqwidgets.Array" data-sivParams='{"type":"/*simpleArray"}'>
         </div>-->
-        <div data-sivView="Siviglia.inputs.jqwidgets.Array" data-sivParams='{"type":"/*complexArray"}'>
-        </div>
-        <!--
+        <!--<div data-sivView="Siviglia.inputs.jqwidgets.Array" data-sivParams='{"type":"/*complexArray"}'>
+        </div>-->
+
         <div data-sivView="Siviglia.inputs.jqwidgets.ComboBox" data-sivParams='{"type":"/*comboType2a","inputParams":{"searchField":"label","valueField":"val"}}'>
         </div>
         <div data-sivView="Siviglia.inputs.jqwidgets.ComboBox" data-sivParams='{"type":"/*comboType2b","inputParams":{"searchField":"message","valueField":"a"},"sourceParams":{"mysource":"/*comboType2a"}}'>
         </div>
         <div data-sivView="Siviglia.inputs.jqwidgets.ComboBox" data-sivParams='{"type":"/*comboType2c","inputParams":{"searchField":"message","valueField":"a"},"sourceParams":{"mysource":"/*comboType2b"}}'>
-        </div>-->
+        </div>
         <input type="button" data-sivEvent="click" data-sivCallback="show" value="show">
     </div>
 </div>

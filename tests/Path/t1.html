@@ -1,0 +1,106 @@
+<html>
+<head>
+    <script src="/node_modules/jquery/dist/jquery.js"></script>
+    <script src="../../../Siviglia.js"></script>
+    <script src="../../../SivigliaStore.js"></script>
+    <script src="../../../Model.js"></script>
+    <script src="../../../SivigliaTypes.js"></script>
+    <style type="text/css">
+        .contenedor1 {background-color: grey;}
+    </style>
+    <script>
+        var contenedor_noticias = {
+            // widget contenedor de noticias
+            pais:
+                {
+                    "espana":
+                        {
+                            seccion:
+                                {
+                                    "tecnologia": ["computer hoy","androide libre","xataka"],
+                                    "deportes": ["marca","as","mundo deportivo"]
+                                }
+                        },
+
+                    "internacional":
+                        {
+                            seccion:
+                                {
+                                    "tecnologia": ["engadget", "bbc", "express"],
+                                }
+                        },
+                },
+            clname: "contenedor1"
+        };
+
+        var noticia = {
+            noti:"espana"
+        }
+
+        Siviglia.Utils.buildClass({
+            "context": "Widget",
+            "classes":{
+                "NewsContainer":{
+                    "inherits": "Siviglia.UI.Expando.View",
+                    methods:{
+                        preInitialize:function(params){
+                            this.titulo=params.titulo;
+                        },
+                        initialize:function(params){},
+                        initNode:function(node,params){
+                            var widget = new Widget.Noticia(
+                                "Widget.Noticia",
+                                {seccion: params.sectionNews},
+                                {},
+                                $('<div></div>'),
+                                this.__context
+                            );
+                            widget.build();
+                            node.append(widget.rootNode);
+                        }
+                    }
+                },
+                "Noticia":{
+                    "inherits": "Siviglia.UI.Expando.View",
+                    methods:{
+                        preInitialize:function(params){
+                            this.news=params.news;
+                        },
+                        initialize:function(params){},
+                    }
+                }
+            }
+        })
+
+
+    </script>
+</head>
+<body>
+<div style="display:none">
+    <div data-sivWidget="Widget.NewsContainer" data-widgetCode="Widget.NewsContainer">
+        <h1 data-sivValue="[%*titulo%]"></h1>
+
+        <div data-sivLoop="#pais" data-contextIndex="current">
+            <h2 data-sivValue="Nueva noticia del pais [%@current-index%]"></h2>
+            <p>Lorem ipsum bla bla</p>
+            <p data-sivCall="initNode" data-sivParams='{"sectionNews": "@current"}'></p>
+        </div>
+
+    </div>
+    <div data-sivWidget="Widget.Noticia" data-widgetCode="Widget.Noticia">
+        <h3 data-sivValue="/*news"></h3>
+    </div>
+</div>
+
+<div data-sivView="Widget.NewsContainer" data-sivParams='{"titulo": "noticia 1" }'></div>
+<div data-sivView="Widget.NewsContainer" data-sivParams='{"titulo": "noticia 2" }'></div>
+<div data-sivView="Widget.NewsContainer" data-sivParams='{"titulo": "noticia 3" }'></div>
+<div data-sivView="Widget.NewsContainer" data-sivParams='{"titulo": "noticia 4" }'></div>
+
+<script>
+    var parser=new Siviglia.UI.HTMLParser();
+    parser.addContext("#",contenedor_noticias);
+    parser.parse($(document.body));
+</script>
+</body>
+</html>

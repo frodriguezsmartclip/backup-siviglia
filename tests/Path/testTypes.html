@@ -209,7 +209,7 @@
         var t1 = new Siviglia.model.BaseTypedObject(def);
         var flag = 0;
         var nExcp = 0;
-        t1._s1.addListener("CHANGE", null, function () {
+        t1["*s1"].addListener("CHANGE", null, function () {
             flag++;
         })
         try {
@@ -263,18 +263,18 @@
     runTest("Comprobacion TS 1", function () {
         var t1 = new Siviglia.model.BaseTypedObject(def);
         t1.f2 = {TYPE: "TIPO1"};
-        return typeof t1.f2.f3 !== "undefined" && typeof t1.f2._f3 !== "undefined" && typeof t1.f2.f4 !== "undefined" && typeof t1.f2._f4 !== "undefined";
+        return typeof t1.f2.f3 !== "undefined" && typeof t1.f2["*f3"] !== "undefined" && typeof t1.f2.f4 !== "undefined" && typeof t1.f2["*f4"] !== "undefined";
     }, true);
     runTest("Comprobacion TS 2", function () {
         var t1 = new Siviglia.model.BaseTypedObject(def);
         t1.f3 = {};
-        return typeof t1.f3.f3 !== "undefined" && typeof t1.f3._f3 !== "undefined" && typeof t1.f3.f4 !== "undefined" && typeof t1.f3._f4 !== "undefined";
+        return typeof t1.f3.f3 !== "undefined" && typeof t1.f3["*f3"] !== "undefined" && typeof t1.f3.f4 !== "undefined" && typeof t1.f3["*f4"] !== "undefined";
     }, true);
     runTest("Comprobacion TS 3", function () {
         var t1 = new Siviglia.model.BaseTypedObject(def);
         t1.f3 = {};
         t1.f3 = {"TYPE": "TIPO4"}
-        return typeof t1.f3.f3 == "undefined" && typeof t1.f3._f3 == "undefined" && typeof t1.f3.f4 == "undefined" && typeof t1.f3._f4 == "undefined";
+        return typeof t1.f3.f3 == "undefined" && typeof t1.f3["*f3"] == "undefined" && typeof t1.f3.f4 == "undefined" && typeof t1.f3["*f4"] == "undefined";
     }, true);
 
     runTest("Comprobacion TS 4", function () {
@@ -289,7 +289,7 @@
         t1.f4 = {};
         t1.f4 = {value: {f3: "hola", f4: 25}};
         var flag = 0;
-        t1._f4.addListener("CHANGE", null, function () {
+        t1["*f4"].addListener("CHANGE", null, function () {
             flag = 1;
         })
         var n = countListeners();
@@ -303,7 +303,7 @@
         t1.f4 = {};
         t1.f4 = {value: {f3: "hola", f4: 25}};
         var flag = 0;
-        t1._f4.addListener("CHANGE", null, function () {
+        t1["*f4"].addListener("CHANGE", null, function () {
             flag = 1;
         })
         var n = countListeners();
@@ -316,15 +316,15 @@
         var t1 = new Siviglia.model.BaseTypedObject(def);
         t1.f4 = {value: {f3: "hola", f4: 25}};
         var flag = 0;
-        t1._f4.addListener("CHANGE", null, function () {
+        t1["*f4"].addListener("CHANGE", null, function () {
             flag++;
             console.log("fire1")
         }, "Listener t4");
-        t1.f4._value.addListener("CHANGE", null, function () {
+        t1.f4["*value"].addListener("CHANGE", null, function () {
             flag++;
             console.log("fire2")
         }, "Listener value")
-        t1.f4.value._f3.addListener("CHANGE", null, function () {
+        t1.f4.value["*f3"].addListener("CHANGE", null, function () {
             flag++;
             console.log("fire3")
         }, "Listener f3")
@@ -338,15 +338,15 @@
 
     // Comprobacion de objetos copia. Ver tests de Array mas abajo.
     runTest("Comprobacion Listener TS 4", function () {
-        debugger;
+
         var t1 = new Siviglia.model.BaseTypedObject(def);
         t1.f4 = {value: {f3: "hola", f4: 25}};
         var flag = 0;
-        t1._f4.addListener("CHANGE", null, function () {
+        t1["*f4"].addListener("CHANGE", null, function () {
             flag++;
             console.log("fire1")
         }, "Listener t4");
-        t1.f4._value.addListener("CHANGE", null, function () {
+        t1.f4["*value"].addListener("CHANGE", null, function () {
             flag++;
             console.log("fire2")
         }, "Listener value")
@@ -354,11 +354,11 @@
 
         // Se crea un objeto que va a contener la copia:
         var h={};
-        h.q=t1._f4.getValue();
+        h.q=t1["*f4"].getValue();
         Siviglia.Path.eventize(h,"q");
         var nRefChanges=0;
         // El objeto "copia", monta un listener para contar los cambios que él ve.
-        h._q.addListener("CHANGE",function(){nRefChanges++;});
+        h["*q"].addListener("CHANGE",function(){nRefChanges++;});
 
         // Cambiar un campo interno, no dispara ningun evento sobre el typeSwitcher
         t1.f4.value.f3="adios";
@@ -440,7 +440,7 @@
             }
         );
         t1.f3 = {TYPE: "TIPO3", value: {sf3: "lala"}};
-        var path = t1.f3.value._sf3.getFullPath();
+        var path = t1.f3.value["*sf3"].getFullPath();
         return path == "/f3/value/sf3";
     }, true);
 
@@ -537,7 +537,7 @@
 
         });
         t2.TIPO2 = {"f1": "hola", "TIPO7": {f1: "Prueba", f2: 55}};
-        var path = t2.TIPO2.TIPO7._f2.getFullPath();
+        var path = t2.TIPO2.TIPO7["*f2"].getFullPath();
         return path == "/TIPO2/TIPO7/f2";
 
     }, true)
@@ -593,7 +593,7 @@
         });
         t2.f2 = "hola";
         var nExcp = 0;
-        t2._f1.addListener("ERROR", null, function () {
+        t2["*f1"].addListener("ERROR", null, function () {
             nExcp++;
         });
         try {
@@ -636,7 +636,7 @@
 
             }
         );
-        var path = t1.f3.uno._sf3.getFullPath();
+        var path = t1.f3.uno["*sf3"].getFullPath();
         return path == "/f3/uno/sf3";
     }, true);
     runTest("Comprobacion de SET_ON_EMPTY en Dictionary", function () {
@@ -727,7 +727,7 @@
                                 "sf3": {"TYPE": "String", "MINLENGTH": 2},
 
                             }
-                        },
+                        }
                     }
                 }
 
@@ -735,17 +735,17 @@
         );
 
         var nChanges = 0;
-        t1._f3.addListener("CHANGE", null, function () {
+        t1["*f3"].addListener("CHANGE", null, function () {
             nChanges++
         });
 
         t1.f3 = {uno: {sf3: "a1"}, dos: {sf3: "a2"}};
 
         var h={};
-        h.q=t1._f3.getValue();
+        h.q=t1["*f3"].getValue();
         Siviglia.Path.eventize(h,"q");
         var nRefChanges=0;
-        h._q.addListener("CHANGE",function(){nRefChanges++;});
+        h["*q"].addListener("CHANGE",function(){nRefChanges++;});
         // Mientras siga siendo el mismo objeto, se deben seguir recibiendo eventos:
         t1.f3.tres={sf3:"cc"};
         var status=(nRefChanges==1 && nChanges==2);
@@ -758,7 +758,7 @@
         var ss=t1.f3["[[KEYS]]"];
         status = status && ss.length==1 && (ss[0].LABEL=="cinco") &&
             (typeof t1.f3.cuatro === "undefined") &&
-            (typeof t1.f3["_cuatro"] === "undefined");
+            (typeof t1.f3["*cuatro"] === "undefined");
 
         t1.destruct();
 
@@ -849,7 +849,7 @@
             }
         );
         var nChanges = 0;
-        t1._f3.addListener("CHANGE", null, function () {
+        t1["*f3"].addListener("CHANGE", null, function () {
             nChanges++
         });
         // Comprobamos que, en este punto, ya que t1.f3.TYPE=="TIPO3" (por el valor por defecto),
@@ -929,10 +929,10 @@
         var firstStatus = (t1.f3 === null);
         var nErrors = 0;
         var nChanges = 0;
-        t1._f3.addListener("ERROR", null, function () {
+        t1["*f3"].addListener("ERROR", null, function () {
             nErrors++
         });
-        t1._f3.addListener("CHANGE", null, function () {
+        t1["*f3"].addListener("CHANGE", null, function () {
             nChanges++
         });
         var nExcp = 0;
@@ -962,10 +962,10 @@
         var firstStatus = (t1.f3 === null);
         var nErrors = 0;
         var nChanges = 0;
-        t1._f3.addListener("ERROR", null, function () {
+        t1["*f3"].addListener("ERROR", null, function () {
             nErrors++
         });
-        t1._f3.addListener("CHANGE", null, function () {
+        t1["*f3"].addListener("CHANGE", null, function () {
             nChanges++
         });
         var nExcp = 0;
@@ -1004,10 +1004,10 @@
 
         var nErrors = 0;
         var nChanges = 0;
-        t1._f3.addListener("ERROR", null, function () {
+        t1["*f3"].addListener("ERROR", null, function () {
             nErrors++
         });
-        t1._f3.addListener("CHANGE", null, function () {
+        t1["*f3"].addListener("CHANGE", null, function () {
             nChanges++
         });
         var nExcp = 0;
@@ -1019,7 +1019,7 @@
         var secondStatus = (t1.f3 == null && nErrors == 1 && nChanges == 0 && nExcp == 1);
         t1.f3 = [{sf1: "aaa", sf2: 20}];
         var thirdStatus = (t1.f3.length == 1 && nErrors == 1 && nChanges == 1 && nExcp == 1);
-        var curPath = t1.f3[0]._sf1.getFullPath();
+        var curPath = t1.f3[0]["*sf1"].getFullPath();
         var fourthStatus = (curPath == "/f3/0/sf1");
         t1.destruct();
         return secondStatus && thirdStatus && fourthStatus && countListeners() == 0;
@@ -1045,20 +1045,20 @@
 
         var nErrors = 0;
         var nChanges = 0;
-        t1._f3.addListener("ERROR", null, function () {
+        t1["*f3"].addListener("ERROR", null, function () {
             nErrors++
         });
-        t1._f3.addListener("CHANGE", null, function () {
+        t1["*f3"].addListener("CHANGE", null, function () {
             nChanges++
         });
 
         t1.f3=["aa","bb"];
         // Generamos una copia eventizada, para escuchar cambios.
         var h={};
-        h.q=t1._f3.getValue();
+        h.q=t1["*f3"].getValue();
         Siviglia.Path.eventize(h,"q");
         var nRefChanges=0;
-        h._q.addListener("CHANGE",function(){nRefChanges++;});
+        h["*q"].addListener("CHANGE",function(){nRefChanges++;});
 
         // Mientras siga siendo el mismo objeto, se deben seguir recibiendo eventos:
         t1.f3.push("cc");
@@ -1078,9 +1078,9 @@
         Siviglia.Dom.existingListeners=[];
 
         // Scomprobacion de path.
-        var fPath=t1.f3._0.getFullPath();
+        var fPath=t1.f3["*0"].getFullPath();
 
-        status=status && t1.f3._0.getFullPath()=="/f3/0";
+        status=status && t1.f3["*0"].getFullPath()=="/f3/0";
 
 
         return status && countListeners() == 0;
@@ -1100,7 +1100,7 @@
         );
 
         var nChanges = 0;
-        t1._f3.addListener("CHANGE", null, function () {
+        t1["*f3"].addListener("CHANGE", null, function () {
             nChanges++
         });
         var nExcp = 0;
@@ -1111,9 +1111,9 @@
         }
         var secondStatus = (t1.f3 == null && nChanges == 0 && nExcp == 1);
         t1.f3 = "Value1";
-        var thirdStatus = (t1._f3.getLabel() == "Value1" && nChanges == 1 && nExcp == 1);
+        var thirdStatus = (t1["*f3"].getLabel() == "Value1" && nChanges == 1 && nExcp == 1);
         t1.f3 = 2;
-        var fourthStatus = (t1._f3.getLabel() == "Value3" && nChanges == 2 && nExcp == 1);
+        var fourthStatus = (t1["*f3"].getLabel() == "Value3" && nChanges == 2 && nExcp == 1);
 
         t1.destruct();
         return secondStatus && thirdStatus && fourthStatus && countListeners() == 0;
@@ -1133,7 +1133,7 @@
             }
         );
         var nChanges = 0;
-        t1._f3.addListener("CHANGE", null, function () {
+        t1["*f3"].addListener("CHANGE", null, function () {
             nChanges++
         });
         var nExcp = 0;
@@ -1177,10 +1177,10 @@
             }
         );
         var nChanges = 0;
-        t1._f3.addListener("CHANGE", null, function () {
+        t1["*f3"].addListener("CHANGE", null, function () {
             nChanges++
         });
-        t1._f4.addListener("CHANGE", null, function () {
+        t1["*f4"].addListener("CHANGE", null, function () {
             nChanges++
         });
         var nExcp = 0;
@@ -1253,21 +1253,21 @@
             return c.getFullYear() + '-' + M + '-' + D + ' ' + H + ':' + m + ':' + s;
         }
         var nChanges = 0;
-        t1._f3.addListener("CHANGE", null, function () {
+        t1["*f3"].addListener("CHANGE", null, function () {
             nChanges++
         });
-        t1._f4.addListener("CHANGE", null, function () {
+        t1["*f4"].addListener("CHANGE", null, function () {
             nChanges++
         });
-        t1._f5.addListener("CHANGE", null, function () {
+        t1["*f5"].addListener("CHANGE", null, function () {
             nChanges++
         });
-        t1._f6.addListener("CHANGE", null, function () {
+        t1["*f6"].addListener("CHANGE", null, function () {
             nChanges++
         });
 
         var nExcp = 0;
-        var timestamp1 = t1._f3.getDateValue().getTime();
+        var timestamp1 = t1["*f3"].getDateValue().getTime();
         var timestamp2 = (new Date()).getTime();
         var status = (timestamp2 - timestamp1 < 1000);
 
@@ -1306,7 +1306,7 @@
         status = status && (t1.f6 == "2050-01-01 00:00:00" && nChanges == 3 && nExcp == 4);
 
 
-        var res = convertDate(t1._f6.getDateValue())
+        var res = convertDate(t1["*f6"].getDateValue())
         status = status && (res == t1.f6);
         t1.destruct();
         return status;
@@ -1324,7 +1324,7 @@
                 }
             }
         );
-        var source = t1._f3.getSource();
+        var source = t1["*f3"].getSource();
         var loaded = 0;
         var changed = 0;
         var data = null;
@@ -1360,7 +1360,7 @@
         );
 
         var changed = 0;
-        var source = t1._f3.getSource();
+        var source = t1["*f3"].getSource();
         source.addListener("CHANGE", null, function (ev, params) {
             changed = 1;
         });
@@ -1441,7 +1441,7 @@
         var nValids=0;
         var curData = null;
         var nExcp=0;
-        var s = btype._f3.getSource(btype);
+        var s = btype["*f3"].getSource(btype);
         s.addListener("CHANGE", function (evType, data) {
             nChanges++;
             if(data.valid)
@@ -1523,11 +1523,11 @@
             }
         );
         var nChanges3 = 0;
-        t1._f3.addListener("CHANGE", null, function () {
+        t1["*f3"].addListener("CHANGE", null, function () {
             nChanges3++
         });
         var nChanges4 = 0;
-        t1._f4.addListener("CHANGE", null, function () {
+        t1["*f4"].addListener("CHANGE", null, function () {
             nChanges4++
         });
         var nExcp = 0;
@@ -1539,7 +1539,7 @@
             nExcp++;
         }
         var nSources=0;
-        t1._f3.getSource().addListener("CHANGE",null,function(){
+        t1["*f3"].getSource().addListener("CHANGE",null,function(){
            nSources++;
         });
         t1.f4={"aa":"uno","bb":"dos"};
@@ -1564,7 +1564,7 @@
                         "SOURCE":{
                             "TYPE":"Path",
                             "PATH":"#../f4",
-                            "LABEL":"[%sf1%]",
+                            "LABEL":"sf1",
                             "VALUE":"sf2"
                         }
                     },
@@ -1582,11 +1582,11 @@
             }
         );
         var nChanges3 = 0;
-        t1._f3.addListener("CHANGE", null, function () {
+        t1["*f3"].addListener("CHANGE", null, function () {
             nChanges3++
         });
         var nChanges4 = 0;
-        t1._f4.addListener("CHANGE", null, function () {
+        t1["*f4"].addListener("CHANGE", null, function () {
             nChanges4++
         });
         var nExcp = 0;
@@ -1598,7 +1598,7 @@
             nExcp++;
         }
         var nSources=0;
-        t1._f3.getSource().addListener("CHANGE",null,function(){
+        t1["*f3"].getSource().addListener("CHANGE",null,function(){
             nSources++;
         });
         t1.f4=[{"sf1":"AA",sf2:1},{sf1:"BB",sf2:2}];
@@ -1635,7 +1635,7 @@
                         "SOURCE":{
                             "TYPE":"Url",
                             "URL":"/packages/Siviglia/tests/data/[%#../f4%].json",
-                            "LABEL":"[%a%]",
+                            "LABEL":"a",
                             "VALUE":"b"
                         }
                     }
@@ -1644,7 +1644,7 @@
         );
         var p=$.Deferred();
         var status=true;
-        var s=t1._f3.getSource();
+        var s=t1["*f3"].getSource();
         var nValid=0;
         var nChanged=0;
         var expectOk;
@@ -1682,7 +1682,7 @@
                         "SOURCE":{
                             "TYPE":"Url",
                             "URL":"/packages/Siviglia/tests/data/[%#../f4%].json",
-                            "LABEL":"[%a%]",
+                            "LABEL":"a",
                             "VALUE":"b"
                         }
                     }
@@ -1691,7 +1691,7 @@
         );
         var p=$.Deferred();
         var status=true;
-        var s=t1._f3.getSource();
+        var s=t1["*f3"].getSource();
         var nValid=0;
         var nChanged=0;
         var expectOk;
@@ -1743,7 +1743,7 @@
         t1.f4.LABEL="Probando";
         t1.f4.TYPE={TYPE:"/model/reflection/Types/types/DateTime"};
         t1.f4.TYPE.STRICTLYPAST=true;
-        return t1.f4.LABEL=="Probando" && t1.f4.TYPE._STRICTLYPAST.definition.TYPE=="Boolean";
+        return t1.f4.LABEL=="Probando" && t1.f4.TYPE["*STRICTLYPAST"].definition.TYPE=="Boolean";
     }, true);
 
 

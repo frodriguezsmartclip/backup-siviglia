@@ -106,6 +106,19 @@ Siviglia.Utils.buildClass(
                                 {
                                     return this.source["LABEL"];
                                 },
+                                getLabelExpression:function()
+                                {
+                                    return Siviglia.issetOr(this.source["LABEL_EXPRESSION"],null);
+                                },
+                                getLabel:function(row)
+                                {
+                                    if(typeof this.source["LABEL_EXPRESSION"]==="undefined")
+                                        return row[this.source["LABEL"]];
+                                    var ctxStack=new Siviglia.Path.ContextStack();
+                                    var plainCtx = new Siviglia.Path.BaseObjectContext(row, "/", ctxStack);
+                                    var p=new Siviglia.Path.ParametrizableString(this.source["LABEL_EXPRESSION"],ctxStack,{useListeners:false})
+                                    return p.parse();
+                                },
                                 getValueField:function()
                                 {
                                     return this.source["VALUE"];
@@ -276,8 +289,17 @@ Siviglia.Utils.buildClass(
                                     // Su valor, es el que haya resuelto el listener de la parametrizable string.
                                     onListener:function(event,params)
                                     {
-                                        var data=params.value;
-                                        this.onData(data);
+                                        if(params.valid) {
+                                            var data = params.value;
+                                            if(data===null)
+                                                return this.onData([]);
+                                            if(typeof data[0]==="object")
+                                                return this.onData(data);
+                                            var res=[];
+                                            for(var k=0;k<data.length;k++)
+                                                res.push({"VALUE":data[k],"INDEX":k,"LABEL":data[k]});
+                                            this.onData(res);
+                                        }
                                     }
                                 }
                         },
@@ -381,7 +403,7 @@ Siviglia.Utils.buildClass(
                             this.definition=null;
                             this.controller=controller || null;
                             // Se construye una definicion< compatible con RemoteDataSource
-                            source.url=this.getUrl(this.dsParams);
+                            source.URL=this.getUrl(this.dsParams);
                             this.RemoteDataSource(source,controller,stack);
                         },
                         methods:
@@ -456,18 +478,19 @@ Siviglia.Utils.buildClass(
                             {
                                 onData:function(data)
                                 {
-
                                     var m=this;
                                     if(this.isLoadValid(data))
                                     {
                                         if(data.definition)
                                             this.setMetaData(data.definition);
                                         var root=this.getRootDataNode(data);
-                                        $.when(this.process(data.definition,root)).then(function(data) {
-                                            m.fireEvent(Siviglia.Data.BaseDataSource.EVENT_LOADED, data);
-                                            m.fireEvent(Siviglia.Data.BaseDataSource.CHANGE, data);
-                                        });
+                                        this.process(data.definition,root);
+                                        // Ponemos una referencia a data.data en data.value, que es donde lo esperan
+                                        // los listeners
+                                        data.value=data.data;
 
+                                        m.fireEvent(Siviglia.Data.BaseDataSource.EVENT_LOADED, data);
+                                        m.fireEvent(Siviglia.Data.BaseDataSource.CHANGE, data);
                                     }
                                     else
                                     {
@@ -482,21 +505,46 @@ Siviglia.Utils.buildClass(
                                     var lp=$.Deferred();
                                     for(var k=0;k<data.length;k++)
                                     {
-                                        var np=$.Deferred();
-                                        (function(f,p) {
-                                            var ni = new Siviglia.types.DefinedObject(definition, data[k]);
-                                            ni.mainPromise.then(function(i){
-                                                nData[f]=i;
-                                                p.resolve();
-                                            });
-                                            sPromises.push(p);
-                                        })(k,np);
+
+                                            var ni = new Siviglia.model.BaseTypedObject(definition, data[k]);
+                                            nData.push(ni);
+
                                     }
-                                    $.when.apply($,sPromises).then(function(){lp.resolve(nData)});
-                                    return lp;
+                                    return nData;
                                 }
                             }
+                    },
+                SourceResultConverter:{
+                        constructor:function(data)
+                        {
+                            this.mode="raw";
+                            if(data.length > 0){
+                                var type=Siviglia.issetOr(data.__type__,null);
+                                if(type==="BaseTypedObject")
+                                {
+                                    this.mode="typed";
+                                }
+                                this.data=data;
+                            }
+                        },
+                    methods:{
+                            getRaw:function()
+                            {
+                                if(this.mode==="raw")
+                                    return this.data;
+                                var res=[];
+                                this.data.map(function(it){
+                                    res.push(it.getPlainValue())
+                                });
+                                return res;
+                            },
+                            getForSource:function(s)
+                            {
+
+                            }
                     }
+                }
+
             }
     }
 );

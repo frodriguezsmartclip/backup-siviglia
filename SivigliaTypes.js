@@ -184,7 +184,7 @@ Siviglia.Utils.buildClass(
                         for(var k in this.__definition["FIELDS"])
                         {
                             nFields++;
-                            var plainValue=subVal["_"+k].getPlainValue();
+                            var plainValue=subVal["*"+k].getPlainValue();
                             if(plainValue===null)
                             {
                                 var d=this.__definition["FIELDS"][k];
@@ -256,7 +256,7 @@ Siviglia.Utils.buildClass(
                         delete this.__fields[name];
                         delete this.__value[name];
                         delete this[name];
-                        delete this["_"+name];
+                        delete this["*"+name];
                         this.__onChange();
                     },
                     __fieldExists:function(name)
@@ -273,7 +273,7 @@ Siviglia.Utils.buildClass(
                             return true;
                         var nSet=0;
                         for(var k in this.definition["FIELDS"]) {
-                            if (this.__value["_" + k].isEmpty()) {
+                            if (this.__value["*" + k].isEmpty()) {
 
                             }
                             else
@@ -292,14 +292,14 @@ Siviglia.Utils.buildClass(
                         for(var k in this.__definition["FIELDS"]) {
 
                             var exists = false;
-                            if(!(typeof this.__value["_"+k]==="undefined" || this.__value[k]===null)) {
-                                this.__value["_" + k].save();
+                            if(!(typeof this.__value["*"+k]==="undefined" || this.__value[k]===null)) {
+                                this.__value["*" + k].save();
                                 exists=true;
                             }
 
                             if (this.__definition["FIELDS"][k]["REQUIRED"] === true && !exists) {
 
-                                    this.__value["_"+k].fireEvent("ERROR", {error: Siviglia.types.BaseTypeException.ERR_UNSET});
+                                    this.__value["*"+k].fireEvent("ERROR", {error: Siviglia.types.BaseTypeException.ERR_UNSET});
                                     throw new Siviglia.types.BaseTypeException(Siviglia.types.BaseTypeException.ERR_UNSET, {field: k});
                             }
 
@@ -342,8 +342,8 @@ Siviglia.Utils.buildClass(
                         }
                         Object.defineProperty(this.parent, name, propSpec);
                         Object.defineProperty(this.parent.__value, name, propSpec);
-                        Object.defineProperty(this.parent, "_"+name,typeSpec);
-                        Object.defineProperty(this.parent.__value, "_"+name,typeSpec);
+                        Object.defineProperty(this.parent, "*"+name,typeSpec);
+                        Object.defineProperty(this.parent.__value, "*"+name,typeSpec);
                     },
                     destruct:function()
                     {
@@ -425,7 +425,6 @@ Siviglia.Utils.buildClass(
                         }
                         this.EventManager();
                         this.PathAble();
-
                     },
                     destruct: function () {
                         if (this.source)
@@ -627,7 +626,7 @@ Siviglia.Utils.buildClass(
                                 var def=this.getSourceDefinition();
                                 var factory = new Siviglia.Data.SourceFactory();
                                 var stack = new Siviglia.Path.ContextStack();
-                                var plainCtx = new Siviglia.Path.BaseObjectContext(this, "#", stack);
+                                var plainCtx = new Siviglia.Path.BaseObjectContext(this.parent, "#", stack);
 
                                 this.source = factory.getFromSource(def,
                                     this,
@@ -1409,21 +1408,45 @@ Siviglia.Utils.buildClass(
                     // creamos un objeto vacio, donde poder poner listeners, aunque no cambiamos el valueSet, que seguiria
                     // siendo false.
 
-                    if(value==null || typeof value=="undefined")
-                        value={};
-                    this.innerBaseTypedObject = new Siviglia.model.BaseTypedObject(def, value);
-                    this.innerBaseTypedObject.setParent(this);
-                    this.keysHolder = new Siviglia.Dom.EventManager();
+                    // Ademas, es posible que el objeto que nos pasan ya sea un BaseTypedObject, actuando el container
+                    // solo como un wrapper.
+                    // Esto lo vamos a comprobar primero.
+                    if(typeof def.__type__!=="undefined" && def.__type__=="BaseTypedObject")
+                    {
+                        this.externalType=true;
+                        this.innerBaseTypedObject=def;
+                        // No podemos llamar aqui a la clase base..
+                        this.type="Container";
+                        this.definition=this.innerBaseTypedObject.__definition;
+                        this.valueSet=true;
+                        this.source=null;
+                        this.sourceFactory=null;
+                        this.fieldName=null;
+                        this.useRemoteValidator=false;
+                        this.EventManager();
+                        this.PathAble();
+                        this.value=this.innerBaseTypedObject.getValue();
+                    }
+                    else {
+                        this.externalType=false;
+                        if (value == null || typeof value == "undefined")
+                            value = {};
 
-                    this.BaseType('Container', def, value)
+                        this.innerBaseTypedObject = new Siviglia.model.BaseTypedObject(def, value);
+                        this.innerBaseTypedObject.setParent(this);
+                        this.BaseType('Container', def, value)
+                    }
+                    this.keysHolder = new Siviglia.Dom.EventManager();
                 },
                 destruct:function(){
-                    if (this.value !== null) {
-                        for (var k in this.definition["FIELDS"]) {
-                            this.value["_"+k].destruct();
-                            delete this.value[k];
+                    if(this.externalType===false) {
+                        if (this.value !== null) {
+                            for (var k in this.definition["FIELDS"]) {
+                                this.value["*" + k].destruct();
+                                delete this.value[k];
+                            }
+                            delete this.value["[[KEYS]]"];
                         }
-                        delete this.value["[[KEYS]]"];
                     }
                 },
                 methods: {
@@ -1455,8 +1478,6 @@ Siviglia.Utils.buildClass(
                     },
                     setValue:function(val)
                     {
-                        if(this.value===val)
-                            return;
                         if (this.isNull(val)) {
                             this.valueSet = false;
                             this.value = {}
@@ -1486,9 +1507,9 @@ Siviglia.Utils.buildClass(
                         var m = this;
                         for (var k1 in def["FIELDS"]) {
                             (function (k) {
-                                if(value.hasOwnProperty("_"+k))
+                                if(value.hasOwnProperty("*"+k))
                                     return;
-                                Object.defineProperty(value, "_" + k, {
+                                Object.defineProperty(value, "*" + k, {
                                     get: function () {
                                         return m.innerBaseTypedObject.__getField(k).getType();
                                     },
@@ -1497,7 +1518,7 @@ Siviglia.Utils.buildClass(
                                     enumerable: false,
                                     configurable: true
                                 });
-                                // Al ser un container, la propiedad _[[KEYS]],en teoria, no cambia.
+                                // Al ser un container, la propiedad *[[KEYS]],en teoria, no cambia.
                                 // Otra cosa es que queramos que, por ejemplo, en el array de KEYS solo
                                 // aparezcan las claves que no son null.En ese caso si que serian dinamicos
                                 // Es por eso
@@ -1632,7 +1653,7 @@ Siviglia.Utils.buildClass(
                                 {
                                     return {configurable:true,enumerable:true}
                                 }
-                                if(prop==="[[KEYS]]" || prop==="_[[KEYS]]")
+                                if(prop==="[[KEYS]]" || prop==="*[[KEYS]]")
                                     return {configurable:true,enumerable:false}
 
                                 if(prop==="__disableEvents__")
@@ -1650,7 +1671,7 @@ Siviglia.Utils.buildClass(
                                     return m.innerBaseTypedObject[prop];
                                 if(prop==="__disableEvents__")
                                     return __disableEvents__;
-                                if(prop==="_[[KEYS]]")
+                                if(prop==="*[[KEYS]]")
                                     return m.keysEv;
                                 return m[prop];
                             },
@@ -1678,16 +1699,16 @@ Siviglia.Utils.buildClass(
                                     var cb2={
                                         get:function()
                                         {
-                                            return m.innerBaseTypedObject["_"+prop];
+                                            return m.innerBaseTypedObject["*"+prop];
                                         },
                                         set:function(v){return true;},
                                         enumerable:false,
                                         configurable:true
                                     }
                                     Object.defineProperty(target,prop,cb);
-                                    Object.defineProperty(target,"_"+prop,cb2);
+                                    Object.defineProperty(target,"*"+prop,cb2);
                                     Object.defineProperty(m,prop,cb);
-                                    Object.defineProperty(m,"_"+prop,cb2);
+                                    Object.defineProperty(m,"*"+prop,cb2);
 
                                     m["[[KEYS]]"]=m.getKeys();
                                     if(__disableEvents__===false) {
@@ -1708,7 +1729,7 @@ Siviglia.Utils.buildClass(
                             {
                                 m.innerBaseTypedObject.__removeField(prop);
                                 delete target[prop];
-                                delete target["_"+prop];
+                                delete target["*"+prop];
                                 m["[[KEYS]]"]=m.getKeys();
                                 if(__disableEvents__===false) {
                                     m.onChange();
@@ -1779,7 +1800,7 @@ Siviglia.Utils.buildClass(
                     save:function()
                     {
                         for(var k in this.proxy)
-                            this.proxy["_"+k].save();
+                            this.proxy["*"+k].save();
                     }
                 }
             },
@@ -1809,7 +1830,7 @@ Siviglia.Utils.buildClass(
             destruct: function () {
 
                 if(this.intermediateObject) {
-                    this.intermediateObject["_" + this.definition.CONTENT_FIELD].destruct();
+                    this.intermediateObject["*" + this.definition.CONTENT_FIELD].destruct();
                 }
                 if(this.valueEventManager)
                 {
@@ -1897,7 +1918,7 @@ Siviglia.Utils.buildClass(
                         target=val[this.definition.CONTENT_FIELD];
                         this.intermediateObject=val;
                         Object.defineProperty(val,this.definition.CONTENT_FIELD,cb1);
-                        Object.defineProperty(val,"_"+this.definition.CONTENT_FIELD,cb2);
+                        Object.defineProperty(val,"*"+this.definition.CONTENT_FIELD,cb2);
 
                     }
                     else
@@ -2110,7 +2131,7 @@ Siviglia.Utils.buildClass(
                                 var ret=val[prop];
                                 delete val[prop];
                                 delete m.children[prop];
-                                delete target["_"+prop];
+                                delete target["*"+prop];
                                 if(!m.eventsDisabled()) {
                                     m.onChange();
                                     ev.fireEvent("CHANGE", {object: target, value: m.proxy});
@@ -2139,8 +2160,8 @@ Siviglia.Utils.buildClass(
                                       instance.setValue(value);
                                       m.children[prop]=instance;
                                       target[prop]=value;
-                                      if (typeof target["_"+prop] === "undefined") {
-                                          Object.defineProperty(target,"_"+prop,{
+                                      if (typeof target["*"+prop] === "undefined") {
+                                          Object.defineProperty(target,"*"+prop,{
                                               get:function(){return instance},
                                               set:function(v){
                                                   instance=v;
@@ -2181,7 +2202,7 @@ Siviglia.Utils.buildClass(
                         m.children[n]=instance;
                         instance.setValue(val[n]);
                         val[n]=instance.getValue();
-                        Object.defineProperty(val,"_"+n,{
+                        Object.defineProperty(val,"*"+n,{
                                 get:function(){return instance},
                                 set:function(v){
                                     instance=v;
@@ -2211,7 +2232,7 @@ Siviglia.Utils.buildClass(
                     var res=[];
                     for(var k=0;k<this.proxy.length;k++)
                     {
-                        var val=this.proxy["_"+k].getPlainValue();
+                        var val=this.proxy["*"+k].getPlainValue();
                         if(val===null)
                             continue;
                     }

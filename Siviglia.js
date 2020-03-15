@@ -455,7 +455,7 @@ Siviglia.Utils.buildClass({
                             // Pero el listener en si, lo cogemos de la copia.
                             obj = copied[k];
                             Siviglia.Dom.eventStack.push(obj);
-                            console.debug("NOTIFY: " + this._ev_id + " --> " + evType + " : " + obj.id);
+                           // console.debug("NOTIFY: " + this._ev_id + " --> " + evType + " : " + obj.id);
                             if (obj.obj) {
                                 if (typeof obj.obj == "function") {
                                     obj.obj(evType, data, obj.param, target);
@@ -612,7 +612,7 @@ Siviglia.Utils.buildClass(
                 },
                 destruct:function()
                 {
-                    console.log("DESTROYING "+this.id);
+                //    console.log("DESTROYING "+this.id);
                     this.cleanListeners();
                 },
                 methods:{
@@ -679,8 +679,8 @@ Siviglia.Utils.buildClass(
                             return;
                         Siviglia.Path.eventize(parent,propName);
                         var m=this;
-                        parent["_"+propName].addListener("CHANGE",this,"onChange","Basecursor:"+propName);
-                        this.remListeners.push(parent["_"+propName]);
+                        parent["*"+propName].addListener("CHANGE",this,"onChange","Basecursor:"+propName);
+                        this.remListeners.push(parent["*"+propName]);
                     },
                     // Algun elemento del path ha cambiado.Hay que notificar para que vuelvan a parsearlo todo.
                     onChange:function()
@@ -824,7 +824,7 @@ Siviglia.Utils.buildClass(
                         if(this.contexts.hasPrefix(p))
                         {
                             this.stack = this.buildTree(this.path);
-                            console.log("DESTRUYO CURSORES");
+                       //     console.log("DESTRUYO CURSORES");
                             this.clearListeners();
                             this.valid = true;
                             try {
@@ -922,7 +922,7 @@ Siviglia.Utils.buildClass({
                         de Siviglia.model.PathRoot
                     */
                     inherits:"Siviglia.Dom.EventManager",
-                    construct:function(str,contextStack)
+                    construct:function(str,contextStack,opts)
                     {
                         this._ps_id=Siviglia.Utils.parametrizableStringCounter;
                         Siviglia.Utils.parametrizableStringCounter++;
@@ -935,6 +935,11 @@ Siviglia.Utils.buildClass({
                         this.str=str;
                         this.valid=true;
                         this.pathController=null;
+                        this.useListeners=true;
+                        if(typeof opts!=="undefined")
+                        {
+                            this.useListeners=Siviglia.issetOr(opts.useListeners,true);
+                        }
                         this.EventManager();
 
                     },
@@ -1028,8 +1033,12 @@ Siviglia.Utils.buildClass({
 
                                 var controller=new Siviglia.Path.PathResolver(this.contextStack,path);
                                 this.paths[path]=controller;
-                                if(!((path[0]=="/" && path[1]=="@" ) || (path[0]=="@")))
-                                    controller.addListener("CHANGE",this,"onListener","ParametrizableString: value:"+path);
+                                // Si no queremos que sea dinamico, ya que lo que queremos es el valor actual del path, y punto,
+                                // no aniadimos ningun listener al path
+                                if(this.useListeners) {
+                                    if (!((path[0] == "/" && path[1] == "@") || (path[0] == "@")))
+                                        controller.addListener("CHANGE", this, "onListener", "ParametrizableString: value:" + path);
+                                }
                                 var val=controller.getPath();
                                 if(!controller.isValid()) {
                                     this.parsing=false;
@@ -1215,12 +1224,12 @@ Siviglia.Path.eventize=function(obj,propName) {
     }
 
 
-    if (!obj.hasOwnProperty("_" + propName)) {
+    if (!obj.hasOwnProperty("*" + propName)) {
 
         var v = obj[propName];
         var ev = new Siviglia.Dom.EventManager();
 
-        Object.defineProperty(obj, "_" + propName, {
+        Object.defineProperty(obj, "*" + propName, {
             get: function () {
                 return ev;
             },
@@ -1937,7 +1946,7 @@ Siviglia.Utils.buildClass(
                             console.dir(e);
                             throw e;
                         }
-                        console.log(this.__node[0].innerHTML)
+                        //console.log(this.__node[0].innerHTML)
                     }
                 }
 
@@ -2242,6 +2251,80 @@ Siviglia.types = {
             (it === null || typeof it == "object" || Siviglia.types.isArray(it) || Siviglia.types.isFunction(it)); // Boolean
     }
 };
+Siviglia.deepmerge=(function(){
+    var isMergeableObject=function (val) {
+        var nonNullObject = val && typeof val === 'object'
+
+        return nonNullObject
+            && Object.prototype.toString.call(val) !== '[object RegExp]'
+            && Object.prototype.toString.call(val) !== '[object Date]'
+    }
+
+    var emptyTarget=function(val) {
+        return Array.isArray(val) ? [] : {}
+    }
+
+    var cloneIfNecessary=function(value, optionsArgument) {
+        var clone = optionsArgument && optionsArgument.clone === true
+        return (clone && isMergeableObject(value)) ? deepmerge(emptyTarget(value), value, optionsArgument) : value
+    }
+
+    var defaultArrayMerge=function(target, source, optionsArgument) {
+        var destination = target.slice()
+        source.forEach(function(e, i) {
+            if (typeof destination[i] === 'undefined') {
+                destination[i] = cloneIfNecessary(e, optionsArgument)
+            } else if (isMergeableObject(e)) {
+                destination[i] = deepmerge(target[i], e, optionsArgument)
+            } else if (target.indexOf(e) === -1) {
+                destination.push(cloneIfNecessary(e, optionsArgument))
+            }
+        })
+        return destination
+    }
+
+    var mergeObject=function(target, source, optionsArgument) {
+        var destination = {}
+        if (isMergeableObject(target)) {
+            Object.keys(target).forEach(function (key) {
+                destination[key] = cloneIfNecessary(target[key], optionsArgument)
+            })
+        }
+        Object.keys(source).forEach(function (key) {
+            if (!isMergeableObject(source[key]) || !target[key]) {
+                destination[key] = cloneIfNecessary(source[key], optionsArgument)
+            } else {
+                destination[key] = deepmerge(target[key], source[key], optionsArgument)
+            }
+        })
+        return destination
+    }
+
+    var deepmerge=function(target, source, optionsArgument) {
+        var array = Array.isArray(source);
+        var options = optionsArgument || { arrayMerge: defaultArrayMerge }
+        var arrayMerge = options.arrayMerge || defaultArrayMerge
+
+        if (array) {
+            return Array.isArray(target) ? arrayMerge(target, source, optionsArgument) : cloneIfNecessary(source, optionsArgument)
+        } else {
+            return mergeObject(target, source, optionsArgument)
+        }
+    }
+
+    deepmerge.all = function deepmergeAll(array, optionsArgument) {
+        if (!Array.isArray(array) || array.length < 2) {
+            throw new Error('first argument should be an array with at least two elements')
+        }
+
+        // we are sure there are at least 2 values, so it is safe to have no initial value
+        return array.reduce(function (prev, next) {
+            return deepmerge(prev, next, optionsArgument)
+        })
+    }
+
+    return deepmerge;
+})();
 
 
 

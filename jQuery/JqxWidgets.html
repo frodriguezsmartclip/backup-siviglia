@@ -55,7 +55,7 @@
             classes: {
                 Factory:{
                     methods:{
-                        getInput:function(type,params)
+                        getInput:function(type,params,form)
                         {
                             var stype=type.type;
                             if(!Siviglia.isset(params))
@@ -65,6 +65,7 @@
                             var dv=$('<div></div>');
                             var p=params || {};
                             p.type=type;
+                            p.form=form;
                             switch(stype)
                             {
                                 case "Integer":
@@ -87,33 +88,48 @@
                         }
                     }
                 },
+
                 Form:{
                   inherits:"Siviglia.UI.Expando.View,Factory",
                   destruct:function(){
-                      if(this.__widgets)
-                      {
-                          for(var k in this.__widgets)
-                              this.__widgets.destruct();
-                      }
+                      if(this.container!==null)
+                          this.container.destruct();
+                      this.formNode.html("");
                   }  ,
                   methods:
                       {
                           preInitialize:function(params)
                           {
-                              var definition=params.definition;
-                              var value=params.value;
-                              this.__types={};
-                              this.__widgets={};
-                              this.__typeFactory=Siviglia.types.TypeFactory;
-                              value=Siviglia.issetOr(value,{});
-                              for(var k in definition)
+                              // En los Params ya tiene que haber un baseTypedObject, inicializado con valores.
+                              // La mision del form no es esa.Es solo pintar.
+                              // Se crea un tipo Container, con el valor que nos hayan pasado.
+                              this.value=params.value;
+                              this.container=new Siviglia.types.Container(this.value);
+                              var ip=Siviglia.issetOr(params.value.__definition.INPUTPARAMS,{});
+                              this.ip=[];
+                              for(var k in ip)
                               {
-                                  this[k]=this.__typeFactory.getType(definition[k],value[k]);
-                                  this[k].setController(this);
-                                  var p=Siviglia.issetOr(definition["INPUT"],{});
-                                  p.controller=this;
-                                  this.__widgets[k]=this.getInput(this[k],p);
+                                  var t=k.replace(/\+/gm,'.*')
+                                  t=t.replace(/\*/gm,'[^/]*');
+                                  t=t.replace(/\//,'\\/');
+                                  var r=new RegExp("^"+t+"$");
+                                  this.ip.push({reg:r,ip:ip[k]});
                               }
+                          },
+                          initialize:function(params)
+                          {
+                              var factory=new Siviglia.inputs.jqwidgets.Factory();
+                              this.container=factory.getInput(this.container,{},this);
+                              this.formNode.append(this.container.rootNode);
+                          },
+                          getFormParams:function(typePath)
+                          {
+                              var curP={};
+                              this.ip.map(function(item){
+                                  if(typePath.match(item.reg))
+                                      curP=Siviglia.deepmerge(curP,item.ip);
+                              })
+                              return curP;
                           }
                       }
                 },
@@ -126,11 +142,16 @@
                             this.controller = this.parentView;
                             this.changing=false;
                             this.errorMessage = "";
+                            this.form=Siviglia.issetOr(params.form,null);
                             this.type = params.type;
                             this.type.addListener("CHANGE",this,"onTypeChanged");
                             this.helpMessage = Siviglia.issetOr(this.type.definition.HELP, null);
                             this.hasHelpMessage = (this.helpMessage != null ? true : false);
                             this.inputParams = Siviglia.issetOr(params.inputParams, {});
+                            if(this.form!==null)
+                                this.formParams = params.form.getFormParams(this.type.getFullPath());
+                            else
+                                this.formParams={};
                         },
                         initialize: function (params) {
                             var opts = this.getDefaultInputOptions();
@@ -321,7 +342,7 @@
                          width: 200,
                          validationMessage: "Invalid value",
                          height: 25, textAlign: "right", readOnly: false,
-                         promptChar: "_",
+                         promptChar: "*",
                          decimalDigits: 2,
                          decimalSeparator: ".", groupSeparator: ",", groupSize: 3, symbol: "", symbolPosition: "left", digits: 8, negative: false, negativeSymbol: "-", disabled: false, inputMode: "advanced", spinButtons: false, spinButtonsWidth: 18, spinButtonsStep: 1, autoValidate: true, spinMode: "advanced", enableMouseWheel: true, touchMode: "auto", rtl: false, events: ["valueChanged", "textchanged", "mousedown", "mouseup", "keydown", "keyup", "keypress", "change"], aria: {"aria-valuenow": {name: "decimal", type: "number"}, "aria-valuemin": {name: "min", type: "number"}, "aria-valuemax": {name: "max", type: "number"}, "aria-disabled": {name: "disabled", type: "boolean"}}, invalidArgumentExceptions: ["invalid argument exception"]};
                          */
@@ -458,7 +479,7 @@
                         preprocessParams: function (params) {
                             this.type=params.type;
                             var s=this.type.getSource();
-                            this.labelField = s.getLabelField();
+                            this.labelField = s.getLabelExpression()?"LABEL_EXPRESSION":s.getLabelField();
                             this.valueField = s.getValueField();
                         },
                         getValue: function () {
@@ -559,7 +580,18 @@
                         {
                             var self=this;
                             var s=this.type.source.getValueField();
-                            self.dataSource.localdata = data.value==null?[]:data.value;
+                            // Vemos ahora en data
+
+                            this.dataSource.localdata = [];
+                            if(data.value!==null)
+                            {
+                                this.dataSource.localdata=data.value;
+                                if(this.type.source.getLabelExpression()!==null) {
+                                    for (var k = 0; k < data.value.length; k++)
+                                        data.value[k]["LABEL_EXPRESSION"]=this.type.source.getLabel(data.value[k])
+
+                                }
+                            }
 
                             // La llamada a dataBind genera un problema en select anidados:
                             // Si existen dos select anidados, S1 y S2, ocurre lo siguiente:
@@ -772,8 +804,8 @@
 
                                     var factory=new Siviglia.inputs.jqwidgets.Factory()
                                     //this.curType=this.type.getField(key);
-                                    this.curType=this.type.getValue()["_"+key];
-                                    var instance=factory.getInput(this.curType,{controller:this.type.controller});
+                                    this.curType=this.type.getValue()["*"+key];
+                                    var instance=factory.getInput(this.curType,{controller:this.type.controller},this.form);
 
 
                                     if(this.curType.definition.LAYOUT)
@@ -863,7 +895,7 @@
                                     })
                                     var factory=new Siviglia.inputs.jqwidgets.Factory();
 
-                                    this.newItemSelector = factory.getInput(tempType);
+                                    this.newItemSelector = factory.getInput(tempType,{},this.form);
 
                                     var m = this;
                                     this.newItemSelector.on("change", function (ev) {
@@ -926,7 +958,7 @@
                                     this.newInstance=this.type.getValueInstance();
                                     var factory=new Siviglia.inputs.jqwidgets.Factory();
 
-                                    this.newItemSelector = factory.getInput(this.newInstance);
+                                    this.newItemSelector = factory.getInput(this.newInstance,{},this.form);
                                     this.newItemNode.append(this.newItemSelector.rootNode);
                                 },
                                 onRemoveItem:function(node,params)
@@ -965,7 +997,7 @@
                                         this.currentItemNode.html("");
                                     }
                                     var factory=new Siviglia.inputs.jqwidgets.Factory();
-                                    this.currentItem=factory.getInput(this.type.getValue()["_"+idx]);
+                                    this.currentItem=factory.getInput(this.type.getValue()["*"+idx],{},this.form);
                                     this.currentItemNode.append(this.currentItem.rootNode);
                                 }
 
@@ -996,7 +1028,7 @@
                             this.hasCurrentKey=true;
                             this.currentKey=params.index;
                             var factory=new Siviglia.inputs.jqwidgets.Factory();
-                            this.newItemSelector = factory.getInput(tempType);
+                            this.newItemSelector = factory.getInput(tempType,{},this.form);
 
                             this.currentWidget=this.painterFactory.factory(this.uinode.children[params.index], this.uinode.parent,{});
                             this.widgetContainer.append(this.currentWidget.rootNode);
@@ -1052,7 +1084,7 @@
                             this.typeSelector=Siviglia.types.TypeFactory.getType(this,{
                                 "TYPE":"String",
                                 "SOURCE":source
-                            });
+                            },this.form);
                             var currentType=params.type.getCurrentType();
                             if(currentType!==null)
                                 this.typeSelector.setValue(currentType);
@@ -1063,7 +1095,7 @@
                         {
                             this.detach();
                             var factory=new Siviglia.inputs.jqwidgets.Factory();
-                            this.typeSelectorWidget = factory.getInput(this.typeSelector);
+                            this.typeSelectorWidget = factory.getInput(this.typeSelector,{},this.form);
                             var m=this;
                             this.typeSelector.addListener("CHANGE",function(event,params){
                                 var val=m.typeSelector.getValue();
@@ -1097,7 +1129,7 @@
 
                                 if(this.curType) {
                                     var curTypeObj=this.type.getCurrentTypeObj();
-                                    var instance = factory.getInput(curTypeObj, {controller: this.type.controller});
+                                    var instance = factory.getInput(curTypeObj, {controller: this.type.controller},this.form);
 
                                     if (curTypeObj.definition.LAYOUT)
                                         l = curTypeObj.definition.LAYOUT;
@@ -1273,7 +1305,7 @@
                                             "TYPE":"String"
                                         });
                                     }
-                                    this.subInput=factory.getInput(this.subType,{controller:this.parent.type.controller});
+                                    this.subInput=factory.getInput(this.subType,{controller:this.parent.type.controller},this.form);
                                     this.inputNode.html('');
                                     this.inputNode.append(this.subInput.rootNode);
                                 },
@@ -1293,7 +1325,7 @@
 <div style="display:none">
     <div data-sivWidget="Siviglia.inputs.jqwidgets.String" data-widgetParams="type,inputParams"
          data-widgetCode="Siviglia.inputs.jqwidgets.String">
-        <input type="text" data-sivId="inputNode"></input>
+        <input data-sivValue="class|[%*formParams/classes%]" type="text" data-sivId="inputNode"></input>
     </div>
     <div data-sivWidget="Siviglia.inputs.jqwidgets.Enum" data-widgetParams="type,inputParams"
          data-widgetCode="Siviglia.inputs.jqwidgets.Enum">
@@ -1604,6 +1636,14 @@
                 <div style="display:table-cell;vertical-align: top;line-height: 1.0;font-size: 20px;"><div data-sivEvent="click" data-sivCallback="onAdd" class="add"></div></div>
             </div>
     </div>
+    <!--
+            ---------------------------------------------------------------------------------------
+            -->
+    <div data-sivWidget="Siviglia.inputs.jqwidgets.Form" data-widgetParams="type,inputParams"
+         data-widgetCode="Siviglia.inputs.jqwidgets.Form">
+        <div data-sivId="formNode"></div>
+    </div>
+
     <!--
     <div data-sivWidget="AUTOPAINTER_TypeSwitcher" data-widgetParams="parentObject,parentNode" data-widgetCode="Siviglia.AutoUI.Painter.TypeSwitchPainter" class="TypeSwitchType">
         <div class="panel panel-primary">
