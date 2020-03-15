@@ -420,7 +420,7 @@ Siviglia.Utils.buildClass(
                                 },
                                 onData:function(data)
                                 {
-                                    if(this.isLoadValid(data))
+                                    if(data!==null && this.isLoadValid(data))
                                     {
                                         if(data.definition)
                                             this.setMetaData(data.definition);
@@ -479,7 +479,7 @@ Siviglia.Utils.buildClass(
                                 onData:function(data)
                                 {
                                     var m=this;
-                                    if(this.isLoadValid(data))
+                                    if(data!==null && this.isLoadValid(data))
                                     {
                                         if(data.definition)
                                             this.setMetaData(data.definition);

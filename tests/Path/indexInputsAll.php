@@ -196,7 +196,7 @@
                                                 "MODEL":"/model/reflection/Model",
                                                 "DATASOURCE":"FieldList",
                                                 "PARAMS": {
-                                                    "model": "[%/*modelSelector%]"
+                                                    "model": "[%#../modelSelector%]"
                                                 },
                                                 "LABEL":"NAME",
                                                 "VALUE":"FIELD"
