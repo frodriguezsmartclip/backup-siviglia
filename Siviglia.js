@@ -1876,15 +1876,52 @@ Siviglia.Utils.buildClass(
                     hasInstance:function(widgetName)
                     {
                         var lib = Siviglia.UI.Expando.WidgetExpando.prototype.widgets;
+
                         return lib && lib[widgetName];
                     },
-                    getInstance: function (widgetName) {
-                        // TODO: SI EL WIDGET NO EXISTE, CARGARLO REMOTAMENTE
-                        var p = $.Deferred();
+                    get:function(widgetName,context)
+                    {
+                        var ins=this._getFromCache();
+                        if(ins)
+                        {
+                            var p = $.Deferred();
+                            p.resolve(ins);
+                            return p;
+                        }
+                        return this._getFromRemote(widgetName,context);
+                    },
+                    _getFromCache:function(widgetName,context)
+                    {
                         var lib = Siviglia.UI.Expando.WidgetExpando.prototype.widgets;
-                        if (!lib || !lib[widgetName])
-                            return null;
-                        return lib[widgetName];
+                        if (lib && lib[widgetName])
+                            return lib[widgetName];
+                        return null;
+                    },
+                    getInstance: function (widgetName,context) {
+
+                        var p=this._getFromCache(widgetName,context);
+                        if(p)
+                            return p;
+                        return this._getFromRemote(widgetName,context);
+                    },
+                    _getFromRemote:function(widgetName,context)
+                    {
+                        if(typeof Siviglia.UI.Expando.WidgetExpando.prototype.widgetPromises[widgetName]!=="undefined")
+                            return Siviglia.UI.Expando.WidgetExpando.prototype.widgetPromises[widgetName];
+                        var p = $.Deferred();
+                        Siviglia.UI.Expando.WidgetExpando.prototype.widgetPromises[widgetName]=p;
+                        var lib = Siviglia.UI.Expando.WidgetExpando.prototype.widgets;
+                        Siviglia.Utils.load([
+                            {"type":"widget",
+                                "template":"/js/"+widgetName.replace(/\./g,"/")+".html",
+                                "js":"/js/"+widgetName.replace(/\./g,"/")+".js",
+                                "context":context
+                            }
+                        ]).then(function(){
+                            // Cuando se ha parseado el nodo al cargar el widget, se ha autoañadido a la cache.
+                            p.resolve(lib[widgetName]);
+                        });
+
                         return p;
                     }
                 }
@@ -2026,7 +2063,8 @@ Siviglia.Utils.buildClass(
 
         }
     });
-
+Siviglia.UI.Expando.WidgetExpando.prototype.widgets={};
+Siviglia.UI.Expando.WidgetExpando.prototype.widgetPromises={};
 Siviglia.Utils.load=function(assets)
 {
 
@@ -2100,7 +2138,7 @@ Siviglia.Utils.load=function(assets)
             {
                 case "widget":{
                     if(!p.node) {
-                        p.node = $("<div></div>");
+                        p.node = $('<div style="display:none"></div>');
                         $(document.body).append(p.node);
                     }
                     var pr=$.Deferred();
@@ -2109,7 +2147,8 @@ Siviglia.Utils.load=function(assets)
                     promises.push(loadHTML(p.template,p.node));
                     promises.push(loadJS(p.js));
                     $.when.apply($,promises).then(function(){
-                        page.parseWidgets(p.node);
+                        var parser= new Siviglia.UI.HTMLParser(p.context);
+                        parser.parse(p.node);
                         pr.resolve(p.node);
                     })
                 }break;
