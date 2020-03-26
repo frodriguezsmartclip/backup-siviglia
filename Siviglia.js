@@ -1865,6 +1865,19 @@ Siviglia.Utils.buildClass(
                         return newNode;
                     },
                     getClass: function(){
+                        if(typeof this.widgetCode=="undefined") {
+                            console.warn("El widget " + this.widgetName + " no tiene clase asociada.Se asume " + this.widgetName);
+                            this.widgetCode=this.widgetName;
+                        }
+
+
+                        var curClass = Siviglia.Utils.stringToContextAndObject(this.widgetCode);
+                        if(typeof curClass.context[curClass.object]==="undefined")
+                        {
+                            throw "ERROR::LA CLASE DEFINIDA PARA EL WIDGET "+this.widgetName+" ("+this.widgetCode+") NO EXISTE";
+                        }
+
+
                         return this.widgetCode;
                     }
                 }
@@ -1952,10 +1965,16 @@ Siviglia.Utils.buildClass(
                         var widgetFactory = new Siviglia.UI.Expando.WidgetFactory();
                         var f=(function (w) {
 
-                            this.preInitialize(this.__params);
-                            this.__composeHtml(w);
-                            this.parseNode();
-                            this.initialize(this.__params);
+                            var returned=this.preInitialize(this.__params);
+                            var f=function() {
+                                this.__composeHtml(w);
+                                this.parseNode();
+                                this.initialize(this.__params);
+                            }.bind(this);
+                            if(typeof returned!=="undefined" && returned.then)
+                                returned.then(f);
+                            else
+                                f();
                         }).bind(this);
                         if(!widgetFactory.hasInstance(this.__template))
                             $.when(widgetFactory.getInstance(this.__template)).then(f);

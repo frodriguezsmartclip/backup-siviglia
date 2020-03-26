@@ -98,8 +98,8 @@ Siviglia.Utils.buildClass(
                     else
                     {
                         var Cache=Siviglia.globals.Cache;
-                        var cacheKey="Definition."+defOrUrl;
-                        var cached=Cache.get(cacheKey);
+
+                        var cached=Cache.get("ModelDefinition",defOrUrl);
 
                         if(typeof cached!="undefined") {
                             this.__loadDefinition(cached);
@@ -108,7 +108,7 @@ Siviglia.Utils.buildClass(
                         {
                             var m = this;
                             $.getJSON(defOrUrl).then(function (r) {
-                                Cache.add(cacheKey,r);
+                                Cache.add("ModelDefinition",cacheKey,r);
                                 m.__loadDefinition(r);
                             });
                         }
@@ -164,6 +164,10 @@ Siviglia.Utils.buildClass(
                             cb.apply(this,[k,this.__fields[k]]);
                         }
                     },
+                    __getDefinition:function()
+                    {
+                        return this.__definition;
+                    },
                     // OJO
                     // Aqui no podemos hacer lo "esperable" de crear un objeto,
                     // iterar sobre los campos, e ir pidiendo getValue a cada campo..
@@ -175,7 +179,7 @@ Siviglia.Utils.buildClass(
                     },
                     getPlainValue:function()
                     {
-                        this.save();
+                        this.__save();
                         var subVal=this.__value;
                         var nSet=0;
                         var nFields=0;
@@ -184,7 +188,7 @@ Siviglia.Utils.buildClass(
                         for(var k in this.__definition["FIELDS"])
                         {
                             nFields++;
-                            var plainValue=subVal["*"+k].getPlainValue();
+                            var plainValue=this["*"+k].getPlainValue();
                             if(plainValue===null)
                             {
                                 var d=this.__definition["FIELDS"][k];
@@ -287,7 +291,7 @@ Siviglia.Utils.buildClass(
                     {
                         return true;
                     },
-                    save:function()
+                    __save:function()
                     {
                         for(var k in this.__definition["FIELDS"]) {
 
@@ -411,6 +415,7 @@ Siviglia.Utils.buildClass(
                         this.source = null;
                         this.sourceFactory = null;
                         this.fieldName="";
+                        this.referencedField=null;
                         this.useRemoteValidation=false;
                         if (val)
                             this.setValue(val);
@@ -668,6 +673,10 @@ Siviglia.Utils.buildClass(
                             save:function()
                             {
                                 return;
+                            },
+                            setReferencedField:function(ref)
+                            {
+                                this.referencedField=true;
                             }
                         }
                 },
@@ -753,7 +762,8 @@ Siviglia.Utils.buildClass(
                                     if (this.definition.REQUIRED)
                                         throw new Siviglia.types.BaseTypeException(Siviglia.types.BaseTypeException.ERR_UNSET);
                                     else {
-                                        return true;
+                                        if(this.isNull(val))
+                                            return true;
                                     }
                                 }
                                 val = '' + val;
@@ -1306,6 +1316,10 @@ Siviglia.Utils.buildClass(
                                     return this.getDefaultValue();
                                 return null;
                             },
+                            _validate:function()
+                            {
+                                return true;
+                            },
                             getRelationshipType: function () {
                                 var obj = this.definition.MODEL;
                                 var target;
@@ -1316,7 +1330,8 @@ Siviglia.Utils.buildClass(
                                 return Siviglia.types.TypeFactory.getRelationFieldTypeInstance(obj, target);
                             },
                             hasSource: function () {
-                                return true;
+                                return false;
+                                //return true;
                             },
                             getSource: function (controller, params) {
                                 var s = new Siviglia.Data.SourceFactory();
@@ -2511,9 +2526,25 @@ Siviglia.Utils.buildClass(
                 {
                     var type;
                     var mode="obj";
+                    var referencedField=null;
+
                     if(typeof def==="object")
                     {
-                        type=def['TYPE'];
+                        if(typeof def["TYPE"]==="undefined" && typeof def["MODEL"]!=="undefined" && typeof def["MODEL"]!=="undefined")
+                        {
+                            var remDefinition=Siviglia.Model.loader.getModelDefinition(def["MODEL"]);
+                            if(remDefinition) {
+                                if (typeof remDefinition["FIELDS"][def["FIELD"]] != "undefined") {
+                                    referencedField=def;
+                                    def = remDefinition["FIELDS"][def["FIELD"]];
+                                    type=def["TYPE"];
+                                }
+                            }
+                            else
+                                throw new Siviglia.types.BaseTypeException(Siviglia.types.BaseTypeException.ERR_TYPE_NOT_FOUND, {type: type});
+                        }
+                        else
+                            type=def['TYPE'];
                     }
                     else
                     {
@@ -2581,6 +2612,8 @@ Siviglia.Utils.buildClass(
 
                     newType=new ctx.context[ctx.object](def,val);
                     newType.setParent(parent);
+                    if(referencedField!==null)
+                        newType.setReferencedField(referencedField);
                     return newType;
                 },
                 getRelationFieldTypeInstance:function(model,field)

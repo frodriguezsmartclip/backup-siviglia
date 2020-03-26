@@ -23,11 +23,8 @@
             baseUrl:'http://editor.adtopy.com/',
             staticsUrl:'http://statics.adtopy.com/',
             metadataUrl:'http://metadata.adtopy.com/',
-            jsFramework:'jquery',
             locale:'es-ES',
-            mapper:'BackofficeMapper',
-            datasourcePrefix:'datasource/'
-            //jsFramework:'dojo'
+            mapper:'Siviglia'
         };
         Siviglia.Model.initialize(Siviglia.config);
 
