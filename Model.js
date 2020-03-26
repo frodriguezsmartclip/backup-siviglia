@@ -268,7 +268,7 @@ Siviglia.Utils.buildClass({
                         // Se espera a que la primera promesa se resuelva.
                         h.then(function(instance){
                             // Si no se paso ningun id para este modelo, resolvemos la segunda promesa.
-                            if(typeof id=="undefined")
+                            if(typeof id=="undefined" || id===null)
                                 p.resolve(instance);
                             else
                             {

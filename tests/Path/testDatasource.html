@@ -26,21 +26,23 @@
 </head>
 <body>
 <div style="display:none">
-    <div data-sivWidget="Siviglia.model.web.Site.views.View" data-widgetCode="Siviglia.model.web.Site.views.View">
-        <div><span>Id:</span><span data-sivValue="/*instance/id_site"></span></div>
-        <div><span>host:</span><span data-sivValue="/*instance/host"></span></div>
-        <div><span>canonical_url:</span><span data-sivValue="/*instance/canonical_url"></span></div>
-        <div><span>namespace:</span><span data-sivValue="/*instance/namespace"></span></div>
-        <div><span>websiteName:</span><span data-sivValue="/*instance/websiteName"></span></div>
+    <div data-sivWidget="Siviglia.model.web.Site.views.List" data-widgetCode="Siviglia.model.web.Site.views.List">
+        <div data-sivLoop="/*ds/data" contextIndex="current">
+        <div><span>Id:</span><span data-sivValue="/@current/id_site"></span></div>
+        <div><span>host:</span><span data-sivValue="/@current/host"></span></div>
+        <div><span>canonical_url:</span><span data-sivValue="/@current/canonical_url"></span></div>
+        <div><span>namespace:</span><span data-sivValue="/@current/namespace"></span></div>
+        <div><span>websiteName:</span><span data-sivValue="/@current/websiteName"></span></div>
+        </div>
     </div>
 </div>
-<div data-sivView="Siviglia.model.web.Site.views.View" data-sivParams='{"id_site":1}'></div>
+<div data-sivView="Siviglia.model.web.Site.views.List"></div>
 
 <script>
     Siviglia.Utils.buildClass({
         "context":"Siviglia.model.web.Site.views",
         "classes":{
-            View:{
+            List:{
                 "inherits":"Siviglia.UI.Expando.View",
                 "methods":{
                     preInitialize:function(params)
@@ -48,10 +50,12 @@
                         var p=$.Deferred();
                         var m=this;
                         var f=new Siviglia.Model.ModelFactory();
-                        f.load("/model/web/Site",params.id_site).then(function(instance){
-                            m.instance=instance;
-                            p.resolve();
-                        })
+                        f.create("/model/web/Site").then(function(instance){
+                            instance.getDataSource("FullList",{}).then(function(datasource){
+                                m.ds=datasource;
+                                p.resolve();
+                            })
+                        });
                         return p;
                     },
                     initialize:function(params){}
