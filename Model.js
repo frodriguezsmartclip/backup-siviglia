@@ -19,8 +19,7 @@ Siviglia.Utils.buildClass({
                         get: function (type, key) {
                             if (typeof this.cache[type] == "undefined")
                                 return null;
-                            return this.cache[key];
-
+                            return Siviglia.issetOr(this.cache[type][key],null);
                         },
                         delete: function (type, key) {
                             this.cache[type][key] = null;
@@ -47,7 +46,7 @@ Siviglia.Utils.buildClass({
         ModelDescriptor: {
             construct: function (mname) {
                 if (typeof mname == "string") {
-                    var objPath = mname.replace('\\', '/').split("/");
+                    var objPath = mname.replace(/\\/g, '/').split("/");
                     if (objPath[0] == "")
                         objPath = objPath.splice(1);
                     if (objPath[0] != "model")
@@ -217,18 +216,19 @@ Siviglia.Utils.buildClass({
                 {
                     getModelDefinition:function(model)
                     {
-                        var cached=Siviglia.globals.Cache.get("ModelDefinition",model);
+                        var dsc=new Siviglia.Model.ModelDescriptor(model);
+                        var cached=Siviglia.globals.Cache.get("ModelDefinition",dsc.getCanonicalDotted());
                         if(cached)
                         {
                             return cached;
                         }
                         // La cargamos de remoto, pero de forma sincrona
                         // primero hay que componer la URL de destino, que es:
-                        var dsc=new Siviglia.Model.ModelDescriptor(model);
+
                         var url=dsc.getModelMetaPath();
                         var result=this.transport.doSyncGet(url);
                         if(result.error==0) {
-                            Siviglia.globals.Cache.add("ModelDefinition", model, result.data);
+                            Siviglia.globals.Cache.add("ModelDefinition", dsc.getCanonicalDotted(), result.data);
                             return result.data;
                         }
                         return null;
@@ -259,7 +259,7 @@ Siviglia.Utils.buildClass({
                                     console.error("La clase para el modelo "+model+" no tiene el nombre correcto");
                                     h.reject();
                                 }
-                                Siviglia.globals.Cache.add("ModelDefinition",model,instance.__getDefinition());
+                                Siviglia.globals.Cache.add("ModelDefinition",instance.getDescriptor().getCanonicalDotted(),instance.__getDefinition());
                                 // Aqui se resuelve la primera promesa
                                 h.resolve(instance);
                             },function(){h.reject()});
@@ -455,6 +455,10 @@ Siviglia.Utils.buildClass({
                     {
                         getName:function(){
                             return this._name;
+                        },
+                        getDescriptor:function()
+                        {
+                            return this._descriptor;
                         },
                         getIndexFields: function () {
                             return this.__definition.INDEXFIELDS;

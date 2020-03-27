@@ -137,7 +137,7 @@ Siviglia.Utils.buildClass(
                         }
                         this.__value=curVal;
                         this.__iterateOnFieldDefinitions(function(name,def){
-                            m.__addField(name,def,curVal!=null?curVal[name]:null);
+                            m.__addField(name,def,Siviglia.issetOr(curVal[name],null));
                         });
 
                         m.__definedPromise.resolve(m);
