@@ -6,6 +6,10 @@
     <script src="../../SivigliaStore.js"></script>
     <script src="../../Model.js"></script>
     <script src="../../SivigliaTypes.js"></script>
+    <script src="../../../jqwidgets/jqx-all.js"></script>
+    <script src="../../../jqwidgets/globalization/globalize.js"></script>
+    <link rel="stylesheet" href="../../../jqwidgets/styles/jqx.base.css">
+    <link rel="stylesheet" href="../../../jqwidgets/styles/jqx.light.css">
     <script>
         var Siviglia = Siviglia || {};
         Siviglia.config = {
@@ -25,25 +29,23 @@
 
 </head>
 <body>
-
+<?php include_once(__DIR__."/../../jQuery/JqxWidgets.html"); ?>
 <div style="display:none">
-    <div data-sivWidget="Siviglia.model.web.Site.views.View" data-widgetCode="Siviglia.model.web.Site.views.View">
-        <div><span>Id:</span><span data-sivValue="/*instance/id_site"></span></div>
-        <div><span>host:</span><span data-sivValue="/*instance/host"></span></div>
-        <div><span>canonical_url:</span><span data-sivValue="/*instance/canonical_url"></span></div>
-        <div><span>namespace:</span><span data-sivValue="/*instance/namespace"></span></div>
-        <div><span>websiteName:</span><span data-sivValue="/*instance/websiteName"></span></div>
+    <div data-sivWidget="Siviglia.model.web.Site.forms.Edit" data-widgetCode="Siviglia.model.web.Site.forms.Edit">
+        <div data-sivView="Siviglia.inputs.jqwidgets.Form" data-sivParams='{"value":"/*instance"}'></div>
+        <div><input type="button" data-sivEvent="click" data-sivCallback="doSubmit" value="Guardar"></div>
     </div>
 </div>
 
 
-<div data-sivView="Siviglia.model.web.Site.views.View" data-sivParams='{"id_site":2}'></div>
+<div data-sivView="Siviglia.model.web.Site.forms.Edit" data-sivParams='{"id_site":2}'></div>
+
 
 <script>
     Siviglia.Utils.buildClass({
-        "context":"Siviglia.model.web.Site.views",
+        "context":"Siviglia.model.web.Site.forms",
         "classes":{
-            View:{
+            Edit:{
                 "inherits":"Siviglia.UI.Expando.View",
                 "methods":{
                     preInitialize:function(params)
@@ -57,7 +59,11 @@
                         })
                         return p;
                     },
-                    initialize:function(params){}
+                    initialize:function(params){},
+                    doSubmit:function()
+                    {
+                        this.instance.save();
+                    }
                 }
             }
         }

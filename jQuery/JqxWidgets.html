@@ -865,6 +865,15 @@
 
                                 this.subwidgets[params.key]=this.__getInputFor(params.key);
                                 node.append(this.subwidgets[params.key].rootNode);
+                            },
+                            getGroups:function()
+                            {
+                                var groups=this.type.getGroups();
+                                if(groups==null)
+                                {
+                                    return {"DEFAULT":this.type.getKeys()};
+                                }
+                                return groups;
                             }
                         }
                     },
@@ -1325,7 +1334,7 @@
 <div style="display:none">
     <div data-sivWidget="Siviglia.inputs.jqwidgets.String" data-widgetParams="type,inputParams"
          data-widgetCode="Siviglia.inputs.jqwidgets.String">
-        <input data-sivValue="class|[%*formParams/classes%]" type="text" data-sivId="inputNode"></input>
+        <input type="text" data-sivId="inputNode"></input>
     </div>
     <div data-sivWidget="Siviglia.inputs.jqwidgets.Enum" data-widgetParams="type,inputParams"
          data-widgetCode="Siviglia.inputs.jqwidgets.Enum">

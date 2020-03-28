@@ -135,10 +135,11 @@ Siviglia.Utils.buildClass(
                             else
                                 curVal={};
                         }
-                        this.__value=curVal;
-                        this.__iterateOnFieldDefinitions(function(name,def){
-                            m.__addField(name,def,Siviglia.issetOr(curVal[name],null));
-                        });
+                        this.setValue(curVal);
+
+
+
+
 
                         m.__definedPromise.resolve(m);
 
@@ -219,12 +220,11 @@ Siviglia.Utils.buildClass(
                         var m=this;
                         // Limpiamos el valor interno.
                         this.__value=v;
-                        this.__iterateOnFields(function(name,field)
+                        this.__iterateOnFieldDefinitions(function(name,def)
                         {
-                            if(Siviglia.isset(v[name]))
-                                m[name] = v[name];
-                            else
-                                m[name] = null;
+                            if(typeof m.__fields[name]!=="undefined")
+                                m.__fields[name].destruct();
+                            m.__addField(name,def,Siviglia.issetOr(v[name],null));
                         });
                         this.valueSet=true;
                     },
@@ -1572,6 +1572,10 @@ Siviglia.Utils.buildClass(
                     getKeyLabel:function(key)
                     {
                         return this.definition["FIELDS"][key]["LABEL"];
+                    },
+                    getGroups:function()
+                    {
+                        return Siviglia.issetOr(this.definition["GROUPS"],null);
                     }
                 }
             }
