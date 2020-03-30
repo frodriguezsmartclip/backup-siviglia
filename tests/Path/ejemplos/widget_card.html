@@ -1,0 +1,168 @@
+<html>
+<head>
+        <title>news siviglia</title>
+        <script src="/node_modules/jquery/dist/jquery.js"></script>
+        <script src="../../../Siviglia.js"></script>
+        <script src="../../../SivigliaStore.js"></script>
+        <script src="../../../Model.js"></script>    
+        <script src="../../../SivigliaTypes.js"></script>
+        <style type="text/css">
+            .contenedor1 {background-color: grey;}
+            .titulo {background-color: green;}
+            .titulo2 {color: red}
+            .noticia {border: 1px solid #000;}
+        </style>
+    <script>
+            var contenedor_noticias = {
+                // widget contenedor de noticias
+                pais:
+                {
+                    "espana":[
+                        {"Titulo":"el iphone vale más de 5000€","Contenido":"Contenido 1. Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book."},
+                        {"Titulo":"VR es la nueva forma de viajar","Contenido":"Contenido 2. Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book."},
+                        {"Titulo":"El cod vid 19 afecta a la comunidad de madrid","Contenido":"Contenido 3. Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book."},
+                        {"Titulo":"Cierran durante 15 dias los colegios","Contenido":"Contenido 4. Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book."},
+                    ],
+                    "internacional":[
+                        {"Titulo":"Title international 1","Contenido":"Contenido 5. Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book."},
+                        {"Titulo":"Title international 2","Contenido":"Contenido 6. Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book."},
+                        {"Titulo":"Title international 3","Contenido":"Contenido 7. Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book."},
+                        {"Titulo":"Title international 4","Contenido":"Contenido 8. Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book."},
+                    ]
+                },
+                clname: "contenedor1",
+                class_title: "titulo",
+                class_noticia: "noticia"
+            };
+
+            var seccion = {
+                noti_seccion:"internacional"
+            }
+
+                    
+        
+        Siviglia.Utils.buildClass({
+                "context": "Widget",
+                "classes":{
+                    "Card":{
+                        "inherits": "Siviglia.UI.Expando.View",
+                        methods:{
+
+                            preInitialize:function(params){
+                                //this.titulo=params.titulo;
+                                // entonces, ya en card, hace: this.controller=params.controller
+                                this.controller=params.controller;
+                            },
+                            initialize:function(params){},
+                            initNode:function(node,params){
+
+
+                                var widget = new Widget.Noticia(
+                                    "Widget.Noticia",
+                                    {seccion: params.curSectionNews},
+                                    {},
+                                    $('<div></div>'),
+                                    this.__context
+                                );
+                                widget.__build();
+                                node.append(widget.rootNode);
+                            },
+                            getTitle:function(){},
+                            getContent:function(){
+                                var widget=this.controller.getContent()
+                            }
+
+                        }
+                    },
+                    "Controller":{
+                        "inherits": "Siviglia.UI.Expando.View",
+                        methods:{
+
+                            preInitialize:function(params){
+                                this.title=params.object.getTitle(),
+                                this.content=params.object.getContents()
+                            },
+                            initialize:function(params){}
+
+                        },
+                        getTitle:function(){
+                            return this.title;
+                        },
+                        getContent:function(){
+                            return this.content;
+                        }
+                    },
+
+                    "Content":{
+                        "inherits": "Siviglia.UI.Expando.View",
+                        methods:{},
+                    }
+
+                }
+            })
+
+            setTimeout(function(){
+                contenedor_noticias.clname="titulo2";
+            },5000);
+</script>
+</head>
+    <body>
+    <div style="display:none">
+
+
+<!-- 
+y Card pinta la tarjeta, llamando a getTitle y getContent cuando lo necesite
+-->
+    <div data-sivWidget="Widget.Card" data-widgetCode="Widget.Card">
+        <div data-sivLoop="#pais/{%!noti_seccion%}" data-contextIndex="punteroNews">
+            <h3 data-sivCall="getTitle" data-sivParams='{ "curTitleNews": "@punteroNews" }'></h3>
+            <p data-sivCall="getContent" data-sivParams='{ "curSectionNews": "@punteroNews" }'></p>
+        </div>
+    </div>
+
+
+<!--La plantilla de Controller solo tiene una llamada a la data-sivView de Card, 
+pasando self como parametro  -->
+    <div data-sivView="Widget.Card" data-sivParams='{"controller": "/*self" }'></div>
+
+
+<script>
+        var parser=new Siviglia.UI.HTMLParser();
+        parser.addContext("#",contenedor_noticias);
+        parser.addContext("!",seccion);
+        parser.parse($(document.body));
+</script>
+</body>
+</html>
+
+<!-- 
+
+Notas:
+
+1) Primero se crea:
+
+<div data-sivWidget="Widget.Card"...>   y luego <div data-sivView="Widget.Card"...>
+
+o al reves??
+
+<div data-sivView="Widget.Card"...> ===> y luego <div data-sivWidget="Widget.Card"...>
+
+
+Partes importantes que tiene Siviglia-js:
+========================================
+
+- data-sivWidget => es la llamada que se compone de: nombre del contexto + nombre clase (de  Siviglia.Utils.buildClass)
+
+Sirve para crear un widget, y a través del data-widgetCode, relacionar la vista con data-sivView.
+
+
+- data-sivView => se compone con el nombre del contexto + nombre clase (de  Siviglia.Utils.buildClass)
+
+- data-sivParams= =>  mira en el preInitialize:function(params) de esa clase, para enlazarlo
+
+- data-sivLoop => para recorrernos una estructura  segun un contexto, y data-contextIndex recorrernos lo que nos interese.
+
+- data-sivCall => sirve para llamar a métodos de una clase.
+
+
+-->

@@ -1,0 +1,222 @@
+<html>
+<head>
+    <title>news siviglia</title>
+    <script src="/node_modules/jquery/dist/jquery.js"></script>
+    <script src="../../../Siviglia.js"></script>
+    <script src="../../../SivigliaStore.js"></script>
+    <script src="../../../Model.js"></script>
+    <script src="../../../SivigliaTypes.js"></script>
+    <style type="text/css">
+        .contenedor1 {background-color: grey;}
+        .titulo {background-color: green;}
+        .titulo2 {color: red}
+        .noticia {border: 1px solid #000;}
+    </style>
+    <script>
+
+
+        var seccion = {
+            noti_seccion:"internacional"
+        }
+
+
+
+        Siviglia.Utils.buildClass({
+            "context": "Widget",
+            "classes":{
+                "Card":{
+                    "inherits": "Siviglia.UI.Expando.View",
+                    methods:{
+												// ok, funcion que tiene que estar por defecto
+                        preInitialize:function(params){
+														
+                          	// Aqui asignas variables en el metodo de preInitialize, para poder usarlas
+                          	// en cualquier momento invocándolo con /*nombre_variable o *nombre_variable
+                            // veo, que se puede llamar dentro de cualquier etiqueta como sivValue, sivCall etc...
+                          
+                            this.controller=params.controller;	// xq sabes que es un "params.controller"?
+                            this.title=params.title;						// xq sabes que es un "params.title"
+                            this.controllerParam=params.controllerParam;	// idem con controllerParam? de donde sale
+                          
+                          	// vale, creo que sé como llamas a estas variables, es debido al 
+                          	// <div data-sivView="Widget.Card" data-sivParams='{"controller":"*self","title":"@currentSection-index","controllerParam":"@currentSection"}'>
+
+                          
+                          	// Salen de la variable "params" que contiene todos los nombres de objetos?
+                        },
+                        initialize:function(params){},
+
+                      	// Si en el controlador tiene estos 2 metodos tambien, por qué se ponen en la clase Card tambien?
+                        getTitle:function(){},
+                        getContent:function(node){
+                            var widget=this.controller.getContent(this.controllerParam);
+                            node.append(widget.rootNode)
+                        }
+
+                    }
+                },
+              
+                "Controller":{
+                    "inherits": "Siviglia.UI.Expando.View",
+                    methods: {
+
+                        preInitialize: function (params) {
+                          
+                          	// que se queda almacenado en 'this.selft' con el this?
+                            this.self = this;
+                          
+                          	// ok, datos de las noticias en formato json
+                            this.contenedor_noticias = {
+                                // widget contenedor de noticias
+                                pais:
+                                    {
+                                        "espana": [
+                                            {
+                                                "Titulo": "el iphone vale más de 5000€",
+                                                "Contenido": "Contenido 1. Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book."
+                                            },
+                                            {
+                                                "Titulo": "VR es la nueva forma de viajar",
+                                                "Contenido": "Contenido 2. Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book."
+                                            },
+                                            {
+                                                "Titulo": "El cod vid 19 afecta a la comunidad de madrid",
+                                                "Contenido": "Contenido 3. Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book."
+                                            },
+                                            {
+                                                "Titulo": "Cierran durante 15 dias los colegios",
+                                                "Contenido": "Contenido 4. Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book."
+                                            },
+                                        ],
+                                        "internacional": [
+                                            {
+                                                "Titulo": "Title international 1",
+                                                "Contenido": "Contenido 5. Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book."
+                                            },
+                                            {
+                                                "Titulo": "Title international 2",
+                                                "Contenido": "Contenido 6. Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book."
+                                            },
+                                            {
+                                                "Titulo": "Title international 3",
+                                                "Contenido": "Contenido 7. Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book."
+                                            },
+                                            {
+                                                "Titulo": "Title international 4",
+                                                "Contenido": "Contenido 8. Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book."
+                                            },
+                                        ]
+                                    },
+                                clname: "contenedor1",
+                                class_title: "titulo",
+                                class_noticia: "noticia"
+                            };
+
+
+                        },
+                        initialize: function (params) {
+                        },
+                      
+                      	// funciones importantes
+                      	
+                      	// ésta OK
+                        getTitle: function () {
+                            return this.title;
+                        },
+                      
+                      	// ésta, veamos
+                        getContent: function (section) {
+
+                          	// creamos una variable que instanciamos un new Widget, que está asociado a la clase "Content", correcto?
+                          
+                            var widget = new Widget.Content(	
+                            // new compuesto por new "nombre del contexto" + nombre_clase a instanciar
+                            // "context": "Widget", + Content --> hace que sea new Widget.Content
+                              
+                            // Luego, tiene 5 parámetros
+                              
+                                "Widget.Content",			// 1. nombre del widget  (debería coincidir con el mismo nombre que en new Widget.Content, verdad?)
+                                {section: section},		// 2. parametros, ¿está relacionado section con la linea 156?)
+                                {},										// 3. unsused
+                                $('<div></div>'),			// 4. nodo
+                                this.__context				// contexto
+                            );
+                            widget.__build();					// construccion del widget, segun variable creada (linea 132)
+                            return widget;						// devolvemos el resultado del widget, xq aqui NO vamos a hacer append, eso lo hace la Card.                                                        
+                          
+                        }
+                    }
+                },
+
+                "Content":{
+                    "inherits": "Siviglia.UI.Expando.View",
+                    methods:{
+                        preInitialize:function(params)
+                        {
+                            this.section=params.section;
+                        },
+                        initialize:function(params)
+                        {}
+                    },
+                }
+
+            }
+        })
+
+        setTimeout(function(){
+            contenedor_noticias.clname="titulo2";
+        },5000);
+</script>
+</head>
+<body>
+<div style="display:none">
+
+
+    <!--
+    y Card pinta la tarjeta, llamando a getTitle y getContent cuando lo necesite
+
+		1) Primer widget. Widget.Card va contener:
+ 				- la variable de la llama del preInitialize ->this.title=params.title;
+				- la llamada al método getcontent mediante sivCall
+    -->
+    <div data-sivWidget="Widget.Card" data-widgetCode="Widget.Card" style="border:2px solid green">
+        <h1 data-sivValue="/*title"></h1>
+        <div data-sivCall="getContent"></div>
+    </div>
+
+  	<!-- como sabe que tiene que recorrerse el sivLoop 2 veces: por espana e internacional??? por currentSection internamente lo sabe? -->
+    <div data-sivWidget="Widget.Controller" data-widgetCode="Widget.Controller" style="border:2px solid yellow">
+        <div data-sivLoop="/*contenedor_noticias/pais" data-contextIndex="currentSection">
+            <div data-sivView="Widget.Card" data-sivParams='{"controller":"*self","title":"@currentSection-index","controllerParam":"@currentSection"}'>
+            </div>
+        </div>
+    </div>
+
+  			<!-- cual es el nexo de union del widget.controller y el widget.content para que dentro de cada pais (espana, internacional),
+				se muestre 2 veces el contenido de aqui abajo??
+ 
+			 ¿o es gracias al sivLoop del *section que se relaciona entre si??
+				-->
+        <div data-sivWidget="Widget.Content" data-widgetCode="Widget.Content" style="border:2px solid red">
+            <div data-sivLoop="*section" data-contextIndex="currentNews">
+                <div style="border:2px solid blue">
+                <h3 data-sivValue="/@currentNews/Titulo"></h3> <!-- que significaba el /@  ??? -->
+                <p data-sivValue="/@currentNews/Contenido"></p>
+                </div>
+            </div>
+        </div>
+</div>
+
+
+
+        <!-- por que no tiene data-sivParams ?? -->
+  			<!-- por qué solo una llamada a un sivView??? -->
+        <div data-sivView="Widget.Controller"></div>
+
+
+        <script>
+            var parser=new Siviglia.UI.HTMLParser();
+            parser.parse($(document.body));
+        </script>
+</body>
+</html>
