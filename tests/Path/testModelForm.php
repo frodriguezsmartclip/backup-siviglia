@@ -38,7 +38,7 @@
 </div>
 
 
-<div data-sivView="Siviglia.model.web.Site.forms.Edit" data-sivParams='{"id_site":2}'></div>
+<div data-sivView="Siviglia.model.web.Site.forms.Edit" data-sivParams='{"id_page":2}'></div>
 
 
 <script>
@@ -53,7 +53,7 @@
                         var p=$.Deferred();
                         var m=this;
                         var f=new Siviglia.Model.ModelFactory();
-                        f.load("/model/web/Site",params.id_site).then(function(instance){
+                        f.load("/model/web/Page",params.id_page).then(function(instance){
                             m.instance=instance;
                             p.resolve();
                         })

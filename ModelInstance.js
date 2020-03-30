@@ -46,7 +46,7 @@ Siviglia.Utils.buildClass(
                     {
                         var t=this;
                         var p=$.Deferred();
-                        var mName=new Siviglia.Model.ModelName(this.modelMeta.definition);
+                        var mName=new Siviglia.Model.ModelDescriptor(this.modelMeta.definition);
                         params=params || {};
                         params.instance=this;
                         var frameworkInstance=Siviglia.Model.Framework;
@@ -97,7 +97,7 @@ Siviglia.Utils.buildClass(
                     {
                         var t=this;
                         var p=$.Deferred();
-                        var mName=new Siviglia.Model.ModelName(this.modelMeta.definition);
+                        var mName=new Siviglia.Model.ModelDescriptor(this.modelMeta.definition);
                         params.instance=this;
                         t.modelMeta.getFormDefinition(formName).then(function(def){
                             var p1={model:t,params:params,definition:def};

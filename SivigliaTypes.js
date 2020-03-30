@@ -1330,12 +1330,16 @@ Siviglia.Utils.buildClass(
                                 return Siviglia.types.TypeFactory.getRelationFieldTypeInstance(obj, target);
                             },
                             hasSource: function () {
-                                return false;
-                                //return true;
+                                //return false;
+                                return true;
                             },
-                            getSource: function (controller, params) {
-                                var s = new Siviglia.Data.SourceFactory();
-                                return s.getFromSource(this.definition, controller, params);
+                            getSourceDefinition: function (controller, params) {
+                              var def={};
+                              for(var k in this.definition)
+                                  def[k]=this.definition[k];
+                              def[k]["TYPE"]="DataSource";
+                              return def;
+
                             },
                             getSourceLabel: function () {
                                 return this.definition.SEARCHFIELD;

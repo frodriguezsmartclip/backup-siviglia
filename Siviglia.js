@@ -1963,6 +1963,7 @@ Siviglia.Utils.buildClass(
                 methods: {
                     __build: function () {
                         var widgetFactory = new Siviglia.UI.Expando.WidgetFactory();
+                        var p=$.Deferred();
                         var f=(function (w) {
 
                             var returned=this.preInitialize(this.__params);
@@ -1970,6 +1971,7 @@ Siviglia.Utils.buildClass(
                                 this.__composeHtml(w);
                                 this.parseNode();
                                 this.initialize(this.__params);
+                                p.resolve();
                             }.bind(this);
                             if(typeof returned!=="undefined" && returned.then)
                                 returned.then(f);
@@ -1980,6 +1982,7 @@ Siviglia.Utils.buildClass(
                             $.when(widgetFactory.getInstance(this.__template)).then(f);
                         else
                             f(widgetFactory.getInstance(this.__template));
+                        return p;
                     },
                     __composeHtml: function (widget) {
 
@@ -2052,6 +2055,7 @@ Siviglia.Utils.buildClass(
                         },
                         rebuild:function()
                         {
+                            var p=$.Deferred();
                             this.node.removeData("sivview");
                             this.node[0].removeAttribute("data-sivview");
 
@@ -2065,7 +2069,7 @@ Siviglia.Utils.buildClass(
                                 var obj=Siviglia.Utils.stringToContextAndObject(className);
 
                                 this.view = new obj.context[obj.object](this.name, this.currentParamsValues,null, this.node,  this.stack);
-                                this.view.__build();
+                                this.view.__build().then(function(){p.resolve()});
 
                             }).bind(this);
 
@@ -2074,6 +2078,7 @@ Siviglia.Utils.buildClass(
                             }
                             else
                                 f(widgetFactory.getInstance(this.name));
+                            return p;
 
                         }
 

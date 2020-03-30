@@ -20,6 +20,7 @@ Siviglia.Utils.buildClass(
                                       "DataSource":"TypedFrameworkDataSource",
                                       "Url":"RemoteDataSource",
                                       "Path":"PathDefinedDataSource",
+                                      "Relationship":"RelationshipDataSource"
 
                                   };
                                   var type=typeMap[source.TYPE];
@@ -444,7 +445,7 @@ Siviglia.Utils.buildClass(
                                 },
                                 getUrl:function(params)
                                 {
-                                    var mName=new Siviglia.Model.ModelName(this.model);
+                                    var mName=new Siviglia.Model.ModelDescriptor(this.model);
                                     var p=this.params || {};
                                     if(this.options) {
                                         var o = this.options.ordering;
@@ -464,7 +465,7 @@ Siviglia.Utils.buildClass(
                                                 p["__start"]=cp*ps;
                                         }
                                     }
-                                    name=this.dsname.replace('Ds','');
+                                    var name=this.dsname.replace('Ds','');
                                     return mName.getDatasourceUrl(name,null,params)
                                 }
                             }
@@ -543,6 +544,27 @@ Siviglia.Utils.buildClass(
 
                             }
                     }
+                },
+                RelationshipDataSource:{
+                        inherits:"FrameworkDataSource",
+                    construct:function(source,controller,stack)
+                    {
+                        var valField=null;
+                        for(var k in source["FIELDS"])
+                            valField=source["FIELDS"][k];
+                        var s2= {
+                            "TYPE": "DataSource",
+                            "MODEL":source["MODEL"],
+                            "DATASOURCE":Siviglia.issetOr(source["DATASOURCE"],"FullList"),
+                            "LABEL":source["SOURCE"]["LABEL"],
+                            "VALUE":valField
+                        };
+                        this.FrameworkDataSource(s2,controller,stack);
+                    },
+                    methods:{
+
+                    }
+
                 }
 
             }

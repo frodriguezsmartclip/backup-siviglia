@@ -58,6 +58,7 @@
                         getInput:function(type,params,form)
                         {
                             var stype=type.type;
+                            var d=$.Deferred();
                             if(!Siviglia.isset(params))
                                 params={};
                             if(Siviglia.isset(params.controller))
@@ -83,8 +84,9 @@
                                 dv,
                                 stack
                             );
-                            instance.__build();
-                            return instance;
+                            instance.__build().then(function(){d.resolve(instance);})
+                            return d;
+
                         }
                     }
                 },
@@ -119,8 +121,11 @@
                           initialize:function(params)
                           {
                               var factory=new Siviglia.inputs.jqwidgets.Factory();
-                              this.container=factory.getInput(this.container,{},this);
-                              this.formNode.append(this.container.rootNode);
+                              factory.getInput(this.container,{},this).then(function(instance){
+                                  this.container=instance;
+                                  this.formNode.append(this.container.rootNode);
+                              }.bind(this))
+
                           },
                           getFormParams:function(typePath)
                           {
@@ -310,7 +315,7 @@
                                 }
                                 finalOpts.push(
                                     {
-                                        html: '<div tabIndex=0 style="padding:1px">' + label + '</div>',
+                                     //   html: '<div tabIndex=0 style="padding:1px">' + label + '</div>',
                                         label: label,
                                         value: value
                                     }
@@ -329,6 +334,13 @@
                         },
                         getJqxWidgetName: function () {
                             return "jqxComboBox";
+                        },
+                        _setInputValue:function(v)
+                        {
+                            this.changing = true;
+                            var curLabel=this.type.getLabel();
+                            this.inputNode[this.getJqxWidgetName()]('val', curLabel);
+                            this.changing = false;
                         }
                     }
                 },
@@ -774,8 +786,8 @@
                                         tempNode,
                                         this.__context
                                     );
-                                    this.newItemWidget.__build()
-                                    node.append(tempNode);
+                                    this.newItemWidget.__build().then(function(){node.append(tempNode);})
+
                                 },
                                 onLabelClicked:function(node, params)
                                 {
@@ -794,30 +806,31 @@
                                     if(params.key==null)
                                         return;
 
-                                    this.currentWidget=this.__getInputFor(params.key);
-
-                                    node.append(this.currentWidget.rootNode);
+                                    this.__getInputFor(params.key).then(function(instance){
+                                        this.currentWidget=instance;
+                                        node.append(this.currentWidget.rootNode);
+                                    }.bind(this));
                                 },
                                 __getInputFor:function(key)
                                 {
                                     var l;
-
+                                    var p=$.Deferred();
                                     var factory=new Siviglia.inputs.jqwidgets.Factory()
                                     //this.curType=this.type.getField(key);
                                     this.curType=this.type.getValue()["*"+key];
-                                    var instance=factory.getInput(this.curType,{controller:this.type.controller},this.form);
-
-
-                                    if(this.curType.definition.LAYOUT)
-                                        l = this.curType.definition.LAYOUT;
-                                    else
-                                        l = "Siviglia.inputs.jqwidgets.DefaultLayout";
-
-                                    var s=Siviglia.Utils.stringToContextAndObject(l);
-
-                                    var lay=new s.context[s.object](l,{name:key,input:instance},{},$('<div></div>'),this.__context);
-                                    lay.__build();
-                                    return lay;
+                                    factory.getInput(this.curType,{controller:this.type.controller},this.form).then(
+                                        function(instance){
+                                            if(this.curType.definition.LAYOUT)
+                                                l = this.curType.definition.LAYOUT;
+                                            else
+                                                l = "Siviglia.inputs.jqwidgets.DefaultLayout";
+                                            var s=Siviglia.Utils.stringToContextAndObject(l);
+                                            var lay=new s.context[s.object](l,{name:key,input:instance},{},$('<div></div>'),this.__context);
+                                            lay.__build().then(function(){
+                                                p.resolve(lay)
+                                            });
+                                        }.bind(this));
+                                    return p;
 
                                 },
                                 getLabel:function(node,params,event)
@@ -862,9 +875,10 @@
                                 this.Dictionary$preInitialize(params);
                             },
                             getInputFor: function (node, params) {
-
-                                this.subwidgets[params.key]=this.__getInputFor(params.key);
+                                this.__getInputFor(params.key).then(function(instance){
+                                this.subwidgets[params.key]=instance;
                                 node.append(this.subwidgets[params.key].rootNode);
+                                }.bind(this));
                             },
                             getGroups:function()
                             {
@@ -903,9 +917,8 @@
                                         "VALUES":opts
                                     })
                                     var factory=new Siviglia.inputs.jqwidgets.Factory();
-
-                                    this.newItemSelector = factory.getInput(tempType,{},this.form);
-
+                                    factory.getInput(tempType,{},this.form).then(function(instance){
+                                    this.newItemSelector =instance;
                                     var m = this;
                                     this.newItemSelector.on("change", function (ev) {
                                         var curLabel = m.newItemSelector.getValue();
@@ -918,6 +931,7 @@
                                         }
                                     });
                                     node.append(this.newItemSelector.node);
+                                    }.bind(this));
                                 }
 
                             },
@@ -967,8 +981,10 @@
                                     this.newInstance=this.type.getValueInstance();
                                     var factory=new Siviglia.inputs.jqwidgets.Factory();
 
-                                    this.newItemSelector = factory.getInput(this.newInstance,{},this.form);
-                                    this.newItemNode.append(this.newItemSelector.rootNode);
+                                    factory.getInput(this.newInstance,{},this.form).then(function(instance){
+                                      this.newItemSelector =instance;
+                                        this.newItemNode.append(this.newItemSelector.rootNode);
+                                    }.bind(this));
                                 },
                                 onRemoveItem:function(node,params)
                                 {
@@ -1006,8 +1022,10 @@
                                         this.currentItemNode.html("");
                                     }
                                     var factory=new Siviglia.inputs.jqwidgets.Factory();
-                                    this.currentItem=factory.getInput(this.type.getValue()["*"+idx],{},this.form);
+                                    factory.getInput(this.type.getValue()["*"+idx],{},this.form).then(function(instance){
+                                    this.currentItem=instance;
                                     this.currentItemNode.append(this.currentItem.rootNode);
+                                    }.bind(this));
                                 }
 
                             }
@@ -1037,10 +1055,12 @@
                             this.hasCurrentKey=true;
                             this.currentKey=params.index;
                             var factory=new Siviglia.inputs.jqwidgets.Factory();
-                            this.newItemSelector = factory.getInput(tempType,{},this.form);
+                            factory.getInput(tempType,{},this.form).then(function(instance){
+                            this.newItemSelector =
 
                             this.currentWidget=this.painterFactory.factory(this.uinode.children[params.index], this.uinode.parent,{});
                             this.widgetContainer.append(this.currentWidget.rootNode);
+                            }.bind(this));
                         },
                         getLabel:function(node,params,event)
                         {
@@ -1104,17 +1124,19 @@
                         {
                             this.detach();
                             var factory=new Siviglia.inputs.jqwidgets.Factory();
-                            this.typeSelectorWidget = factory.getInput(this.typeSelector,{},this.form);
-                            var m=this;
-                            this.typeSelector.addListener("CHANGE",function(event,params){
-                                var val=m.typeSelector.getValue();
-                                m.type.setCurrentType(val);
-                                m.buildTypeUI();
-                            })
+                            factory.getInput(this.typeSelector,{},this.form).then(
+                                function(instance){
+                                    this.typeSelectorWidget =instance;
+                                    var m=this;
+                                    this.typeSelector.addListener("CHANGE",function(event,params){
+                                        var val=m.typeSelector.getValue();
+                                        m.type.setCurrentType(val);
+                                        m.buildTypeUI();
+                                    })
 
-//                                var curType = m.typeSelectorWidget.getValue();
-                            this.typeSwitchSelector.append(this.typeSelectorWidget.rootNode);
-                            this.buildTypeUI();
+                                    this.typeSwitchSelector.append(this.typeSelectorWidget.rootNode);
+                                    this.buildTypeUI();
+                            })
                         },
                             detach:function()
                             {
@@ -1138,22 +1160,24 @@
 
                                 if(this.curType) {
                                     var curTypeObj=this.type.getCurrentTypeObj();
-                                    var instance = factory.getInput(curTypeObj, {controller: this.type.controller},this.form);
+                                    factory.getInput(curTypeObj, {controller: this.type.controller},this.form).then(function(instance){
+                                        if (curTypeObj.definition.LAYOUT)
+                                            l = curTypeObj.definition.LAYOUT;
+                                        else
+                                            l = "Siviglia.inputs.jqwidgets.DefaultLayout";
 
-                                    if (curTypeObj.definition.LAYOUT)
-                                        l = curTypeObj.definition.LAYOUT;
-                                    else
-                                        l = "Siviglia.inputs.jqwidgets.DefaultLayout";
+                                        var s = Siviglia.Utils.stringToContextAndObject(l);
 
-                                    var s = Siviglia.Utils.stringToContextAndObject(l);
+                                        var lay = new s.context[s.object](l, {
+                                            name: this.curType,
+                                            input: instance
+                                        }, {}, $('<div></div>'), this.__context);
+                                        lay.__build().then(function(){
+                                            this.subNode=lay;
+                                            this.fieldContainer.append(lay.rootNode);
+                                        }.bind(this));
+                                    }.bind(this));
 
-                                    var lay = new s.context[s.object](l, {
-                                        name: this.curType,
-                                        input: instance
-                                    }, {}, $('<div></div>'), this.__context);
-                                    lay.__build();
-                                    this.subNode=lay;
-                                    this.fieldContainer.append(lay.rootNode);
                                 }
 
                             },
@@ -1245,8 +1269,10 @@
                                 {
                                     this.label=params.name;
                                     this.input=params.input;
-                                    if(this.input.type.definition.LABEL)
+                                    if(typeof this.input.type.definition.LABEL!=="undefined")
                                         this.label=this.input.type.definition.LABEL;
+                                    else
+                                        this.label="<NO LABEL>";
                                 },
                                 initialize:function(params)
                                 {
@@ -1314,9 +1340,11 @@
                                             "TYPE":"String"
                                         });
                                     }
-                                    this.subInput=factory.getInput(this.subType,{controller:this.parent.type.controller},this.form);
+                                    factory.getInput(this.subType,{controller:this.parent.type.controller},this.form).then(function(instance){
+                                    this.subInput=instance;
                                     this.inputNode.html('');
                                     this.inputNode.append(this.subInput.rootNode);
+                                    }.bind(this));
                                 },
                                 onAdd: function () {
                                     this.parent.onAdd(this.subInput.getValue());
