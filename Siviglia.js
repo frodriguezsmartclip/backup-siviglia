@@ -1296,6 +1296,8 @@ Siviglia.Path.Proxify=function(obj,ev)
                 return true;
             if(prop=="__disableEvents__")
                 return __disableEvents__;
+            if(prop===Symbol.toStringTag)
+                return target.toString;
             return curVal[prop];
         },
         apply:function(target,thisArg,list)

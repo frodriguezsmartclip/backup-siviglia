@@ -65,26 +65,47 @@
                                 type.setController(params.controller);
                             var dv=$('<div></div>');
                             var p=params || {};
+                            var formParams=form.getFormParams(type.getFullPath());
+                            if(formParams)
+                            {
+                                for(var k in formParams)
+                                    p[k]=formParams[k];
+                            }
                             p.type=type;
                             p.form=form;
-                            switch(stype)
-                            {
-                                case "Integer":
-                                case "String":
-                                {
-                                    if(type.hasSource())
-                                        stype="ComboBox";
-                                }break;
+
+
+                            var input=Siviglia.issetOr(p["INPUT"],null);
+                            if(!input) {
+                                switch (stype) {
+                                    case "Integer":
+                                    case "String": {
+                                        if (type.hasSource())
+                                            input = "ComboBox";
+                                        else
+                                            input=stype;
+                                    }
+                                        break;
+                                    default:
+                                    {
+                                        input=stype
+                                    }
+                                }
                             }
                             var stack = new Siviglia.Path.ContextStack();
-                            var instance=new Siviglia.inputs.jqwidgets[stype](
-                                "Siviglia.inputs.jqwidgets."+stype,
+                            var instance=new Siviglia.inputs.jqwidgets[input](
+                                "Siviglia.inputs.jqwidgets."+input,
                                 p,
                                 {},
                                 dv,
                                 stack
                             );
-                            instance.__build().then(function(){d.resolve(instance);})
+                            instance.__build().then(function(){
+                                // Se crea el layout y se le pasa la instancia.
+
+                                d.resolve(instance);
+
+                            })
                             return d;
 
                         }
@@ -153,10 +174,7 @@
                             this.helpMessage = Siviglia.issetOr(this.type.definition.HELP, null);
                             this.hasHelpMessage = (this.helpMessage != null ? true : false);
                             this.inputParams = Siviglia.issetOr(params.inputParams, {});
-                            if(this.form!==null)
-                                this.formParams = params.form.getFormParams(this.type.getFullPath());
-                            else
-                                this.formParams={};
+                            this.formParams=Siviglia.issetOr(params.formParams,{});
                         },
                         initialize: function (params) {
                             var opts = this.getDefaultInputOptions();
@@ -873,8 +891,14 @@
                             {
                                 this.subwidgets={};
                                 this.Dictionary$preInitialize(params);
+
                             },
                             getInputFor: function (node, params) {
+
+                                if(typeof this.type.definition.FIELDS[params.key]=="undefined") {
+                                    console.error("ERROR:LLamado getInputFor de Container con un campo no valido:" + params.key);
+                                    return;
+                                }
                                 this.__getInputFor(params.key).then(function(instance){
                                 this.subwidgets[params.key]=instance;
                                 node.append(this.subwidgets[params.key].rootNode);
@@ -885,12 +909,38 @@
                                 var groups=this.type.getGroups();
                                 if(groups==null)
                                 {
-                                    return {"DEFAULT":this.type.getKeys()};
+                                    return {"DEFAULT":{"LABEL":"Default","FIELDS":this.type.getKeys()}};
                                 }
                                 return groups;
                             }
                         }
                     },
+                TabbedContainer:{
+                    inherits:"Container",
+                    methods:{
+                        preInitialize:function(params)
+                        {
+                            this.Container$preInitialize(params);
+
+                            this.containerDefinition=this.type.getDefinition();
+
+                            this.containerGroups=this.getGroups();
+                            this.labels=[];
+                            for(var k in this.containerGroups)
+                            {
+                                this.labels.push(this.containerGroups[k].LABEL);
+                                this.containerGroups[k].ICON=Siviglia.issetOr(this.containerGroups[k].ICON,"");
+                            }
+                        },
+                        initialize:function(params)
+                        {
+                            this.Container$initialize(params);
+                            this.jqxTabs.append(this.groups.children())
+                            var iParams=Siviglia.issetOr(this.formParams["JQXPARAMS"],{ width: 600, height: 250, position: 'top'});
+                            this.jqxTabs.jqxTabs(iParams);
+                        }
+                    }
+                },
                 FixedDictionary:
                     {
                         inherits:'Dictionary',
@@ -1256,6 +1306,7 @@
                     }
 
                 },
+
                 DefaultLayout:
                     {
                         inherits: "Siviglia.UI.Expando.View",
@@ -1440,6 +1491,7 @@
          data-widgetCode="Siviglia.inputs.jqwidgets.UUID">
         <div data-sivId="inputNode"></div>
     </div>
+
     <div data-sivWidget="Siviglia.inputs.jqwidgets.DefaultLayout" data-widgetParams="name,input" data-widgetCode="Siviglia.inputs.jqwidgets.DefaultLayout">
         <div class="container">
             <div class="row">
@@ -1704,6 +1756,26 @@
         </div>
     </div>
 -->
+    <!--
+    ---
+    -->
+    <div data-sivWidget="Siviglia.inputs.jqwidgets.TabbedContainer" data-widgetParams="type,inputParams"
+         data-widgetCode="Siviglia.inputs.jqwidgets.TabbedContainer">
+        <div data-sivId='jqxTabs'>
+            <ul style='margin-left: 10px;' data-sivLoop="/*labels" data-contextIndex="current">
+                <li data-sivValue="[%@current%]"></li>
+            </ul>
+        </div>
+        <div data-sivId="groups" style="display:none" data-sivLoop="*containerGroups" data-contextIndex="current">
+            <div data-sivLoop="*containerGroups/{%@current-index%}/FIELDS" data-contextIndex="current2">
+
+                <div>
+                    <div data-sivCall="getInputFor" data-sivParams='{"key":"@current2/VALUE"}'></div>
+                </div>
+
+            </div>
+        </div>
+    </div>
 
 </div>
 

@@ -1689,13 +1689,20 @@ Siviglia.Utils.buildClass(
                                     return true;
                                 if(prop==="__ev__")
                                     return ev;
-
-                                if(m.innerBaseTypedObject.__fieldExists(prop))
-                                    return m.innerBaseTypedObject[prop];
                                 if(prop==="__disableEvents__")
                                     return __disableEvents__;
                                 if(prop==="*[[KEYS]]")
                                     return m.keysEv;
+
+                                if(typeof prop=="symbol")
+                                {
+                                    if(prop===Symbol.toStringTag)
+                                        return target.toString;
+                                }
+
+                                if(m.innerBaseTypedObject.__fieldExists(prop))
+                                    return m.innerBaseTypedObject[prop];
+
                                 return m[prop];
                             },
                             set:function(target,prop,value)
@@ -2143,6 +2150,8 @@ Siviglia.Utils.buildClass(
 
                               if(prop=="length")
                                   return target[prop];
+                              if(prop===Symbol.toStringTag)
+                                  return target.toString;
                               if(!isNaN(prop)) {
                                   prop=parseInt(prop);
                                   return m.children[prop].getValue();

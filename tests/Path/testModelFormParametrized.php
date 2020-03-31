@@ -1,4 +1,11 @@
 <html>
+<!--
+  Este ejemplo es muy parecido a testModelForm, la unica diferencia es que, mientras alli se pasaba el modelo
+  como formulario, o sea, la definicion del modelo era la definicion del formulario, en este caso, se va a
+  capturar la definicion del modelo, meter INPUTPARAMS para customizar la apariecncia del container del formulario.
+
+
+-->
 <head>
     <script src="/node_modules/jquery/dist/jquery.js"></script>
     <script src="../../Siviglia.js"></script>
@@ -54,6 +61,17 @@
                         var m=this;
                         var f=new Siviglia.Model.ModelFactory();
                         f.load("/model/web/Page",params.id_page).then(function(instance){
+                            instance.__definition.INPUTPARAMS= {
+                                "/": {
+                                    "INPUT": "TabbedContainer",
+                                    "JQXPARAMS":{width:700,height:500,position:top}
+                                }
+                            };
+                            instance.__definition.GROUPS={
+                                    "G1":{"LABEL":"Grupo 1","FIELDS":["id_page","name","tag","id_type"]},
+                                    "G2":{"LABEL":"Grupo 2","FIELDS":["date_add","date_modified"]},
+                                    "G3":{"LABEL":"Grupo 3","FIELDS":["isPrivate","title","path","tags","description","model","modelParam","datasource"]}
+                            };
                             m.instance=instance;
                             p.resolve();
                         })
