@@ -117,6 +117,7 @@
                   destruct:function(){
                       if(this.container!==null)
                           this.container.destruct();
+                      if(this.formNode)
                       this.formNode.html("");
                   }  ,
                   methods:

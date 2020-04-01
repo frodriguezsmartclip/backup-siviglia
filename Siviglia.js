@@ -1990,6 +1990,7 @@ Siviglia.Utils.buildClass(
 
                         var widgetNode = widget.getNode();
                         //this.__node[0].parentNode.insertBefore(widgetNode[0],this.__node[0].nextSibling);
+                        this.__node.html("");
                         this.__node.append(widgetNode);
                     },
                     parseNode:function()
@@ -2037,11 +2038,11 @@ Siviglia.Utils.buildClass(
 
                             // Obtener id para, en su caso, mapear esta instancia sobre la vista padre.
                             // Nota: Esto podria ser un array.
-
+                            this.oldNode=null;
                             this.node = node;
                             this.params=typeof nodeExpandos["sivparams"]=="undefined"?null:nodeExpandos["sivparams"];
-                            //if (this.params)
-                            //    this.params.addListener("CHANGE", this, "updateParams", "ViewExpando:" + this.method);
+                            if (this.params)
+                                this.params.addListener("CHANGE", this, "updateParams", "ViewExpando:" + this.method);
 
                             this.Expando$_initialize(node, nodeManager, stack, nodeExpandos);
 
@@ -2058,6 +2059,15 @@ Siviglia.Utils.buildClass(
                         rebuild:function()
                         {
                             var p=$.Deferred();
+                            var oldSibling=null;
+                            var oldParent=null;
+                            if(this.oldNode)
+                            {
+                                oldSibling=this.oldNode[0].nextElementSibling;
+                                oldParent=this.oldNode[0].parentElement;
+                            }
+                            //this.node[0].outerHTML=this.nodeOuter;
+                            this.oldNode=this.node;
                             this.node.removeData("sivview");
                             this.node[0].removeAttribute("data-sivview");
 
@@ -2066,12 +2076,24 @@ Siviglia.Utils.buildClass(
                             if(this.params)
                                 this.currentParamsValues=this.params.getValues();
                             var widgetFactory = new Siviglia.UI.Expando.WidgetFactory();
+                            var m=this;
                             var f=(function (w) {
                                 var className=w.getClass();
                                 var obj=Siviglia.Utils.stringToContextAndObject(className);
 
                                 this.view = new obj.context[obj.object](this.name, this.currentParamsValues,null, this.node,  this.stack);
-                                this.view.__build().then(function(){p.resolve()});
+                                this.view.__build().then(function(){
+                                    if(oldSibling!==null)
+                                    {
+                                        oldParent.insertBefore(m.node[0],oldSibling);
+                                    }else
+                                    {
+                                        if(oldParent!=null)
+                                            oldParent.appendChild(m.node[0]);
+                                    }
+                                    console.log(m.node.html());
+                                    p.resolve()
+                                });
 
                             }).bind(this);
 

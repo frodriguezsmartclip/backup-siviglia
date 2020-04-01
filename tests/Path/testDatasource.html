@@ -47,18 +47,16 @@
                 "methods":{
                     preInitialize:function(params)
                     {
-                        var p=$.Deferred();
-                        var m=this;
-                        var f=new Siviglia.Model.ModelFactory();
-                        f.create("/model/web/Site").then(function(instance){
-                            instance.getDataSource("FullList",{}).then(function(datasource){
-                                m.ds=datasource;
-                                p.resolve();
-                            })
-                        });
-                        return p;
+                        this.ds=new Siviglia.Model.DataSource("/model/web/Site","FullList",{});
+                        this.ds.settings.__start=0;
+                        this.ds.settings.__count=3;
+                        return this.ds.refresh();
                     },
-                    initialize:function(params){}
+                    initialize:function(params){
+                        setTimeout(function(){
+                            this.ds.settings.__start=3;
+                        }.bind(this),3000);
+                    }
                 }
             }
         }

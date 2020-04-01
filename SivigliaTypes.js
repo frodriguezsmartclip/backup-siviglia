@@ -600,7 +600,7 @@ Siviglia.Utils.buildClass(
                                 return this.getValue();
                             },
                             hasDefaultValue: function () {
-                                return 'DEFAULT' in this.definition;
+                                return 'DEFAULT' in this.definition && this.definition["DEFAULT"]!==null && this.definition["DEFAULT"]!=="NULL";
                             },
                             getDefaultValue: function () {
                                 return this.definition.DEFAULT;
@@ -1580,6 +1580,10 @@ Siviglia.Utils.buildClass(
                     getGroups:function()
                     {
                         return Siviglia.issetOr(this.definition["GROUPS"],null);
+                    },
+                    toBaseTypedObject:function()
+                    {
+                        return this.innerBaseTypedObject;
                     }
                 }
             }

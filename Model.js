@@ -84,8 +84,8 @@ Siviglia.Utils.buildClass({
                 getCanonicalDotted: function () {
                     return this.getCanonical().substr(1).replace(/\//g, '.');
                 },
-                getDatasourceUrl: function (datasource, id, params) {
-                    return Siviglia.Model.mapper.getDatasourceUrl(this, datasource, id, params);
+                getDataSourceUrl: function (datasource, id, params,settings) {
+                    return Siviglia.Model.mapper.getDataSourceUrl(this, datasource, id, params,settings);
                 },
                 getJSModelPath: function () {
                     return Siviglia.Model.mapper.getJSModelPath(this);
@@ -97,9 +97,14 @@ Siviglia.Utils.buildClass({
                     var s = this.getCanonicalDotted();
                     return s[0].toUpperCase() + s.substr(1);
                 },
-                getModelMetaPath:function(model){
+                getModelMetaPath:function(){
                     var m=this.getCanonical();
                     return Siviglia.Model.mapper.getModelMetaPath(m);
+                },
+                getDataSourceMetaDataUrl:function(dsName)
+                {
+                    var m=this.getCanonical();
+                    return Siviglia.Model.mapper.getDataSourceMetaPath(m,dsName);
                 }
 
             }
@@ -115,12 +120,37 @@ Siviglia.Utils.buildClass({
                 getModelMetaPath: function (model) {
                     return this.getMetaPath() + model + "/definition";
                 },
+                getDataSourceMetaPath:function(model,dsName)
+                {
+                    return this.getMetaPath()+model+"/datasources/"+dsName+"/definition";
+                },
                 getModel: function (spec) {
                     var m = new Siviglia.Model.ModelDescriptor(spec);
                     return this.config.baseUrl + "/js/" + this.config.mapper + "/" + this.getObjectPath(m) + "/Model.js";
                 },
-                getDatasourceUrl: function (model, datasource, id, params) {
-                    var query = (params !== null) ? $.param(params) : "";
+                getDataSourceUrl: function (model, datasource, id, params,settings) {
+                    var query="";
+                    var n={};
+                    if(typeof(params)!=="undefined" && params!==null)
+                    {
+
+                        for(var k in params)
+                        {
+                            if(params[k]!=null)
+                                n[k]=params[k];
+                        }
+                    }
+                    if(typeof(settings)!=="undefined" && settings!==null)
+                    {
+
+                        for(var k in settings)
+                        {
+                            if(settings[k]!=null)
+                                n[k]=settings[k];
+                        }
+                    }
+
+                    query =$.param(n);
                     return this.config.baseUrl + "datasource/" + model.getCanonical() + '/' + (id ? id + '/' : '') + datasource + '?output=json' + "&" + query;
                 },
                 getJSModelUrl: function (model) {
@@ -233,6 +263,7 @@ Siviglia.Utils.buildClass({
                         }
                         return null;
                     },
+
                     getModel: function (model, id, datasource) {
 
 
@@ -337,26 +368,8 @@ Siviglia.Utils.buildClass({
                         {sort:[{attribute:, descending:(true/false)}],page:,pagination:}}
                      */
                     getDataSource: function (model, name, params, options) {
-                        // Un datasource va a ser simplemente un BaseTypedObject con una definicion fija
-                        // de datos, total de elementos, criterios de ordenacion, etc,etc.
-                        var mName = new Siviglia.Model.ModelDescriptor(model);
-                        var location = mName.getDatasourceUrl(name, null, params);
-                        var transport = new Siviglia.Model.Transport();
-                        var h = $.Deferred();
-                        transport.doGet(location).then(
-                            function (response) {
-                                if (response.error) {
-                                    h.reject(error);
-                                }
-                                var result = new Siviglia.Model.Datasource(model, params, response);
-                                h.resolve(result);
-                            },
-                            function (error) {
-                                h.reject(error);
-                                throw error;
-                            });
-                        return h;
-
+                        var ds=new Siviglia.Model.DataSource(model,name,params,null);
+                        return ds.refresh();
                     },
                     doAction: function (keys, data, objectName, actionName) {
                         var mName = new Siviglia.Model.ModelDescriptor(objectName);
@@ -389,11 +402,27 @@ Siviglia.Utils.buildClass({
                     }
                 }
         },
-        Datasource:
+        DataSource:
             {
                 inherits: 'Siviglia.model.BaseTypedObject',
-                construct: function (model, params, response) {
-                    var meta = response.definition;
+                construct: function (model, name, params, response) {
+                    var meta;
+                    this.frozen=false;
+                    this.model=model;
+                    this.name=name;
+                    this.params=params;
+                    if(typeof response=="undefined" || response==null)
+                    {
+                        var descriptor=new Siviglia.Model.ModelDescriptor(model);
+                        var dsMetaUrl=descriptor.getDataSourceMetaDataUrl(name);
+                        var transport = new Siviglia.Model.Transport();
+                        var metaResponse=transport.doSyncGet(dsMetaUrl);
+                        var meta=metaResponse.data;
+
+                    }
+                    else
+                        meta = response.definition;
+
                     var paramsDef = meta.PARAMS;
                     var fieldsDef = meta.FIELDS;
                     // Se construye la definicion de este objeto.
@@ -411,6 +440,8 @@ Siviglia.Utils.buildClass({
                             "settings": {
                                 "TYPE":"Container",
                                 "FIELDS": {
+                                    "__start":{"TYPE":"Integer","DEFAULT":0},
+                                    "__count":{"TYPE":"Integer","DEFAULT":10},
                                     "__sort": {"TYPE": "String"},
                                     "__sortDir": {"TYPE": "Enum", "VALUES": ["ASC", "DESC"], "DEFAULT": "ASC"},
                                     "__sort1": {"TYPE": "String"},
@@ -437,8 +468,73 @@ Siviglia.Utils.buildClass({
                         }
                     };
                     this.BaseTypedObject(definition);
+
                     this["*params"]._setValue(params);
-                    this["*data"]._setValue(response.data);
+
+                    if(typeof response!=="undefined" && response!==null) {
+                        this.onResponse(response);
+
+                    }
+                    // Se aniaden listeners en todos los campos.
+                    for(var k in definition.FIELDS.params.FIELDS)
+                    {
+                        this.params["*"+k].addListener("CHANGE",this,"refresh");
+                    }
+                    for(var k in definition.FIELDS.settings.FIELDS)
+                        this.settings["*"+k].addListener("CHANGE",this,"refresh");
+
+                },
+                destruct:function()
+                {
+                    for(var k in this.__definition["FIELDS"]["params"]["FIELDS"])
+                        this.params["*"+k].removeListener(this);
+                },
+                methods:{
+                    freeze:function()
+                    {
+                        this.frozen=true;
+                    },
+                    unfreeze:function()
+                    {
+                        this.frozen=false;
+                        this.refresh();
+                    },
+                    onResponse:function(response)
+                    {
+                        this["*data"]._setValue(response.data);
+                        this["*count"]._setValue(response.count);
+                        this.settings.count=response.count;
+                        this.settings.start=response.start;
+                        this["*start"]._setValue(response.start);
+                        this["*end"]._setValue(response.end);
+                        this.fireEvent("CHANGE",{});
+                    },
+                    refresh:function()
+                    {
+                        if(this.frozen)
+                            return;
+                        // Un datasource va a ser simplemente un BaseTypedObject con una definicion fija
+                        // de datos, total de elementos, criterios de ordenacion, etc,etc.
+                        var mName = new Siviglia.Model.ModelDescriptor(this.model);
+                        var location = mName.getDataSourceUrl(this.name, null, this.params,this.settings);
+                        var transport = new Siviglia.Model.Transport();
+                        var m=this;
+                        var h = $.Deferred();
+                        transport.doGet(location).then(
+                            function (response) {
+                                if (response.error) {
+                                    h.reject(error);
+                                }else {
+                                    m.onResponse(response);
+                                    h.resolve();
+                                }
+                            },
+                            function (error) {
+                                h.reject(error);
+                                throw error;
+                            });
+                        return h;
+                    }
                 }
             },
 

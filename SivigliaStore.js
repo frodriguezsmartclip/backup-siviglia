@@ -466,7 +466,7 @@ Siviglia.Utils.buildClass(
                                         }
                                     }
                                     var name=this.dsname.replace('Ds','');
-                                    return mName.getDatasourceUrl(name,null,params)
+                                    return mName.getDataSourceUrl(name,null,params)
                                 }
                             }
                     },
