@@ -1,0 +1,71 @@
+<html>
+<head>
+    <script src="/node_modules/jquery/dist/jquery.js"></script>
+    <script src="../../Siviglia.js"></script>
+    <script src="../../SivigliaTypes.js"></script>
+    <script src="../../SivigliaStore.js"></script>
+    <script src="../../Model.js"></script>
+    <script src="../../SivigliaTypes.js"></script>
+    <script>
+        var Siviglia = Siviglia || {};
+        Siviglia.config = {
+            baseUrl: 'http://editor.adtopy.com/',
+            staticsUrl: 'http://statics.adtopy.com/',
+            metadataUrl:'http://metadata.adtopy.com/',
+            locale: 'es-ES',
+            // Si el mapper es XXX, debe haber:
+            // 1) Un gestor en /lib/output/html/renderers/js/XXX.php
+            // 2) Un Mapper en Siviglia.Model.XXXMapper
+            // 3) Las urls de carga de modelos seria /js/XXX/model/zzz/yyyy....
+            mapper:'Siviglia'
+
+        };
+        Siviglia.Model.initialize(Siviglia.config);
+    </script>
+
+</head>
+<body>
+
+<div style="display:none">
+    <div data-sivWidget="Siviglia.model.web.Site.views.View" data-widgetCode="Siviglia.model.web.Site.views.View">
+        <div><span>Id:</span><span data-sivValue="/*instance/id_site"></span></div>
+        <div><span>host:</span><span data-sivValue="/*instance/host"></span></div>
+        <div><span>canonical_url:</span><span data-sivValue="/*instance/canonical_url"></span></div>
+        <div><span>namespace:</span><span data-sivValue="/*instance/namespace"></span></div>
+        <div><span>websiteName:</span><span data-sivValue="/*instance/websiteName"></span></div>
+    </div>
+</div>
+
+
+<div data-sivView="Siviglia.model.web.Site.views.View" data-sivParams='{"id_site":2}'></div>
+
+<script>
+    Siviglia.Utils.buildClass({
+        "context":"Siviglia.model.web.Site.views",
+        "classes":{
+            View:{
+                "inherits":"Siviglia.UI.Expando.View",
+                "methods":{
+                    preInitialize:function(params)
+                    {
+                        var p=$.Deferred();
+                        var m=this;
+                        var f=new Siviglia.Model.ModelFactory();
+                        f.load("/model/web/Site",params.id_site).then(function(instance){
+                            m.instance=instance;
+                            p.resolve();
+                        })
+                        return p;
+                    },
+                    initialize:function(params){}
+                }
+            }
+        }
+    });
+</script>
+<script>
+    var parser=new Siviglia.UI.HTMLParser();
+    parser.parse($(document.body));
+</script>
+</body>
+</html>

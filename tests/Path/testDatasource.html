@@ -1,0 +1,71 @@
+<html>
+<head>
+    <script src="/node_modules/jquery/dist/jquery.js"></script>
+    <script src="../../Siviglia.js"></script>
+    <script src="../../SivigliaTypes.js"></script>
+    <script src="../../SivigliaStore.js"></script>
+    <script src="../../Model.js"></script>
+    <script src="../../SivigliaTypes.js"></script>
+    <script>
+        var Siviglia = Siviglia || {};
+        Siviglia.config = {
+            baseUrl: 'http://editor.adtopy.com/',
+            staticsUrl: 'http://statics.adtopy.com/',
+            metadataUrl:'http://metadata.adtopy.com/',
+            locale: 'es-ES',
+            // Si el mapper es XXX, debe haber:
+            // 1) Un gestor en /lib/output/html/renderers/js/XXX.php
+            // 2) Un Mapper en Siviglia.Model.XXXMapper
+            // 3) Las urls de carga de modelos seria /js/XXX/model/zzz/yyyy....
+            mapper:'Siviglia'
+
+        };
+        Siviglia.Model.initialize(Siviglia.config);
+    </script>
+
+</head>
+<body>
+<div style="display:none">
+    <div data-sivWidget="Siviglia.model.web.Site.views.List" data-widgetCode="Siviglia.model.web.Site.views.List">
+        <div data-sivLoop="/*ds/data" data-contextIndex="current">
+        <div><span>Id:</span><span data-sivValue="/@current/id_site"></span></div>
+        <div><span>host:</span><span data-sivValue="/@current/host"></span></div>
+        <div><span>canonical_url:</span><span data-sivValue="/@current/canonical_url"></span></div>
+        <div><span>namespace:</span><span data-sivValue="/@current/namespace"></span></div>
+        <div><span>websiteName:</span><span data-sivValue="/@current/websiteName"></span></div>
+        </div>
+    </div>
+</div>
+<div data-sivView="Siviglia.model.web.Site.views.List"></div>
+
+<script>
+    Siviglia.Utils.buildClass({
+        "context":"Siviglia.model.web.Site.views",
+        "classes":{
+            List:{
+                "inherits":"Siviglia.UI.Expando.View",
+                "methods":{
+                    preInitialize:function(params)
+                    {
+                        this.ds=new Siviglia.Model.DataSource("/model/web/Site","FullList",{});
+                        this.ds.settings.__start=0;
+                        this.ds.settings.__count=3;
+                        return this.ds.refresh();
+                    },
+                    initialize:function(params){
+                        setTimeout(function(){
+                            this.ds.settings.__start=3;
+                        }.bind(this),3000);
+                    }
+                }
+            }
+        }
+
+    });
+</script>
+<script>
+    var parser=new Siviglia.UI.HTMLParser();
+    parser.parse($(document.body));
+</script>
+</body>
+</html>

@@ -483,7 +483,7 @@ Siviglia.Utils.buildClass({
                     delete Siviglia.Dom.existingManagers[this._ev_id];
                     for (var k in this._ev_listeners) {
                         for (var j = 0; j < this._ev_listeners[k].length; j++) {
-                            console.debug("DELETING LISTENER " + this._ev_listeners[k][j].id);
+                          //  console.debug("DELETING LISTENER " + this._ev_listeners[k][j].id);
                             delete Siviglia.Dom.existingListeners[this._ev_listeners[k][j].id];
                         }
                     }
@@ -1296,6 +1296,8 @@ Siviglia.Path.Proxify=function(obj,ev)
                 return true;
             if(prop=="__disableEvents__")
                 return __disableEvents__;
+            if(prop===Symbol.toStringTag)
+                return target.toString;
             return curVal[prop];
         },
         apply:function(target,thisArg,list)
@@ -1577,6 +1579,10 @@ Siviglia.Utils.buildClass(
                                 (function(key,value){
                                     var pr=new Siviglia.Path.PathResolver(stack,value);
                                     pr.addListener("CHANGE",null,function(ev,param){
+                                        // TODO : Que hacer si un path de un parametro es no definido?
+                                        // Por ahora, simplemente enviamos un null.El widget debera saber que hacer.
+                                        if(param.valid===false)
+                                            m.updateParams(key,null);
                                         m.updateParams(key,param.value);
                                     });
                                     m.paths.push(pr);
@@ -1865,6 +1871,19 @@ Siviglia.Utils.buildClass(
                         return newNode;
                     },
                     getClass: function(){
+                        if(typeof this.widgetCode=="undefined") {
+                            console.warn("El widget " + this.widgetName + " no tiene clase asociada.Se asume " + this.widgetName);
+                            this.widgetCode=this.widgetName;
+                        }
+
+
+                        var curClass = Siviglia.Utils.stringToContextAndObject(this.widgetCode);
+                        if(typeof curClass.context[curClass.object]==="undefined")
+                        {
+                            throw "ERROR::LA CLASE DEFINIDA PARA EL WIDGET "+this.widgetName+" ("+this.widgetCode+") NO EXISTE";
+                        }
+
+
                         return this.widgetCode;
                     }
                 }
@@ -1936,6 +1955,7 @@ Siviglia.Utils.buildClass(
                     this.__context = context.getCopy();
                     this.__widgetParams = widgetParams;
                     this.oManager=null;
+                    this.destroyed=false;
                     var plainCtx = new Siviglia.Path.BaseObjectContext(this, "*", this.__context);
                     if(Siviglia.UI.viewStack.length>0)
                         this.parentView=Siviglia.UI.viewStack[Siviglia.UI.viewStack.length-1];
@@ -1944,28 +1964,44 @@ Siviglia.Utils.buildClass(
                 },
                 destruct:function()
                 {
+                    // Necesitamos saber si hemos sido destruidos desde el preInitialize.
+                    this.destroyed=true;
                     if(this.oManager)
                         this.oManager.destruct();
                 },
                 methods: {
                     __build: function () {
                         var widgetFactory = new Siviglia.UI.Expando.WidgetFactory();
+                        var p=$.Deferred();
                         var f=(function (w) {
 
-                            this.preInitialize(this.__params);
-                            this.__composeHtml(w);
-                            this.parseNode();
-                            this.initialize(this.__params);
+                            var returned=this.preInitialize(this.__params);
+                            var f=function() {
+                                // Si tras el preInitialize hemos sido destruidos, porque no podia renderizarse
+                                // la vista, salimos aqui.
+                                if(this.destroyed==true)
+                                    return;
+                                this.__composeHtml(w);
+                                this.parseNode();
+                                this.initialize(this.__params);
+                                p.resolve();
+                            }.bind(this);
+                            if(typeof returned!=="undefined" && returned.then)
+                                returned.then(f);
+                            else
+                                f();
                         }).bind(this);
                         if(!widgetFactory.hasInstance(this.__template))
                             $.when(widgetFactory.getInstance(this.__template)).then(f);
                         else
                             f(widgetFactory.getInstance(this.__template));
+                        return p;
                     },
                     __composeHtml: function (widget) {
 
                         var widgetNode = widget.getNode();
                         //this.__node[0].parentNode.insertBefore(widgetNode[0],this.__node[0].nextSibling);
+                        this.__node.html("");
                         this.__node.append(widgetNode);
                     },
                     parseNode:function()
@@ -1984,7 +2020,8 @@ Siviglia.Utils.buildClass(
                             throw e;
                         }
                         //console.log(this.__node[0].innerHTML)
-                    }
+                    },
+
                 }
 
             },
@@ -2013,11 +2050,11 @@ Siviglia.Utils.buildClass(
 
                             // Obtener id para, en su caso, mapear esta instancia sobre la vista padre.
                             // Nota: Esto podria ser un array.
-
+                            this.oldNode=null;
                             this.node = node;
                             this.params=typeof nodeExpandos["sivparams"]=="undefined"?null:nodeExpandos["sivparams"];
-                            //if (this.params)
-                            //    this.params.addListener("CHANGE", this, "updateParams", "ViewExpando:" + this.method);
+                            if (this.params)
+                                this.params.addListener("CHANGE", this, "updateParams", "ViewExpando:" + this.method);
 
                             this.Expando$_initialize(node, nodeManager, stack, nodeExpandos);
 
@@ -2033,6 +2070,16 @@ Siviglia.Utils.buildClass(
                         },
                         rebuild:function()
                         {
+                            var p=$.Deferred();
+                            var oldSibling=null;
+                            var oldParent=null;
+                            if(this.oldNode)
+                            {
+                                oldSibling=this.oldNode[0].nextElementSibling;
+                                oldParent=this.oldNode[0].parentElement;
+                            }
+                            //this.node[0].outerHTML=this.nodeOuter;
+                            this.oldNode=this.node;
                             this.node.removeData("sivview");
                             this.node[0].removeAttribute("data-sivview");
 
@@ -2041,12 +2088,24 @@ Siviglia.Utils.buildClass(
                             if(this.params)
                                 this.currentParamsValues=this.params.getValues();
                             var widgetFactory = new Siviglia.UI.Expando.WidgetFactory();
+                            var m=this;
                             var f=(function (w) {
                                 var className=w.getClass();
                                 var obj=Siviglia.Utils.stringToContextAndObject(className);
 
                                 this.view = new obj.context[obj.object](this.name, this.currentParamsValues,null, this.node,  this.stack);
-                                this.view.__build();
+                                this.view.__build().then(function(){
+                                    if(oldSibling!==null)
+                                    {
+                                        oldParent.insertBefore(m.node[0],oldSibling);
+                                    }else
+                                    {
+                                        if(oldParent!=null)
+                                            oldParent.appendChild(m.node[0]);
+                                    }
+                                    console.log(m.node.html());
+                                    p.resolve()
+                                });
 
                             }).bind(this);
 
@@ -2055,6 +2114,7 @@ Siviglia.Utils.buildClass(
                             }
                             else
                                 f(widgetFactory.getInstance(this.name));
+                            return p;
 
                         }
 

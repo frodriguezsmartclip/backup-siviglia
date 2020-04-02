@@ -28,10 +28,13 @@
             baseUrl:'http://editor.adtopy.com/',
             staticsUrl:'http://statics.adtopy.com/',
             metadataUrl:'http://metadata.adtopy.com/',
-            jsFramework:'jquery',
             locale:'es-ES',
-            mapper:'BackofficeMapper',
-            datasourcePrefix:'datasource/'
+            // Si el mapper es XXX, debe haber:
+            // 1) Un gestor en /lib/output/html/renderers/js/XXX.php
+            // 2) Un Mapper en Siviglia.Model.XXXMapper
+            // 3) Las urls de carga de modelos seria /js/XXX/model/zzz/yyyy....
+            mapper:'Siviglia'
+
             //jsFramework:'dojo'
         };
         Siviglia.Model.initialize(Siviglia.config);

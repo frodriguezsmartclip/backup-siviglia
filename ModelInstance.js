@@ -2,50 +2,6 @@ Siviglia.Utils.buildClass(
     {
         context:"Siviglia.Model",
         classes:{
-            Field:{
-                construct:function(name,instance,modelMeta,definition)
-                {
-                    this.name=name;
-                    this.instance=instance;
-                    this.modelMeta=modelMeta;
-                    this.definition=definition;
-                    this.type=new Siviglia.types[definition["TYPE"]](definition);
-                    this.dirty=false;
-                },
-                methods:{
-                    set:function(val)
-                    {
-                        var hasVal=this.type.hasOwnValue();
-                        if(!hasVal || (hasVal && !this.type.equals(val)))
-                        {
-                            // Sea lo que sea lo que venga en el modelo, se debe establecer.
-                            try
-                            {
-                                this.type.set(val);
-                                this.dirty=true;
-                            }catch(ee)
-                            {
-                            }
-                        }
-                    },
-                    get:function()
-                    {
-                        return this.type.getValue();
-                    },
-                    reset:function()
-                    {
-                        this.dirty=false;
-                    },
-                    getType:function()
-                    {
-                        return this.type;
-                    },
-                    isDirty:function()
-                    {
-                        return this.dirty;
-                    }
-                }
-            },
             Instance:
             {
                 inherits:'Siviglia.Dom.EventManager',
@@ -78,6 +34,10 @@ Siviglia.Utils.buildClass(
                             this.fields[k].reset();
                         }
                     },
+                    getIndexFields:function()
+                    {
+                        return this.definition.INDEXFIELDS;
+                    },
                     getRawData:function()
                     {
                         return this.rawData;
@@ -86,7 +46,7 @@ Siviglia.Utils.buildClass(
                     {
                         var t=this;
                         var p=$.Deferred();
-                        var mName=new Siviglia.Model.ModelName(this.modelMeta.definition);
+                        var mName=new Siviglia.Model.ModelDescriptor(this.modelMeta.definition);
                         params=params || {};
                         params.instance=this;
                         var frameworkInstance=Siviglia.Model.Framework;
@@ -137,7 +97,7 @@ Siviglia.Utils.buildClass(
                     {
                         var t=this;
                         var p=$.Deferred();
-                        var mName=new Siviglia.Model.ModelName(this.modelMeta.definition);
+                        var mName=new Siviglia.Model.ModelDescriptor(this.modelMeta.definition);
                         params.instance=this;
                         t.modelMeta.getFormDefinition(formName).then(function(def){
                             var p1={model:t,params:params,definition:def};
