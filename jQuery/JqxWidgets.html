@@ -92,6 +92,16 @@
                                     }
                                 }
                             }
+                            if(type.relaxed)
+                            {
+                                switch(stype)
+                                {
+                                    case "Boolean":
+                                    {
+                                        input="BooleanCombo";
+                                    }break;
+                                }
+                            }
                             var stack = new Siviglia.Path.ContextStack();
                             var instance=new Siviglia.inputs.jqwidgets[input](
                                 "Siviglia.inputs.jqwidgets."+input,
@@ -160,6 +170,7 @@
                           }
                       }
                 },
+
                 BaseInput: {
                     inherits: "Siviglia.UI.Expando.View,Siviglia.Dom.EventManager",
 
@@ -452,6 +463,7 @@
                         }
                     }
                 },
+
                 ComboBox: {
                     inherits: 'BaseInput',
 
@@ -610,16 +622,15 @@
                         onSourceChanged:function(evName,data)
                         {
                             var self=this;
-                            var s=this.type.source.getValueField();
                             // Vemos ahora en data
 
                             this.dataSource.localdata = [];
                             if(data.value!==null)
                             {
                                 this.dataSource.localdata=data.value;
-                                if(this.type.source.getLabelExpression()!==null) {
+                                if(this.source.getLabelExpression()!==null) {
                                     for (var k = 0; k < data.value.length; k++)
-                                        data.value[k]["LABEL_EXPRESSION"]=this.type.source.getLabel(data.value[k])
+                                        data.value[k]["LABEL_EXPRESSION"]=this.source.getLabel(data.value[k])
 
                                 }
                             }
@@ -647,6 +658,40 @@
                             }
                         }
 
+                    }
+                },
+                BooleanCombo:{
+                    inherits:"ComboBox",
+                    methods:{
+                        preInitialize: function (params) {
+                            this.source=null;
+                            this.dataBinding=false;
+                            this.labelField="LABEL";
+                            this.valueField="VALUE";
+                            this.BaseInput$preInitialize(params);
+                        },
+                        getSource: function (params) {
+                            if(this.source==null) {
+                                //this.type.clear();
+                                var stack = new Siviglia.Path.ContextStack();
+                                var factory=new Siviglia.Data.SourceFactory();
+                                var s=factory.getFromSource({
+                                    "TYPE": "Array",
+                                    "DATA":
+                                        [
+                                            {"LABEL":"Seleccionar","VALUE":null},
+                                            {"LABEL":"True","VALUE":true},
+                                            {"LABEL":"False","VALUE":false}
+                                        ],
+                                    "LABEL":"LABEL",
+                                    "VALUE":"VALUE"
+                                },this.type,stack);
+                                s.addListener("CHANGE", this, "onSourceChanged");
+                                this.source=s;
+                            }
+                            this.source.fetch();
+                            return this.source;
+                        }
                     }
                 },
                 FixedSelect:
@@ -941,6 +986,9 @@
                             this.jqxTabs.jqxTabs(iParams);
                         }
                     }
+                },
+                FlexContainer:{
+                    inherits:"Container"
                 },
                 FixedDictionary:
                     {
@@ -1448,6 +1496,10 @@
          data-widgetCode="Siviglia.inputs.jqwidgets.ComboBox">
         <div data-sivId="inputNode"></div>
     </div>
+    <div data-sivWidget="Siviglia.inputs.jqwidgets.BooleanCombo" data-widgetParams="type,inputParams,sourceParams"
+         data-widgetCode="Siviglia.inputs.jqwidgets.BooleanCombo">
+        <div data-sivId="inputNode"></div>
+    </div>
     <div data-sivWidget="Siviglia.inputs.jqwidgets.FixedSelect" data-widgetParams="type,inputParams,sourceParams"
          data-widgetCode="Siviglia.inputs.jqwidgets.FixedSelect">
         <div data-sivId="inputNode"></div>
@@ -1580,20 +1632,23 @@
             <div class="panel-body">
                 <p class="text-info description" data-sivValue="/*description"></p>
                 <div class="inputs container" data-sivLoop="/*type/definition/FIELDS" data-contextIndex="current">
-                    <div class="row">
-                        <div class="col col-sm-1 col-md-1">
-
-                            <label class="text-primary"  class="control-label" data-sivCall="getLabel" data-sivParams='{"key":"/@current-index"}'></label>
-                        </div>
-                        <div class="col col-sm-11 col-md-11">
-
-                                <div data-sivCall="getInputFor" data-sivParams='{"key":"/@current-index"}'></div>
-
-                        </div>
-                    </div>
+                    <div data-sivCall="getInputFor" data-sivParams='{"key":"/@current-index"}'></div>
                 </div>
             </div>
         </div>
+    </div>
+    <!--
+    ----------------------------------------------------------------------------------------
+-->
+    <div data-sivWidget="Siviglia.inputs.jqwidgets.FlexContainer" data-widgetParams="type,inputParams" data-widgetCode="Siviglia.inputs.jqwidgets.FlexContainer"
+         class="ContainerType">
+
+                <div style="display:flex;flex-direction:row;flex-wrap:wrap;justify-content:flex-start" data-sivLoop="/*type/definition/FIELDS" data-contextIndex="current">
+
+                            <div style="margin:4px" data-sivCall="getInputFor" data-sivParams='{"key":"/@current-index"}'></div>
+
+                </div>
+
     </div>
 <!--
     --------------------------------------------------------------------------------------------
@@ -1739,6 +1794,12 @@
             -->
     <div data-sivWidget="Siviglia.inputs.jqwidgets.Form" data-widgetParams="type,inputParams"
          data-widgetCode="Siviglia.inputs.jqwidgets.Form">
+        <div data-sivId="formNode"></div>
+    </div>
+
+
+    <div data-sivWidget="Siviglia.inputs.jqwidgets.FilteringForm" data-widgetParams="type,inputParams"
+         data-widgetCode="Siviglia.inputs.jqwidgets.FilteringForm">
         <div data-sivId="formNode"></div>
     </div>
 

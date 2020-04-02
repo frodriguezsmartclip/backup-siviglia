@@ -82,11 +82,12 @@ Siviglia.Utils.buildClass(
         classes:{
             BaseTypedObject:{
                 inherits:'Siviglia.Dom.EventManager,Siviglia.types.PathAble',
-                construct:function(defOrUrl,value)
+                construct:function(defOrUrl,value,relaxed)
                 {
                     this.__type__="BaseTypedObject";
                     this.__definedPromise=$.Deferred();
                     this.__fields={};
+                    this.relaxed=Siviglia.issetOr(relaxed,false);
 
                     if(typeof value=="undefined" || value===null) {
                         this.__value = null;
@@ -247,7 +248,7 @@ Siviglia.Utils.buildClass(
                     __addField:function(name,def,value)
                     {
                         var m=this;
-                        var instance=Siviglia.types.TypeFactory.getType(this,def,value);
+                        var instance=Siviglia.types.TypeFactory.getType(this,def,value,this.relaxed);
                             instance.setFieldName(name);
                             instance.setParent(this);
                             // CREAR EL GETTER Y EL SETTER PARA LA INSTANCIA DEL TIPO.
@@ -301,7 +302,7 @@ Siviglia.Utils.buildClass(
                                 exists=true;
                             }
 
-                            if (this.__definition["FIELDS"][k]["REQUIRED"] === true && !exists) {
+                            if (this.__definition["FIELDS"][k]["REQUIRED"] === true && !exists && !this.relaxed) {
 
                                     this.__value["*"+k].fireEvent("ERROR", {error: Siviglia.types.BaseTypeException.ERR_UNSET});
                                     throw new Siviglia.types.BaseTypeException(Siviglia.types.BaseTypeException.ERR_UNSET, {field: k});
@@ -405,8 +406,9 @@ Siviglia.Utils.buildClass(
             BaseType:
                 {
                     inherits: 'Siviglia.Dom.EventManager,Siviglia.types.PathAble',
-                    construct: function (type, def, val) {
+                    construct: function (type, def, val,relaxed) {
                         this.__type__ = "BaseType";
+                        this.relaxed=relaxed;
                         this.type = type;
                         this.definition = def;
                         this.definition["TYPE"] = type;
@@ -421,7 +423,7 @@ Siviglia.Utils.buildClass(
                             this.setValue(val);
                         else
                         {
-                            if(this.hasDefaultValue()) {
+                            if(!this.relaxed && this.hasDefaultValue()) {
                                 this.valueSet=true;
                                 this._setValue(this.getDefaultValue());
                             }
@@ -487,6 +489,10 @@ Siviglia.Utils.buildClass(
                                 this.value = v;
                             },
                             validate: function (val) {
+                                if(this.relaxed)
+                                    return true;
+                                if(this.isNull(val))
+                                    return true;
                                 if (!this._validate(val))
                                     return false;
                                 return this.checkSource(val);
@@ -696,8 +702,8 @@ Siviglia.Utils.buildClass(
             Integer:
                 {
                     inherits: 'BaseType',
-                    construct: function (def, value) {
-                        this.BaseType('Integer', def, value);
+                    construct: function (def, value,relaxed) {
+                        this.BaseType('Integer', def, value,relaxed);
                     },
                     methods:
                         {
@@ -752,8 +758,8 @@ Siviglia.Utils.buildClass(
             String:
                 {
                     inherits: 'BaseType',
-                    construct: function (def, value) {
-                        this.BaseType('String', def, value);
+                    construct: function (def, value,relaxed) {
+                        this.BaseType('String', def, value,relaxed);
                     },
                     methods:
                         {
@@ -802,14 +808,19 @@ Siviglia.Utils.buildClass(
                             _setValue: function (val) {
                                 if (this.definition.TRIM)
                                     val = val.trim();
-                                this.value = val;
+                                if(this.relaxed && val==="")
+                                {
+                                    this.setValue(null);
+                                }
+                                else
+                                    this.value = val;
                             }
                         }
                 },
             AutoIncrement:
                 {
                     inherits: 'Integer',
-                    construct: function (def, value) {
+                    construct: function (def, value,relaxed) {
                         this.Integer({'TYPE': 'AutoIncrement', 'MIN': 0, 'MAX': 9999999999}, value);
                         this.setFlags(Siviglia.types.BaseType.TYPE_SET_ON_SAVE);
                     },
@@ -826,8 +837,8 @@ Siviglia.Utils.buildClass(
             Boolean:
                 {
                     inherits: 'BaseType',
-                    construct: function (def, val) {
-                        this.BaseType('Boolean', def, val);
+                    construct: function (def, val,relaxed) {
+                        this.BaseType('Boolean', def, val,relaxed);
                     },
                     methods:
                         {
@@ -836,7 +847,7 @@ Siviglia.Utils.buildClass(
                             },
                             _validate:function(val)
                             {
-                                return val==true;
+                                return val===true || val===false || val.toLowerCase()=="true" || val.toLowerCase()=="false";
                             }
                         }
                 },
@@ -859,8 +870,8 @@ Siviglia.Utils.buildClass(
             DateTime:
                 {
                     inherits: 'BaseType',
-                    construct: function (def, value) {
-                        this.BaseType('DateTime', def, value);
+                    construct: function (def, value,relaxed) {
+                        this.BaseType('DateTime', def, value,relaxed);
                     },
                     methods:
                         {
@@ -959,8 +970,8 @@ Siviglia.Utils.buildClass(
             Date:
                 {
                     inherits: 'DateTime',
-                    construct: function (def, value) {
-                        this.BaseType('Date', def, value);
+                    construct: function (def, value,relaxed) {
+                        this.BaseType('Date', def, value,relaxed);
                     },
                     methods:
                         {
@@ -978,8 +989,8 @@ Siviglia.Utils.buildClass(
             Enum:
                 {
                     inherits: 'BaseType',
-                    construct: function (def, val) {
-                        this.BaseType('Enum', def, val);
+                    construct: function (def, val,relaxed) {
+                        this.BaseType('Enum', def, val,relaxed);
                     },
                     methods:
                         {
@@ -1079,8 +1090,8 @@ Siviglia.Utils.buildClass(
             File:
                 {
                     inherits: 'BaseType',
-                    construct: function (def, val) {
-                        this.BaseType('File', def, val);
+                    construct: function (def, val,relaxed) {
+                        this.BaseType('File', def, val,relaxed);
                         this.setFlags(Siviglia.types.BaseType.TYPE_IS_FILE |
                             Siviglia.types.BaseType.TYPE_REQUIRES_UPDATE_ON_NEW |
                             Siviglia.types.BaseType.TYPE_REQUIRES_SAVE |
@@ -1123,28 +1134,28 @@ Siviglia.Utils.buildClass(
             City:
                 {
                     inherits: 'String',
-                    construct: function (definition, value) {
+                    construct: function (definition, value,relaxed) {
                         this.String({TYPE: 'City', MAXLENGTH: 100, MINLENGTH: 2}, value);
                     }
                 },
             Name:
                 {
                     inherits: 'String',
-                    construct: function (definition, value) {
+                    construct: function (definition, value,relaxed) {
                         this.String({TYPE: 'Name', MAXLENGTH: 100, MINLENGTH: 2}, value);
                     }
                 },
             HashKey:
                 {
                     inherits: 'String',
-                    construct: function (definition, value) {
+                    construct: function (definition, value,relaxed) {
                         this.String({TYPE: 'HashKey', MAXLENGTH: 100, MINLENGTH: 2}, value);
                     }
                 },
             Email:
                 {
                     inherits: 'String',
-                    construct: function (definition, value) {
+                    construct: function (definition, value,relaxed) {
                         this.String({
                             'TYPE': 'Email',
                             "MINLENGTH": 8,
@@ -1172,10 +1183,10 @@ Siviglia.Utils.buildClass(
             Image:
                 {
                     inherits: 'File',
-                    construct: function (def, val) {
+                    construct: function (def, val,relaxed) {
                         if (!('EXTENSIONS' in def))
                             def.EXTENSIONS = ['jpg', 'gif', 'jpeg', 'png'];
-                        this.File(def, val);
+                        this.File(def, val,relaxed);
                     },
                     methods:
                         {
@@ -1217,21 +1228,21 @@ Siviglia.Utils.buildClass(
             IP:
                 {
                     inherits: 'String',
-                    construct: function (def, val) {
-                        this.String({'TYPE': 'IP', 'MAXLENGTH': 15}, val);
+                    construct: function (def, val,relaxed) {
+                        this.String({'TYPE': 'IP', 'MAXLENGTH': 15}, val,relaxed);
                     }
                 },
             Login:
                 {
                     inherits: 'String',
-                    construct: function (def, val) {
+                    construct: function (def, val,relaxed) {
                         this.String({
                             'TYPE': 'Login',
                             'MINLENGTH': 4,
                             'MAXLENGTH': 15,
                             'REGEXP': '^[a-zA-Z\d_]{3,15}$/i',
                             'TRIM': true
-                        }, val);
+                        }, val,relaxed);
                     }
                 },
             /* aaa */
@@ -1241,9 +1252,9 @@ Siviglia.Utils.buildClass(
                     Api basica de Big : cmp,div,minus,mod, plus, pow, round, sqrt, times, toExponential, toFixed,
                     toPrecision, toString, valueOf */
                     inherits: 'BaseType',
-                    construct: function (def, val) {
+                    construct: function (def, val,relaxed) {
                         // def tiene NDECIMALS y NINTEGERS
-                        this.BaseType('Decimal', def, val);
+                        this.BaseType('Decimal', def, val,relaxed);
                     },
                     methods:
                         {
@@ -1268,14 +1279,14 @@ Siviglia.Utils.buildClass(
             Money:
                 {
                     inherits: 'Decimal',
-                    construct: function (def, val) {
+                    construct: function (def, val,relaxed) {
                         this.Decimal({TYPE: 'Money', NDECIMALS: 4, NINTEGERS: 15}, val);
                     }
                 },
             Password:
                 {
                     inherits: 'String',
-                    construct: function (def, val) {
+                    construct: function (def, val,relaxed) {
                         this.String({
                             TYPE: 'Password',
                             MINLENGTH: 6,
@@ -1288,20 +1299,20 @@ Siviglia.Utils.buildClass(
             Phone:
                 {
                     inherits: 'String',
-                    construct: function (def, val) {
+                    construct: function (def, val,relaxed) {
                         this.String({
                             TYPE: 'Phone',
                             MINLENGTH: 7,
                             MAXLENGTH: 20,
                             REGEXP: '^(\\+?\\-? *[0-9]+)([,0-9 ]*)([0-9 ])*$'
-                        });
+                        },relaxed);
                     }
                 },
             Relationship:
                 {
                     inherits: 'BaseType',
-                    construct: function (definition, value) {
-                        this.BaseType('Relationship', definition, value);
+                    construct: function (definition, value,relaxed) {
+                        this.BaseType('Relationship', definition, value,relaxed);
                     },
                     methods:
                         {
@@ -1368,15 +1379,15 @@ Siviglia.Utils.buildClass(
             Street:
                 {
                     inherits: 'String',
-                    construct: function (def, val) {
+                    construct: function (def, val,relaxed) {
                         this.String({'TYPE': 'Street', MINLENGTH: 2, MAXLENGTH: 200}, val)
                     }
                 },
             Text:
                 {
                     inherits: 'BaseType',
-                    construct: function (def, val) {
-                        this.BaseType('Text', def, val);
+                    construct: function (def, val,relaxed) {
+                        this.BaseType('Text', def, val,relaxed);
                     },
                     methods:{
                         _validate:function(val)
@@ -1389,7 +1400,7 @@ Siviglia.Utils.buildClass(
             Timestamp:
                 {
                     inherits: 'DateTime',
-                    construct: function (def, value) {
+                    construct: function (def, value,relaxed) {
                         this.DateTime({TYPE: 'Timestamp', DEFAULT: 'NOW'}, value);
                         this.flags |= Siviglia.types.BaseType.TYPE_NOT_EDITABLE;
                     }
@@ -1397,13 +1408,13 @@ Siviglia.Utils.buildClass(
             UUID:
                 {
                     inherits: 'BaseType',
-                    construct: function (def, value) {
+                    construct: function (def, value,relaxed) {
                         this.BaseType('UUID', def, value);
                     }
                 },
             BaseKeyContainerType: {
                 inherits: 'BaseType',
-                construct: function (name, def, value) {
+                construct: function (name, def, value,relaxed) {
                     this.factory = new Siviglia.types._TypeFactory();
                     this.BaseType(name, def, value);
                 },
@@ -1415,7 +1426,7 @@ Siviglia.Utils.buildClass(
             },
             Container: {
                 inherits: 'BaseType',
-                construct: function (def, value) {
+                construct: function (def, value,relaxed) {
 
                     // Nota aqui: Para permitir que, en vez de hacer:
                     // obj={a:2}
@@ -1451,9 +1462,9 @@ Siviglia.Utils.buildClass(
                         if (value == null || typeof value == "undefined")
                             value = {};
 
-                        this.innerBaseTypedObject = new Siviglia.model.BaseTypedObject(def, value);
+                        this.innerBaseTypedObject = new Siviglia.model.BaseTypedObject(def, value,relaxed);
                         this.innerBaseTypedObject.setParent(this);
-                        this.BaseType('Container', def, value)
+                        this.BaseType('Container', def, value,relaxed)
                     }
                     this.keysHolder = new Siviglia.Dom.EventManager();
                 },
@@ -1596,11 +1607,11 @@ Siviglia.Utils.buildClass(
             {
             Dictionary:{
                 inherits:'BaseKeyContainerType',
-                construct:function(def,value)
+                construct:function(def,value,relaxed)
                 {
                     this.definition=def;
                     this.sampleType=Siviglia.types.TypeFactory.getType(this,def["VALUETYPE"],null);
-                    this.innerBaseTypedObject=new Siviglia.model.BaseTypedObject({"FIELDS":{}},{});
+                    this.innerBaseTypedObject=new Siviglia.model.BaseTypedObject({"FIELDS":{}},{},relaxed);
                     this.innerBaseTypedObject.setParent(this);
                     this.proxyEv=null;
                     this["[[KEYS]]"]=[];
@@ -1621,7 +1632,7 @@ Siviglia.Utils.buildClass(
                         this.buildProxy({});
                     else
                         this.buildProxy(value);
-                    this.BaseKeyContainerType('Dictionary',def,value)
+                    this.BaseKeyContainerType('Dictionary',def,value,relaxed)
                 },
                 destruct:function(){
                    if(this.keysEv)
@@ -1657,7 +1668,7 @@ Siviglia.Utils.buildClass(
                     {
                         if(this.innerBaseTypedObject)
                             this.innerBaseTypedObject.destruct();
-                        this.innerBaseTypedObject = new Siviglia.model.BaseTypedObject({"FIELDS": {}}, {});
+                        this.innerBaseTypedObject = new Siviglia.model.BaseTypedObject({"FIELDS": {}}, {},this.relaxed);
                         this.innerBaseTypedObject.setParent(this);
                         this.buildProxy(val);
                         this["[[KEYS]]"]=this.getKeys();
@@ -1853,7 +1864,7 @@ Siviglia.Utils.buildClass(
         TypeSwitcher: {
             inherits: 'BaseType',
 
-            construct: function (definition, value) {
+            construct: function (definition, value,relaxed) {
                 this.subNode = null;
                 this.currentType = null;
                 this.intermediateObject=null;
@@ -2096,11 +2107,11 @@ Siviglia.Utils.buildClass(
         },
         Array: {
             inherits: 'BaseType',
-            construct: function (definition, value) {
+            construct: function (definition, value,relaxed) {
                 var m=this;
                 this["[[KEYS]]"]=[];
                 this.children=[];
-                this.BaseType("Array", definition, value);
+                this.BaseType("Array", definition, value,relaxed);
                 this.proxy=null;
                 this.proxyEv=null;
             },
@@ -2336,9 +2347,9 @@ Siviglia.Utils.buildClass(
             PHPVariable:
             {
                 inherits:'BaseType',
-                construct:function(def,value)
+                construct:function(def,value,relaxed)
                 {
-                    this.BaseType('PHPVariable',def,value?this.unserialize(value):null);
+                    this.BaseType('PHPVariable',def,value?this.unserialize(value):null,relaxed);
                 },
                 methods:
                 {
@@ -2631,7 +2642,7 @@ Siviglia.Utils.buildClass(
                     if(mode!="obj")
                         def={};
 
-                    newType=new ctx.context[ctx.object](def,val);
+                    newType=new ctx.context[ctx.object](def,val,parent.relaxed);
                     newType.setParent(parent);
                     if(referencedField!==null)
                         newType.setReferencedField(referencedField);

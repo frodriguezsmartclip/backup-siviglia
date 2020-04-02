@@ -354,11 +354,12 @@ Siviglia.Utils.buildClass({
                                 params[indexes[k]] = id[k];
                             }
                         }
-                        m.getDataSource(instance.getName(), datasource, params).then(function (r) {
-                            if (r.data.length != 1) {
+                        var ds=m.getDataSource(instance.getName(), datasource, params);
+                        ds.refresh().then(function (r) {
+                            if (ds.data.length != 1) {
                                 h.reject();
                             }
-                            instance.setValue(r.data[0]);
+                            instance.setValue(ds.data[0]);
                             h.resolve(instance);
                         });
                         return h;
@@ -369,7 +370,7 @@ Siviglia.Utils.buildClass({
                      */
                     getDataSource: function (model, name, params, options) {
                         var ds=new Siviglia.Model.DataSource(model,name,params,null);
-                        return ds.refresh();
+                        return ds;
                     },
                     doAction: function (keys, data, objectName, actionName) {
                         var mName = new Siviglia.Model.ModelDescriptor(objectName);
@@ -467,7 +468,7 @@ Siviglia.Utils.buildClass({
                             "end": {"TYPE": "Integer"}
                         }
                     };
-                    this.BaseTypedObject(definition);
+                    this.BaseTypedObject(definition,null,true);
 
                     this["*params"]._setValue(params);
 

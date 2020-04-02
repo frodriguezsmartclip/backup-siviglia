@@ -34,12 +34,15 @@
 <body>
 <?php include_once(__DIR__."/../../jQuery/JqxWidgets.html"); ?>
 <div style="display:none">
+
     <div data-sivWidget="Test.ListViewer" data-widgetCode="Test.ListViewer">
         <div style="width:250px;float:left" data-sivView="Siviglia.inputs.jqwidgets.Form" data-sivParams='{"value":"/*modelSelector"}'></div>
         <div style="float:left">
             <div data-sivView="Siviglia.model.web.Page.views.List" data-sivParams='{"model":"/*modelSelector/model"}'></div>
         </div>
     </div>
+
+
     <div data-sivWidget="Siviglia.model.web.Page.views.List" data-widgetCode="Siviglia.model.web.Page.views.List">
         <div data-sivView="Siviglia.inputs.jqwidgets.Form" data-sivParams='{"value":"/*parameters"}'></div>
         <div data-sivId="grid"></div>
@@ -98,16 +101,28 @@
 
                         this.ds=null;
                         var model=params.model;
-                        if(params.model) {
+                        if(!params.model)
+                        {
+                          //  this.dontRender();
+                            this.destruct();
+                            return;
+                        }
+
                             console.log(params.model);
                             this.jqgrid = null;
                             this.ds = new Siviglia.Model.DataSource(model, "FullList", {});
                             this.ds.freeze();
                             this.ds.settings.__start = 0;
                             this.ds.settings.__count = 3;
-                            this.ds.addListener("CHANGE", this, "refreshGrid")
+                            this.ds.addListener("CHANGE", this, "refreshGrid");
+
                             this.parameters = this.ds["*params"].toBaseTypedObject();
-                        }
+                            this.parameters.__definition.INPUTPARAMS={
+                                "/":{
+                                    "INPUT": "FlexContainer"
+                                }
+                            }
+
                     },
                     initialize:function(params)
                     {
@@ -165,7 +180,7 @@
 
                         this.grid.jqxGrid(
                             {
-                                width: 800,
+                                width: "100%",
                                 source: this.dataAdapter,
                                 pageable: true,
                                 autoheight: true,

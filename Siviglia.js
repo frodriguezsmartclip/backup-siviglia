@@ -483,7 +483,7 @@ Siviglia.Utils.buildClass({
                     delete Siviglia.Dom.existingManagers[this._ev_id];
                     for (var k in this._ev_listeners) {
                         for (var j = 0; j < this._ev_listeners[k].length; j++) {
-                            console.debug("DELETING LISTENER " + this._ev_listeners[k][j].id);
+                          //  console.debug("DELETING LISTENER " + this._ev_listeners[k][j].id);
                             delete Siviglia.Dom.existingListeners[this._ev_listeners[k][j].id];
                         }
                     }
@@ -1579,6 +1579,10 @@ Siviglia.Utils.buildClass(
                                 (function(key,value){
                                     var pr=new Siviglia.Path.PathResolver(stack,value);
                                     pr.addListener("CHANGE",null,function(ev,param){
+                                        // TODO : Que hacer si un path de un parametro es no definido?
+                                        // Por ahora, simplemente enviamos un null.El widget debera saber que hacer.
+                                        if(param.valid===false)
+                                            m.updateParams(key,null);
                                         m.updateParams(key,param.value);
                                     });
                                     m.paths.push(pr);
@@ -1951,6 +1955,7 @@ Siviglia.Utils.buildClass(
                     this.__context = context.getCopy();
                     this.__widgetParams = widgetParams;
                     this.oManager=null;
+                    this.destroyed=false;
                     var plainCtx = new Siviglia.Path.BaseObjectContext(this, "*", this.__context);
                     if(Siviglia.UI.viewStack.length>0)
                         this.parentView=Siviglia.UI.viewStack[Siviglia.UI.viewStack.length-1];
@@ -1959,6 +1964,8 @@ Siviglia.Utils.buildClass(
                 },
                 destruct:function()
                 {
+                    // Necesitamos saber si hemos sido destruidos desde el preInitialize.
+                    this.destroyed=true;
                     if(this.oManager)
                         this.oManager.destruct();
                 },
@@ -1970,6 +1977,10 @@ Siviglia.Utils.buildClass(
 
                             var returned=this.preInitialize(this.__params);
                             var f=function() {
+                                // Si tras el preInitialize hemos sido destruidos, porque no podia renderizarse
+                                // la vista, salimos aqui.
+                                if(this.destroyed==true)
+                                    return;
                                 this.__composeHtml(w);
                                 this.parseNode();
                                 this.initialize(this.__params);
@@ -2009,7 +2020,8 @@ Siviglia.Utils.buildClass(
                             throw e;
                         }
                         //console.log(this.__node[0].innerHTML)
-                    }
+                    },
+
                 }
 
             },
