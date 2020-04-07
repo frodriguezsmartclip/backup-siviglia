@@ -498,7 +498,7 @@ Siviglia.Utils.buildClass({
                     unfreeze:function()
                     {
                         this.frozen=false;
-                        this.refresh();
+                        return this.refresh();
                     },
                     onResponse:function(response)
                     {
@@ -535,6 +535,16 @@ Siviglia.Utils.buildClass({
                                 throw error;
                             });
                         return h;
+                    },
+                    getDynamicParam:function()
+                    {
+                        for(var k in this.__definition.FIELDS.params.FIELDS)
+                        {
+                            var cFieldDef=this.__definition.FIELDS.params.FIELDS[k];
+                            if(typeof cFieldDef["PARAMTYPE"]!=="undefined" && cFieldDef["PARAMTYPE"]==="DYNAMIC")
+                                return k;
+                        }
+                        return null;
                     }
                 }
             },

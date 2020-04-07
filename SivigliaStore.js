@@ -17,7 +17,7 @@ Siviglia.Utils.buildClass(
                               {
                                   var typeMap={
                                       "Array":"ArrayDataSource",
-                                      "DataSource":"TypedFrameworkDataSource",
+                                      "DataSource":"FrameworkDataSource",
                                       "Url":"RemoteDataSource",
                                       "Path":"PathDefinedDataSource",
                                       "Relationship":"RelationshipDataSource"
@@ -57,6 +57,8 @@ Siviglia.Utils.buildClass(
                             this.controller=controller;
                             this.pstring=null;
                             this.data=null;
+                            this.valid=false;
+                            this.searchString=null;
                             this.EventManager();
 
                         },
@@ -71,6 +73,9 @@ Siviglia.Utils.buildClass(
                         },
                         methods:
                             {
+                                // isAsync es utilizado por el validate de los tipos.
+                                // Si el source de un tipo es asincrono, no se valida el valor contra el source,
+                                // para evitar entrar en un bucle.
                                 isAsync:function()
                                 {
                                     return false;
@@ -93,10 +98,10 @@ Siviglia.Utils.buildClass(
                                 },
                                 onData:function(data)
                                 {
+                                    this.valid=(data!==null);
                                     this.data=data;
-                                    var valid=(data!=null);
-                                    this.fireEvent(Siviglia.Data.BaseDataSource.EVENT_LOADED,{value:data,valid:valid});
-                                    this.fireEvent(Siviglia.Data.BaseDataSource.CHANGE,{value:data,valid:valid});
+                                    this.fireEvent(Siviglia.Data.BaseDataSource.EVENT_LOADED,{value:data,valid:this.valid});
+                                    this.fireEvent(Siviglia.Data.BaseDataSource.CHANGE,{value:data,valid:this.valid});
                                 },
                                 onListener:function(event,param)
                                 {
@@ -139,6 +144,19 @@ Siviglia.Utils.buildClass(
                                             return true;
                                     }
                                     return false;
+                                },
+                                isRemote:function()
+                                {
+                                    return false;
+                                },
+                                getDynamicField:function()
+                                {
+                                    return null;
+                                },
+                                search:function(str)
+                                {
+                                    this.searchString=str;
+                                    this.fetch();
                                 }
                             }
                     },
@@ -154,8 +172,13 @@ Siviglia.Utils.buildClass(
                             else {
                                 if (typeof source["VALUES"] !== "undefined") {
                                     this.valsArray=[];
-                                    for(var k=0;k<source["VALUES"].length;k++)
-                                        this.valsArray.push({"VALUE":k,"LABEL":source["VALUES"][k]});
+                                    var re=null;
+                                    if(this.searchString)
+                                        re=new RegExp("/"+this.searchString+"/");
+                                    for(var k=0;k<source["VALUES"].length;k++) {
+                                        if(!re || re.match(source["VALUES"][k]) )
+                                            this.valsArray.push({"VALUE": k, "LABEL": source["VALUES"][k]});
+                                    }
                                     if(typeof source["LABEL"]=="undefined")
                                         source["LABEL"]="LABEL";
                                     if(typeof source["VALUE"]=="undefined")
@@ -297,8 +320,13 @@ Siviglia.Utils.buildClass(
                                             if(typeof data[0]==="object")
                                                 return this.onData(data);
                                             var res=[];
-                                            for(var k=0;k<data.length;k++)
-                                                res.push({"VALUE":data[k],"INDEX":k,"LABEL":data[k]});
+                                            var re=null;
+                                            if(this.searchString!==null)
+                                                re=new RegExp("/"+this.searchString+"/");
+                                            for(var k=0;k<data.length;k++) {
+                                                if(!re || re.match(data[k]) )
+                                                    res.push({"VALUE":data[k],"INDEX":k,"LABEL":data[k]});
+                                            }
                                             this.onData(res);
                                         }
                                     }
@@ -376,12 +404,30 @@ Siviglia.Utils.buildClass(
                                         type: 'GET',
                                         url: baseUrl,
                                     }).then(function(data){
-                                        m.onData(data);
-                                    });
+
+                                        if(this.searchString===null)
+                                            m.onData(data);
+
+                                        var re=new RegExp("/"+this.searchString+"/");
+                                        var filtered=[];
+                                        for(var k=0;k<data.length;k++) {
+                                            if(re.match(data[k][this.getLabelField()]) )
+                                                filtered.push(data[k]);
+                                        }
+                                        this.onData(filtered);
+                                    }.bind(this));
                                 }catch(e)
                                 {
                                     this.fireEvent(Siviglia.Data.BaseDataSource.EVENT_LOAD_ERROR);
                                 }
+                            },
+                            isRemote:function()
+                            {
+                                return true;
+                            },
+                            hasAutoComplete:function()
+                            {
+                                return false;
                             }
 
                         }
@@ -393,158 +439,87 @@ Siviglia.Utils.buildClass(
 
                      */
                     FrameworkDataSource:{
-                        inherits:'RemoteDataSource',
+                        inherits:'BaseDataSource',
                         construct:function(source,controller,stack)
                         {
+                            this.pstring=null;
+                            this.BaseDataSource(source,controller,stack);
+                            this.pstring=null;
+                            this.ds=new Siviglia.Model.DataSource(this.source["MODEL"],this.source["DATASOURCE"],null);
 
-                            this.model=source["MODEL"];
-                            this.dsname=source["DATASOURCE"];
-                            this.dsParams=typeof source["PARAMS"]=="undefined"?null:source["PARAMS"];
-                            this.params={};
-                            this.definition=null;
-                            this.controller=controller || null;
-                            // Se construye una definicion< compatible con RemoteDataSource
-                            source.URL=this.getUrl(this.dsParams);
-                            this.RemoteDataSource(source,controller,stack);
+                            this.autoCompleteField=this.ds.getDynamicParam();
+                            if(typeof source["PARAMS"]!=="undefined")
+                            {
+                                var encoded=JSON.stringify(source["PARAMS"]);
+                                this.pstring = new Siviglia.Path.ParametrizableString(encoded, this.stack);
+                                this.pstring.addListener("CHANGE",this,"onListener");
+                            }
+                        },
+                        destruct:function(){
+                            this.ds.removeListeners(this);
+                            this.ds.destruct();
                         },
                         methods:
                             {
+                                isAsync:function()
+                                {
+                                    return true
+                                },
                                 processSource:function(source)
                                 {
                                     if(typeof source.params=="undefined")
                                         source.params={}
                                     return source;
                                 },
-                                setMetaData:function(metadata)
+                                hasAutoComplete:function()
                                 {
-                                    this.metaData=metadata;
+                                    return false;
                                 },
-                                onData:function(data)
+                                fetch:function()
                                 {
-                                    if(data!==null && this.isLoadValid(data))
+                                    if(this.pstring===null)
                                     {
-                                        if(data.definition)
-                                            this.setMetaData(data.definition);
-                                        var root=this.getRootDataNode(data);
-                                        this.fireEvent(Siviglia.Data.BaseDataSource.EVENT_LOADED,{value:root});
-                                        this.fireEvent(Siviglia.Data.BaseDataSource.CHANGE,{value:root});
-
+                                        this._doFetch("{}");
+                                        return;
                                     }
-                                    else
+                                   try{
+                                       this.pstring.parse();
+                                   } catch(e)
+                                   {
+                                       this.onData(null);
+                                   }
+                                },
+                                _doFetch:function(parameters)
+                                {
+                                    var p=JSON.parse(parameters);
+                                    this.ds.freeze();
+                                    for(var k in p)
+                                        this.ds[k]=p;
+                                    if(this.searchString!==null)
                                     {
-                                        m.fireEvent(Siviglia.Data.BaseDataSource.EVENT_INVALID_DATA);
+                                        var f=this.getDynamicField();
+                                        if(f)
+                                            this.ds[f]=this.searchString;
                                     }
+                                    this.ds.unfreeze().then(
+                                        function(){
+                                            this.onData(this.ds.data)}.bind(this),
+                                        function(){
+                                            this.onData(null);
+                                        }
+                                        );
                                 },
                                 isLoadValid:function(data)
                                 {
-                                    return data.error==0;
+                                    return this.valid;
                                 },
-                                getRootDataNode:function(data)
+                                getDynamicField:function()
                                 {
-                                    return data.data;
-                                },
-                                getUrl:function(params)
-                                {
-                                    var mName=new Siviglia.Model.ModelDescriptor(this.model);
-                                    var p=this.params || {};
-                                    if(this.options) {
-                                        var o = this.options.ordering;
-                                        var cp = this.options.currentPage;
-                                        var ps = this.options.pagination;
-                                        if (o) {
-                                            for (var i = 0; i < o.length; i++) {
-                                                var sort = o[i];
-                                                var suff = (i > 0 ? i : '');
-                                                p["__sort" + suff] = sort.attribute;
-                                                p["__sortDir" + suff] = sort.descending ? 'DESC' : 'ASC';
-                                            }
-                                        }
-                                        if(ps) {
-                                            p["__count"] = ps;
-                                            if(cp)
-                                                p["__start"]=cp*ps;
-                                        }
-                                    }
-                                    var name=this.dsname.replace('Ds','');
-                                    return mName.getDataSourceUrl(name,null,params)
+                                    return this.ds.getDynamicParam();
                                 }
+
                             }
                     },
-                    /*
-                        Procesador de tipos: convierte los datos de un datasource, a datos tipados.
-                     */
-                    TypedFrameworkDataSource:{
-                        inherits:'FrameworkDataSource',
-                        methods:
-                            {
-                                onData:function(data)
-                                {
-                                    var m=this;
-                                    if(data!==null && this.isLoadValid(data))
-                                    {
-                                        if(data.definition)
-                                            this.setMetaData(data.definition);
-                                        var root=this.getRootDataNode(data);
-                                        this.process(data.definition,root);
-                                        // Ponemos una referencia a data.data en data.value, que es donde lo esperan
-                                        // los listeners
-                                        data.value=data.data;
-
-                                        m.fireEvent(Siviglia.Data.BaseDataSource.EVENT_LOADED, data);
-                                        m.fireEvent(Siviglia.Data.BaseDataSource.CHANGE, data);
-                                    }
-                                    else
-                                    {
-                                        m.fireEvent(Siviglia.Data.BaseDataSource.EVENT_INVALID_DATA);
-                                    }
-                                },
-
-                                process:function(definition,data)
-                                {
-                                    var nData=[];
-                                    var sPromises=[];
-                                    var lp=$.Deferred();
-                                    for(var k=0;k<data.length;k++)
-                                    {
-
-                                            var ni = new Siviglia.model.BaseTypedObject(definition, data[k]);
-                                            nData.push(ni);
-
-                                    }
-                                    return nData;
-                                }
-                            }
-                    },
-                SourceResultConverter:{
-                        constructor:function(data)
-                        {
-                            this.mode="raw";
-                            if(data.length > 0){
-                                var type=Siviglia.issetOr(data.__type__,null);
-                                if(type==="BaseTypedObject")
-                                {
-                                    this.mode="typed";
-                                }
-                                this.data=data;
-                            }
-                        },
-                    methods:{
-                            getRaw:function()
-                            {
-                                if(this.mode==="raw")
-                                    return this.data;
-                                var res=[];
-                                this.data.map(function(it){
-                                    res.push(it.getPlainValue())
-                                });
-                                return res;
-                            },
-                            getForSource:function(s)
-                            {
-
-                            }
-                    }
-                },
                 RelationshipDataSource:{
                         inherits:"FrameworkDataSource",
                     construct:function(source,controller,stack)

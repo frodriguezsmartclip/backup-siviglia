@@ -555,8 +555,10 @@
                                 height: 25,
                                 placeHolder:Siviglia.issetOr(this.inputParams["placeholder"],"--Select"),
                                 search: function (str) {
-                                    self.searchString = str;
-                                    self.refresh();
+                                    console.log("SEARCHING");
+                                    self.source.setSearch
+                                   // self.searchString = str;
+                                   // self.refresh();
                                 }
                             };
                         },
@@ -891,6 +893,7 @@
                                             var s=Siviglia.Utils.stringToContextAndObject(l);
                                             var lay=new s.context[s.object](l,{name:key,input:instance},{},$('<div></div>'),this.__context);
                                             lay.__build().then(function(){
+
                                                 p.resolve(lay)
                                             });
                                         }.bind(this));

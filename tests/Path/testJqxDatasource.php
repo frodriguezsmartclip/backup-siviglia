@@ -180,7 +180,6 @@
 
                         this.grid.jqxGrid(
                             {
-                                width: "100%",
                                 source: this.dataAdapter,
                                 pageable: true,
                                 autoheight: true,
