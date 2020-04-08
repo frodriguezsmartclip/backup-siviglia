@@ -225,7 +225,7 @@ Siviglia.Utils.buildClass(
                         {
                             if(typeof m.__fields[name]!=="undefined")
                                 m.__fields[name].destruct();
-                            m.__addField(name,def,Siviglia.issetOr(v[name],null));
+                            m.__addField(name,def,v!=null?Siviglia.issetOr(v[name],null):null);
                         });
                         this.valueSet=true;
                     },
@@ -682,7 +682,11 @@ Siviglia.Utils.buildClass(
                             },
                             setReferencedField:function(ref)
                             {
-                                this.referencedField=true;
+                                this.referencedField=ref;
+                            },
+                            getReferencedField:function()
+                            {
+                                return this.referencedField;
                             }
                         }
                 },
@@ -1527,6 +1531,8 @@ Siviglia.Utils.buildClass(
                     },
 
                     _setValue: function (val) {
+                        if(val===null)
+                            val={};
                         this.innerBaseTypedObject.setValue(val);
                         this.eventize(val);
                         this.value=val;
@@ -2565,6 +2571,7 @@ Siviglia.Utils.buildClass(
                         if(typeof def["TYPE"]==="undefined" && typeof def["MODEL"]!=="undefined" && typeof def["MODEL"]!=="undefined")
                         {
                             var remDefinition=Siviglia.Model.loader.getModelDefinition(def["MODEL"]);
+
                             if(remDefinition) {
                                 if (typeof remDefinition["FIELDS"][def["FIELD"]] != "undefined") {
                                     referencedField=def;
