@@ -36,7 +36,7 @@
 <div style="display:none">
 
     <div data-sivWidget="Test.ListViewer" data-widgetCode="Test.ListViewer">
-        <div style="width:250px;float:left" data-sivView="Siviglia.inputs.jqwidgets.Form" data-sivParams='{"value":"/*modelSelector"}'></div>
+        <div style="width:250px;float:left" data-sivView="Siviglia.inputs.jqwidgets.Form" data-sivParams='{"value":"/*modelSelector", "gridConfig: "/*gridConfig"}'></div>
         <div style="float:left">
             <div data-sivView="Siviglia.model.web.Page.views.List" data-sivParams='{"model":"/*modelSelector/model"}'></div>
         </div>
@@ -84,12 +84,34 @@
         }
     })
 
+// clase base
+
+Siviglia.Utils.buildClass({
+        "context":"Siviglia.BaseGrid",
+        "classes":{
+            FullList:{
+                "inherits":"Siviglia.UI.Expando.View",
+                "methods":{
+                    preInitialize:function(params)
+                    {
+                        this.gridConfig = [
+                            { editable: true },
+                            { appendColum: {} },
+                            { prependColun: {} },
+                            { hiddenColums: {} },
+                            { customLabel: {} },
+                        ]
+                    }
+                }
+            }
+        }
+})
 
     Siviglia.Utils.buildClass({
         "context":"Siviglia.model.web.Page.views",
         "classes":{
             List:{
-                "inherits":"Siviglia.UI.Expando.View",
+                "inherits":"Siviglia.BaseGrid, Siviglia.UI.Expando.View",
                 destruct:function()
                 {
                     if(this.ds)
@@ -173,13 +195,15 @@
                         this.dataAdapter.dataBind();
                         var definition=this.ds.__getDefinition();
                         var columns=[];
+                        var columns=[{text: 'Seleccionar', columntype: 'checkbox'}];
                         for(var k in definition.FIELDS.data.ELEMENTS.FIELDS)
                         {
-                            columns.push({text:k,datafield:k})
+                            columns.push({text:k, datafield:k, cellsalign:'center'})
                         }
 
                         this.grid.jqxGrid(
                             {
+                                width: "100%",
                                 source: this.dataAdapter,
                                 pageable: true,
                                 autoheight: true,
@@ -188,6 +212,8 @@
                                 enabletooltips: true,
                                 editable: false,
                                 virtualmode: true,
+                                theme: 'energyblue', //no lo coge de aqui
+                                selectionmode: 'checkbox',
                                 rendergridrows: function(obj)
                                 {
                                     return obj.data;
