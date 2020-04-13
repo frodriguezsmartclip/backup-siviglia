@@ -4,6 +4,7 @@
     <script src="../../Siviglia.js"></script>
 
     <script src="../../SivigliaStore.js"></script>
+    <script src="../../SivigliaTypes.js"></script>
     <script src="../../Model.js"></script>
     <style type="text/css">
         .estilo1 {
@@ -14,7 +15,7 @@
             color: blue
         }
     </style>
-    <script src="../../SivigliaTypes.js"></script>
+
     <script>
         var Siviglia = Siviglia || {};
         Siviglia.config = {
@@ -398,15 +399,19 @@
         t2.f2 = "Lala";
         var e1 = 0;
         try {
-            t2.save();
+            var errors=t2.__save();
+            if(errors && errors.length>0)
+                e1 = 1;
         } catch (e) {
-            e1 = 1;
+
         }
         t2.f1 = "qqq";
         try {
-            t2.save();
+
+            var errors=t2.__save();
+            if(errors && errors.length>0)
+                e1=2;
         } catch (e) {
-            e1 = 2;
         }
         return e1;
     }, 1);
@@ -506,12 +511,12 @@
         var e = 0;
         t2.TIPO2 = {"TIPO7": {f1: "Prueba", f2: 55}};
         try {
-            t2.save();
+            t2._save();
         } catch (q) {
             e++;
         }
         t2.TIPO2.f1 = "lala";
-        t2.save();
+        t2.__save();
         return e == 1;
 
     }, true);
@@ -593,15 +598,18 @@
         });
         t2.f2 = "hola";
         var nExcp = 0;
-        t2["*f1"].addListener("ERROR", null, function () {
-            nExcp++;
-        });
         try {
-            t2.save();
+            var errors=t2.__save();
+            if(errors && errors.length > 0 && errors[0]["path"]=="/f1" &&
+                errors[0]["type"]=="BaseTypeException" &&
+                errors[0]["code"]==5
+            )
+                nExcp=1;
         } catch (e) {
+
         }
         t2.f1 = 20;
-        t2.save();
+        t2.__save();
 
         t2.destruct();
         return nExcp == 1 && countListeners() == 0;

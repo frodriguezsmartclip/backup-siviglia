@@ -124,6 +124,16 @@ Siviglia.Utils.buildClass(
 
                 },
                 methods:{
+                    __overrideDefinition:function(d,d1)
+                    {
+                        var t={};
+                        for(var k in d)
+                            t[k]=d[k];
+                        for(var k in d1)
+                            t[k]=d1[k];
+                        return t;
+
+                    },
                     __loadDefinition:function(d)
                     {
                         this.__definition=d;
@@ -137,13 +147,7 @@ Siviglia.Utils.buildClass(
                                 curVal={};
                         }
                         this.setValue(curVal);
-
-
-
-
-
                         m.__definedPromise.resolve(m);
-
                     },
 
                     ready:function()
@@ -181,7 +185,6 @@ Siviglia.Utils.buildClass(
                     },
                     getPlainValue:function()
                     {
-                        this.__save();
                         var subVal=this.__value;
                         var nSet=0;
                         var nFields=0;
@@ -204,8 +207,8 @@ Siviglia.Utils.buildClass(
                                 nSet++;
                             }
                         }
-                        if(nSet!=nFields)
-                            this.__onChange();
+//                        if(nSet!=nFields)
+//                            this.__onChange();
                         if(nSet==0)
                         {
                             if(typeof this.__definition["SET_ON_EMPTY"]!=="undefined" &&
@@ -221,13 +224,23 @@ Siviglia.Utils.buildClass(
                         var m=this;
                         // Limpiamos el valor interno.
                         this.__value=v;
+                        this.disableEvents(true);
                         this.__iterateOnFieldDefinitions(function(name,def)
                         {
-                            if(typeof m.__fields[name]!=="undefined")
-                                m.__fields[name].destruct();
-                            m.__addField(name,def,v!=null?Siviglia.issetOr(v[name],null):null);
+                            if(typeof m.__fields[name]!=="undefined") {
+                                    m.__fields[name].destruct();
+                            }
+                            m.__addField(name, def, v != null ? Siviglia.issetOr(v[name], null) : null);
+                                // Se recupera la definicion del tipo, y se copia sobre la definicion del bto.
+                                // Esto es asi, porque si la definicion del campo, en el bto, era del tipo MODEL/FIELD, en el tipo, ahora,
+                                // ya se ha resuelto.Quien intente leer la definicion del campo, a traves del bto, solo va a ver la definicion MODEL/FIELD.
+                                // Por eso, copiamos la definicion del tipo, sobre el bto.
+
+                            m.__definition["FIELDS"][name] = m.__fields[name].type.definition;
                         });
                         this.valueSet=true;
+                        this.disableEvents(false);
+                        this.__onChange();
                     },
                     __validate:function(val)
                     {
@@ -292,26 +305,23 @@ Siviglia.Utils.buildClass(
                     {
                         return true;
                     },
+                    // Funcion utilizada para validar que todos los campos, incluidos los requeridos,
+                    // han sido rellenados, por lo que es posible realmente salvar el objeto.
                     __save:function()
                     {
+                        var errors=[];
                         for(var k in this.__definition["FIELDS"]) {
 
-                            var exists = false;
-                            if(!(typeof this.__value["*"+k]==="undefined" || this.__value[k]===null)) {
-                                this.__value["*" + k].save();
-                                exists=true;
+                            try {
+                                this.__fields[k].getType().save();
+                            }catch(e)
+                            {
+                                errors.push(e);
                             }
-
-                            if (this.__definition["FIELDS"][k]["REQUIRED"] === true && !exists && !this.relaxed) {
-
-                                    this.__value["*"+k].fireEvent("ERROR", {error: Siviglia.types.BaseTypeException.ERR_UNSET});
-                                    throw new Siviglia.types.BaseTypeException(Siviglia.types.BaseTypeException.ERR_UNSET, {field: k});
-                            }
-
-
                         }
-
-
+                        if(errors.length==0)
+                            return null;
+                        return errors;
                     }
                 }
             },
@@ -381,11 +391,13 @@ Siviglia.Utils.buildClass(
                             ERR_INVALID: 2,
                             ERR_TYPE_NOT_FOUND: 3,
                             ERR_INCOMPLETE_TYPE: 4,
+                            ERR_REQUIRED: 5,
                             ERR_SERIALIZER_NOT_FOUND: 7,
                             ERR_TYPE_NOT_EDITABLE: 8
                         },
-                    construct: function (code, params, type) {
-                        this.type = type || 'BaseTypeException';
+                    construct: function (path,code, params) {
+                        this.path=path;
+                        this.type = 'BaseTypeException';
                         this.code = code;
                         this.params = params;
                     },
@@ -450,7 +462,16 @@ Siviglia.Utils.buildClass(
                     methods:
                         {
                             // Los tipos por defecto solo devuelven una promesa resuelta.
+                            __overrideDefinition:function(d,d1)
+                            {
+                                var t={};
+                                for(var k in d)
+                                    t[k]=d[k];
+                                for(var k in d1)
+                                    t[k]=d1[k];
+                                return t;
 
+                            },
 
                             ready: function () {
                                 var d = $.Deferred();
@@ -493,6 +514,7 @@ Siviglia.Utils.buildClass(
                                     return true;
                                 if(this.isNull(val))
                                     return true;
+
                                 if (!this._validate(val))
                                     return false;
                                 return this.checkSource(val);
@@ -507,7 +529,7 @@ Siviglia.Utils.buildClass(
                                     if(!s.isAsync()) {
                                         s.fetch();
                                         if (!s.contains(val)) {
-                                            throw new Siviglia.types.BaseTypeException(Siviglia.types.BaseTypeException.ERR_INVALID, {value: val});
+                                            throw new Siviglia.types.BaseTypeException(this.getFullPath(),Siviglia.types.BaseTypeException.ERR_INVALID, {value: val});
                                         }
                                     }
                                 }
@@ -593,7 +615,7 @@ Siviglia.Utils.buildClass(
                             },
                             get: function () {
                                 if (!this.valueSet)
-                                    throw new Siviglia.types.BaseTypeException('BaseType', Siviglia.types.BaseTypeException.ERR_UNSET);
+                                    throw new Siviglia.types.BaseTypeException(this.getFullPath(), Siviglia.types.BaseTypeException.ERR_UNSET);
                                 return this.value;
                             },
                             getValue: function () {
@@ -678,6 +700,8 @@ Siviglia.Utils.buildClass(
                             },
                             save:function()
                             {
+                                if(this.definition.REQUIRED && (!this.valueSet || this.value===""))
+                                    throw new Siviglia.types.BaseTypeException(this.getFullPath(), Siviglia.types.BaseTypeException.ERR_REQUIRED);
                                 return;
                             },
                             setReferencedField:function(ref)
@@ -699,21 +723,22 @@ Siviglia.Utils.buildClass(
                             ERR_TOO_BIG: 101,
                             ERR_NOT_A_NUMBER: 102
                         },
-                    construct: function (code, params) {
-                        this.BaseTypeException(code, params, 'IntegerException');
+                    construct: function (path,code, params) {
+                        this.BaseTypeException(path,code, params);
+                        this.type='IntegerException';
                     }
                 },
             Integer:
                 {
                     inherits: 'BaseType',
-                    construct: function (def, value,relaxed) {
-                        this.BaseType('Integer', def, value,relaxed);
+                    construct: function (definition, value,relaxed) {
+                        this.BaseType('Integer', definition, value,relaxed);
                     },
                     methods:
                         {
                             get: function () {
                                 if (!this.valueSet)
-                                    throw new Siviglia.types.BaseTypeException('BaseType', Siviglia.types.BaseTypeException.ERR_UNSET);
+                                    throw new Siviglia.types.BaseTypeException(this.getFullPath(), Siviglia.types.BaseTypeException.ERR_UNSET);
                                 return parseInt(this.value);
                             },
                             getValue: function () {
@@ -733,14 +758,14 @@ Siviglia.Utils.buildClass(
 
                                 var asStr = '' + val;
                                 if (!asStr.match(/^\d+$/)) {
-                                    throw new Siviglia.types.IntegerException(Siviglia.types.IntegerException.ERR_NOT_A_NUMBER);
+                                    throw new Siviglia.types.IntegerException(this.getFullPath(),Siviglia.types.IntegerException.ERR_NOT_A_NUMBER);
                                 }
 
                                 if ('MIN' in this.definition && val < parseInt(this.definition.MIN)) {
-                                    throw new Siviglia.types.IntegerException(Siviglia.types.IntegerException.ERR_TOO_SMALL);
+                                    throw new Siviglia.types.IntegerException(this.getFullPath(),Siviglia.types.IntegerException.ERR_TOO_SMALL);
                                 }
                                 if ('MAX' in this.definition && val > parseInt(this.definition.MAX))
-                                    throw new Siviglia.types.IntegerException(Siviglia.types.IntegerException.ERR_TOO_BIG);
+                                    throw new Siviglia.types.IntegerException(this.getFullPath(),Siviglia.types.IntegerException.ERR_TOO_BIG);
 
                                 return true;
                             }
@@ -755,22 +780,23 @@ Siviglia.Utils.buildClass(
                         ERR_TOO_LONG: 101,
                         ERR_INVALID_CHARACTERS: 102
                     },
-                    construct: function (code, params) {
-                        this.BaseTypeException(code, params, 'StringException');
+                    construct: function (path,code, params) {
+                        this.BaseTypeException(path,code, params);
+                        this.type='StringException';
                     }
                 },
             String:
                 {
                     inherits: 'BaseType',
-                    construct: function (def, value,relaxed) {
-                        this.BaseType('String', def, value,relaxed);
+                    construct: function (definition, value,relaxed) {
+                        this.BaseType('String', definition, value,relaxed);
                     },
                     methods:
                         {
                             _validate: function (val) {
                                 if (this.isNull(val) || val === "") {
                                     if (this.definition.REQUIRED)
-                                        throw new Siviglia.types.BaseTypeException(Siviglia.types.BaseTypeException.ERR_UNSET);
+                                        throw new Siviglia.types.BaseTypeException(this.getFullPath(),Siviglia.types.BaseTypeException.ERR_UNSET);
                                     else {
                                         if(this.isNull(val))
                                             return true;
@@ -780,13 +806,13 @@ Siviglia.Utils.buildClass(
 
                                 var c = val.length;
                                 if ('MINLENGTH' in this.definition && c < this.definition["MINLENGTH"])
-                                    throw new Siviglia.types.StringException(Siviglia.types.StringException.ERR_TOO_SHORT, {
+                                    throw new Siviglia.types.StringException(this.getFullPath(),Siviglia.types.StringException.ERR_TOO_SHORT, {
                                         min: this.definition['MINLENGTH'],
                                         cur: c
                                     });
 
                                 if ('MAXLENGTH' in this.definition && c > this.definition["MAXLENGTH"])
-                                    throw new Siviglia.types.StringException(Siviglia.types.StringException.ERR_TOO_LONG, {
+                                    throw new Siviglia.types.StringException(this.getFullPath(),Siviglia.types.StringException.ERR_TOO_LONG, {
                                         max: this.definition['MAXLENGTH'],
                                         cur: c
                                     });
@@ -804,7 +830,7 @@ Siviglia.Utils.buildClass(
 
                                     }
                                     if (!val.match(this.regex)) {
-                                        throw new Siviglia.types.StringException(Siviglia.types.StringException.ERR_INVALID_CHARACTERS);
+                                        throw new Siviglia.types.StringException(this.getFullPath(),Siviglia.types.StringException.ERR_INVALID_CHARACTERS);
                                     }
                                 }
                                 return true;
@@ -824,8 +850,10 @@ Siviglia.Utils.buildClass(
             AutoIncrement:
                 {
                     inherits: 'Integer',
-                    construct: function (def, value,relaxed) {
-                        this.Integer({'TYPE': 'AutoIncrement', 'MIN': 0, 'MAX': 9999999999}, value);
+                    construct: function (definition, value,relaxed) {
+                        var stdDef={'TYPE': 'AutoIncrement', 'MIN': 0, 'MAX': 9999999999};
+                        var fullDef=this.__overrideDefinition(definition,stdDef);
+                        this.Integer(fullDef, value);
                         this.setFlags(Siviglia.types.BaseType.TYPE_SET_ON_SAVE);
                     },
                     methods:
@@ -841,8 +869,8 @@ Siviglia.Utils.buildClass(
             Boolean:
                 {
                     inherits: 'BaseType',
-                    construct: function (def, val,relaxed) {
-                        this.BaseType('Boolean', def, val,relaxed);
+                    construct: function (definition, value,relaxed) {
+                        this.BaseType('Boolean', definition, value,relaxed);
                     },
                     methods:
                         {
@@ -867,15 +895,16 @@ Siviglia.Utils.buildClass(
                             ERR_STRICTLY_PAST: 104,
                             ERR_STRICTLY_FUTURE: 105
                         },
-                    construct: function (code, params) {
-                        this.BaseTypeException(code, params, 'DateTimeException');
+                    construct: function (path,code, params) {
+                        this.BaseTypeException(path,code, params);
+                        this.type='DateTimeException';
                     }
                 },
             DateTime:
                 {
                     inherits: 'BaseType',
-                    construct: function (def, value,relaxed) {
-                        this.BaseType('DateTime', def, value,relaxed);
+                    construct: function (definition, value,relaxed) {
+                        this.BaseType('DateTime', definition, value,relaxed);
                     },
                     methods:
                         {
@@ -891,25 +920,29 @@ Siviglia.Utils.buildClass(
                                 var year = odate.getFullYear();
 
                                 if (isNaN(year)) {
-                                    throw new ex.DateTimeException(ex.BaseTypeException.ERR_INVALID);
+                                    throw new ex.DateTimeException(this.getFullPath(),ex.BaseTypeException.ERR_INVALID);
                                 }
 
                                 var ex = Siviglia.types;
 
                                 if ('STARTYEAR' in this.definition && parseInt(this.definition.STARTYEAR) > year)
                                     throw new ex.DateTimeException(
+                                        this.getFullPath(),
                                         ex.DateTimeException.ERR_START_YEAR,
                                         {min: this.definition.STARTYEAR, cur: year});
                                 if ('ENDYEAR' in this.definition && parseInt(this.definition.ENDYEAR) < year)
                                     throw new ex.DateTimeException(
+                                        this.getFullPath(),
                                         ex.DateTimeException.ERR_END_YEAR,
                                         {max: this.definition.ENDYEAR, cur: year});
                                 cur = new Date();
                                 if ('STRICTLYPAST' in this.definition && cur < odate)
                                     throw new ex.DateTimeException(
+                                        this.getFullPath(),
                                         ex.DateTimeException.ERR_STRICTLY_PAST);
                                 if ('STRICTLYFUTURE' in this.definition && cur > odate)
                                     throw new ex.DateTimeException(
+                                        this.getFullPath(),
                                         ex.DateTimeException.ERR_STRICTLY_FUTURE);
                                 return odate;
                             },
@@ -946,7 +979,7 @@ Siviglia.Utils.buildClass(
                                     odate = new Date();
                                     odate.setTime(v);
                                     if (odate == 'Invalid date') {
-                                        throw new ex.DateTimeException(ex.BaseTypeException.ERR_INVALID);
+                                        throw new ex.DateTimeException(this.getFullPath(),ex.BaseTypeException.ERR_INVALID);
                                     }
                                 } else
                                     odate = value;
@@ -974,8 +1007,8 @@ Siviglia.Utils.buildClass(
             Date:
                 {
                     inherits: 'DateTime',
-                    construct: function (def, value,relaxed) {
-                        this.BaseType('Date', def, value,relaxed);
+                    construct: function (definition, value,relaxed) {
+                        this.BaseType('Date', definition, value,relaxed);
                     },
                     methods:
                         {
@@ -993,15 +1026,15 @@ Siviglia.Utils.buildClass(
             Enum:
                 {
                     inherits: 'BaseType',
-                    construct: function (def, val,relaxed) {
-                        this.BaseType('Enum', def, val,relaxed);
+                    construct: function (definition, value,relaxed) {
+                        this.BaseType('Enum', definition, value,relaxed);
                     },
                     methods:
                         {
                             _validate: function (val) {
                                 var v = this.definition.VALUES;
                                 if (this.isNull(val) || val === "")
-                                    throw new Siviglia.types.BaseTypeException(Siviglia.types.BaseTypeException.ERR_UNSET);
+                                    throw new Siviglia.types.BaseTypeException(this.getFullPath(),Siviglia.types.BaseTypeException.ERR_UNSET);
 
                                 if (Siviglia.types.isString(val) && val != parseInt(val)) {
                                     var idx = this.findIndexOf(val);
@@ -1011,7 +1044,7 @@ Siviglia.Utils.buildClass(
                                         return true;
                                 }
 
-                                throw new Siviglia.types.BaseTypeException(Siviglia.types.BaseTypeException.ERR_INVALID, {val: val});
+                                throw new Siviglia.types.BaseTypeException(this.getFullPath(),Siviglia.types.BaseTypeException.ERR_INVALID, {val: val});
                             },
                             _setValue: function (val) {
                                 if (Siviglia.types.isString(val) && val != parseInt(val)) {
@@ -1087,15 +1120,16 @@ Siviglia.Utils.buildClass(
                     ERR_UPLOAD_ERR_INI_SIZE: 110,
                     ERR_UPLOAD_ERR_FORM_SIZE: 111
                 },
-                construct: function (code, message) {
-                    this.BaseTypeException(code, message, 'FileException');
+                construct: function (path,code, message) {
+                    this.BaseTypeException(path,code, message);
+                    this.type='FileException';
                 }
             },
             File:
                 {
                     inherits: 'BaseType',
-                    construct: function (def, val,relaxed) {
-                        this.BaseType('File', def, val,relaxed);
+                    construct: function (definition, value,relaxed) {
+                        this.BaseType('File', definition, value,relaxed);
                         this.setFlags(Siviglia.types.BaseType.TYPE_IS_FILE |
                             Siviglia.types.BaseType.TYPE_REQUIRES_UPDATE_ON_NEW |
                             Siviglia.types.BaseType.TYPE_REQUIRES_SAVE |
@@ -1105,21 +1139,21 @@ Siviglia.Utils.buildClass(
                         {
                             localValidate: function (val) {
                                 if (this.isNull(val) || val === "")
-                                    throw new Siviglia.types.BaseTypeException(Siviglia.types.BaseTypeException.ERR_UNSET);
+                                    throw new Siviglia.types.BaseTypeException(this.getFullPath(),Siviglia.types.BaseTypeException.ERR_UNSET);
 
                                 if (window.File && window.FileList && window.FileReader) {
                                     size = val.fileSize;
                                     if ('MINSIZE' in this.definition && size / 1024 < this.definition.MINSIZE)
-                                        throw new Siviglia.types.FileException(Siviglia.types.FileException.ERR_FILE_TOO_SMALL,
+                                        throw new Siviglia.types.FileException(this.getFullPath(),Siviglia.types.FileException.ERR_FILE_TOO_SMALL,
                                             {min: this.definition.MINSIZE, cur: size});
                                     if ('MAXSIZE' in this.definition && size / 1024 > this.definition.MAXSIZE)
-                                        throw new Siviglia.types.FileException(Siviglia.types.FileException.ERR_FILE_TOO_BIG,
+                                        throw new Siviglia.types.FileException(this.getFullPath(),Siviglia.types.FileException.ERR_FILE_TOO_BIG,
                                             {max: this.definition.MAXSIZE, cur: size});
                                     if ('EXTENSIONS' in this.definition) {
                                         var reg = ".*\\.(" + this.definition.EXTENSIONS.join('|') + ")";
                                         var c = new RegExp(reg);
                                         if (!val.fileName.match(reg))
-                                            throw new Siviglia.types.FileException(Siviglia.types.FileException.ERR_INVALID_FILE,
+                                            throw new Siviglia.types.FileException(this.getFullPath(),Siviglia.types.FileException.ERR_INVALID_FILE,
                                                 {allowed: this.definition.EXTENSIONS}
                                             );
                                     }
@@ -1139,35 +1173,43 @@ Siviglia.Utils.buildClass(
                 {
                     inherits: 'String',
                     construct: function (definition, value,relaxed) {
-                        this.String({TYPE: 'City', MAXLENGTH: 100, MINLENGTH: 2}, value);
+                        var stdDef={TYPE: 'City', MAXLENGTH: 100, MINLENGTH: 2};
+                        var fullDef=this.__overrideDefinition(definition,stdDef);
+                        this.String(fullDef, value,relaxed);
                     }
                 },
             Name:
                 {
                     inherits: 'String',
                     construct: function (definition, value,relaxed) {
-                        this.String({TYPE: 'Name', MAXLENGTH: 100, MINLENGTH: 2}, value);
+                        var stdDef={TYPE: 'Name', MAXLENGTH: 100, MINLENGTH: 2};
+                        var fullDef=this.__overrideDefinition(definition,stdDef);
+                        this.String(fullDef, value,relaxed);
                     }
                 },
             HashKey:
                 {
                     inherits: 'String',
                     construct: function (definition, value,relaxed) {
-                        this.String({TYPE: 'HashKey', MAXLENGTH: 100, MINLENGTH: 2}, value);
+                        var stdDef={TYPE: 'HashKey', MAXLENGTH: 100, MINLENGTH: 2};
+                        var fullDef=this.__overrideDefinition(definition,stdDef);
+                        this.String(fullDef, value,relaxed);
                     }
                 },
             Email:
                 {
                     inherits: 'String',
                     construct: function (definition, value,relaxed) {
-                        this.String({
+                        var stdDef={
                             'TYPE': 'Email',
                             "MINLENGTH": 8,
                             "MAXLENGTH": 50,
                             "REGEXP": '^\\w+([\\.-]?\\w+)*@\\w+([\\.-]?\\w+)*(\\.\\w{2,3})+',
                             "ALLOWHTML": false,
                             "TRIM": true
-                        }, value);
+                        };
+                        var fullDef=this.__overrideDefinition(definition,stdDef);
+                        this.String(fullDef, value);
                     }
                 },
             ImageException:
@@ -1180,23 +1222,24 @@ Siviglia.Utils.buildClass(
                         ERR_TOO_SHORT: 123,
                         ERR_TOO_TALL: 124
                     },
-                    construct: function (code, param) {
-                        this.BaseTypeException(code, param, 'ImageException');
+                    construct: function (path,code, param) {
+                        this.BaseTypeException(path,code, param);
+                        this.type='ImageException';
                     }
                 },
             Image:
                 {
                     inherits: 'File',
-                    construct: function (def, val,relaxed) {
-                        if (!('EXTENSIONS' in def))
-                            def.EXTENSIONS = ['jpg', 'gif', 'jpeg', 'png'];
-                        this.File(def, val,relaxed);
+                    construct: function (definition, value,relaxed) {
+                        if (!('EXTENSIONS' in definition))
+                            definition.EXTENSIONS = ['jpg', 'gif', 'jpeg', 'png'];
+                        this.File(definition, value,relaxed);
                     },
                     methods:
                         {
                             localValidate: function (val) {
                                 if (this.isNull(val) || val === "")
-                                    throw new Siviglia.types.BaseTypeException(Siviglia.types.BaseTypeException.ERR_UNSET);
+                                    throw new Siviglia.types.BaseTypeException(this.getFullPath(),Siviglia.types.BaseTypeException.ERR_UNSET);
 
                                 if (window.File && window.FileList && window.FileReader && window.Blob) {
                                     // Se pueden hacer cosas con HTML5, como copiarlo a un canvas y saber el tamanio real de la imagen,
@@ -1232,21 +1275,26 @@ Siviglia.Utils.buildClass(
             IP:
                 {
                     inherits: 'String',
-                    construct: function (def, val,relaxed) {
-                        this.String({'TYPE': 'IP', 'MAXLENGTH': 15}, val,relaxed);
+                    construct: function (definition, value,relaxed) {
+                        var stdDef={'TYPE': 'IP', 'MAXLENGTH': 15};
+                        var fullDef=this.__overrideDefinition(definition,stdDef);
+                        this.String(fullDef, value,relaxed);
                     }
                 },
             Login:
                 {
                     inherits: 'String',
-                    construct: function (def, val,relaxed) {
-                        this.String({
+                    construct: function (definition, value,relaxed) {
+                        var stdDef={
                             'TYPE': 'Login',
                             'MINLENGTH': 4,
                             'MAXLENGTH': 15,
                             'REGEXP': '^[a-zA-Z\d_]{3,15}$/i',
                             'TRIM': true
-                        }, val,relaxed);
+                        };
+                        var fullDef=this.__overrideDefinition(definition,stdDef);
+                        this.String(fullDef, value,relaxed);
+
                     }
                 },
             /* aaa */
@@ -1256,9 +1304,9 @@ Siviglia.Utils.buildClass(
                     Api basica de Big : cmp,div,minus,mod, plus, pow, round, sqrt, times, toExponential, toFixed,
                     toPrecision, toString, valueOf */
                     inherits: 'BaseType',
-                    construct: function (def, val,relaxed) {
+                    construct: function (definition, value,relaxed) {
                         // def tiene NDECIMALS y NINTEGERS
-                        this.BaseType('Decimal', def, val,relaxed);
+                        this.BaseType('Decimal', definition, value,relaxed);
                     },
                     methods:
                         {
@@ -1276,40 +1324,47 @@ Siviglia.Utils.buildClass(
                                 {
                                     return true;
                                 }
-                                throw new Siviglia.types.BaseTypeException(Siviglia.types.BaseTypeException.ERR_INVALID);
+                                throw new Siviglia.types.BaseTypeException(this.getFullPath(),Siviglia.types.BaseTypeException.ERR_INVALID);
                             }
                         }
                 },
             Money:
                 {
                     inherits: 'Decimal',
-                    construct: function (def, val,relaxed) {
-                        this.Decimal({TYPE: 'Money', NDECIMALS: 4, NINTEGERS: 15}, val);
+                    construct: function (definition, value,relaxed) {
+                        var stdDef={TYPE: 'Money', NDECIMALS: 4, NINTEGERS: 15};
+                        var fullDef=this.__overrideDefinition(definition,stdDef);
+                        this.Decimal(fullDef, value,relaxed);
+
                     }
                 },
             Password:
                 {
                     inherits: 'String',
-                    construct: function (def, val,relaxed) {
-                        this.String({
+                    construct: function (definition, value,relaxed) {
+                        var stdDef={
                             TYPE: 'Password',
                             MINLENGTH: 6,
                             MAXLENGTH: 16,
                             REGEXP: '/^[a-z\d_]{6,32}$/i',
                             TRIM: true
-                        }, val);
+                        };
+                        var fullDef=this.__overrideDefinition(definition,stdDef);
+                        this.String(fullDef, value,relaxed);
                     }
                 },
             Phone:
                 {
                     inherits: 'String',
-                    construct: function (def, val,relaxed) {
-                        this.String({
+                    construct: function (definition, value,relaxed) {
+                        var stdDef={
                             TYPE: 'Phone',
                             MINLENGTH: 7,
                             MAXLENGTH: 20,
                             REGEXP: '^(\\+?\\-? *[0-9]+)([,0-9 ]*)([0-9 ])*$'
-                        },relaxed);
+                        };
+                        var fullDef=this.__overrideDefinition(definition,stdDef);
+                        this.String(fullDef, value,relaxed);
                     }
                 },
             Relationship:
@@ -1322,7 +1377,7 @@ Siviglia.Utils.buildClass(
                         {
                             get: function () {
                                 if (!this.valueSet)
-                                    throw new Siviglia.types.BaseTypeException('BaseType', Siviglia.types.BaseTypeException.ERR_UNSET);
+                                    throw new Siviglia.types.BaseTypeException(this.getFullPath(), Siviglia.types.BaseTypeException.ERR_UNSET);
                                 return parseInt(this.value);
                             },
                             getValue: function () {
@@ -1349,12 +1404,25 @@ Siviglia.Utils.buildClass(
                                 return true;
                             },
                             getSourceDefinition: function (controller, params) {
-                              var def={};
-                              for(var k in this.definition)
-                                  def[k]=this.definition[k];
-                              def[k]["TYPE"]="DataSource";
-                              return def;
-
+                                var keys=[];
+                                for(var k in this.definition["FIELDS"])
+                                    keys.push(k);
+                                var metadata=Siviglia.issetOr(this.definition["SOURCE"],null);
+                                var label=null;
+                                var def={"TYPE":"DataSource","MODEL":this.definition["MODEL"]};
+                                if(metadata!==null)
+                                {
+                                    if(typeof metadata["LABEL"]!=="undefined")
+                                        def["LABEL"] = metadata["LABEL"];
+                                    def["DATASOURCE"]=Siviglia.issetOr(metadata["DATASOURCE"],"FullList");
+                                }
+                                else {
+                                    def["DATASOURCE"]="FullList";
+                                }
+                                def["VALUE"]=this.definition["FIELDS"][keys[0]];
+                                if(typeof this.definition["PARAMS"]!=="undefined")
+                                    def["PARAMS"]=this.definition["PARAMS"]
+                                return def;
                             },
                             getSourceLabel: function () {
                                 return this.definition.SEARCHFIELD;
@@ -1383,15 +1451,17 @@ Siviglia.Utils.buildClass(
             Street:
                 {
                     inherits: 'String',
-                    construct: function (def, val,relaxed) {
-                        this.String({'TYPE': 'Street', MINLENGTH: 2, MAXLENGTH: 200}, val)
+                    construct: function (definition, value,relaxed) {
+                        var stdDef={'TYPE': 'Street', MINLENGTH: 2, MAXLENGTH: 200};
+                        var fullDef=this.__overrideDefinition(definition,stdDef);
+                        this.String(definition, value,relaxed)
                     }
                 },
             Text:
                 {
                     inherits: 'BaseType',
-                    construct: function (def, val,relaxed) {
-                        this.BaseType('Text', def, val,relaxed);
+                    construct: function (definition, value,relaxed) {
+                        this.BaseType('Text', definition, value,relaxed);
                     },
                     methods:{
                         _validate:function(val)
@@ -1404,8 +1474,10 @@ Siviglia.Utils.buildClass(
             Timestamp:
                 {
                     inherits: 'DateTime',
-                    construct: function (def, value,relaxed) {
-                        this.DateTime({TYPE: 'Timestamp', DEFAULT: 'NOW'}, value);
+                    construct: function (definition, value,relaxed) {
+                        var stdDef={TYPE: 'Timestamp', DEFAULT: 'NOW'};
+                        var fullDef=this.__overrideDefinition(definition,stdDef);
+                        this.DateTime(definition, value,relaxed);
                         this.flags |= Siviglia.types.BaseType.TYPE_NOT_EDITABLE;
                     }
                 },
@@ -1588,7 +1660,6 @@ Siviglia.Utils.buildClass(
                     {
                         if(this.innerBaseTypedObject)
                             this.innerBaseTypedObject.save();
-
                     },
                     getKeyLabel:function(key)
                     {
@@ -1634,7 +1705,7 @@ Siviglia.Utils.buildClass(
                         configurable:true
                     });
   */
-                    if(typeof value==="undefined")
+                    if(typeof value==="undefined" || value==null)
                         this.buildProxy({});
                     else
                         this.buildProxy(value);
@@ -1862,9 +1933,11 @@ Siviglia.Utils.buildClass(
                 ERR_TYPE_NOT_SET:140,
                 ERR_INVALID_TYPE:141,
             },
-            construct:function(code,param)
+            construct:function(path,code,param)
             {
-                this.BaseTypeException(code,param,'TypeSwitcherException');
+                this.path=path;
+                this.BaseTypeException(path,code,param);
+                this.type='TypeSwitcherException';
             }
         },
         TypeSwitcher: {
@@ -1999,10 +2072,10 @@ Siviglia.Utils.buildClass(
                         if(typeof this.definition.IMPLICIT_TYPE!=="undefined")
                             cType=this.definition.IMPLICIT_TYPE;
                         else
-                            throw new Siviglia.types.TypeSwitcherException(Siviglia.types.TypeSwitcherException.ERR_INVALID_TYPE);
+                            throw new Siviglia.types.TypeSwitcherException(this.getFullPath(),Siviglia.types.TypeSwitcherException.ERR_INVALID_TYPE);
                     }
                     if(!this.isValidType(cType))
-                        throw new Siviglia.types.TypeSwitcherException(Siviglia.types.TypeSwitcherException.ERR_INVALID_TYPE);
+                        throw new Siviglia.types.TypeSwitcherException(this.getFullPath(),Siviglia.types.TypeSwitcherException.ERR_INVALID_TYPE);
                     // Se obtiene ahora el valor interno.
                     var target=val;
 
@@ -2029,7 +2102,7 @@ Siviglia.Utils.buildClass(
                         return val[typeField];
                     if(this.definition.IMPLICIT_TYPE)
                         return this.definition.IMPLICIT_TYPE;
-                    throw new Siviglia.types.TypeSwitcherException(Siviglia.types.TypeSwitcherException.ERR_INVALID_TYPE);
+                    throw new Siviglia.types.TypeSwitcherException(this.getFullPath(),Siviglia.types.TypeSwitcherException.ERR_INVALID_TYPE);
                 },
                 getValue: function () {
                     if(!this.valueSet)
@@ -2124,7 +2197,7 @@ Siviglia.Utils.buildClass(
             methods: {
                 _validate: function (val){
                     if(val.constructor.toString().substr(0,14)!=="function Array")
-                        throw new Siviglia.types.BaseTypeException(Siviglia.types.BaseTypeException.ERR_INVALID,{value:val});
+                        throw new Siviglia.types.BaseTypeException(this.getFullPath(),Siviglia.types.BaseTypeException.ERR_INVALID,{value:val});
                     var sampleInstance=this.getValueInstance(0);
                     var nErrors=0;
                     for(var k=0;k<val.length;k++) {
@@ -2138,7 +2211,7 @@ Siviglia.Utils.buildClass(
                     }
                     if(nErrors > 0) {
                         this.fireEvent("ERROR", {});
-                        throw new Siviglia.types.BaseTypeException(Siviglia.types.BaseTypeException.ERR_INVALID,{value:val});
+                        throw new Siviglia.types.BaseTypeException(this.getFullPath(),Siviglia.types.BaseTypeException.ERR_INVALID,{value:val});
                     }
                     return true;
                 },
@@ -2231,7 +2304,7 @@ Siviglia.Utils.buildClass(
                                   }catch(e)
                                   {
                                       m.fireEvent("ERROR",{})
-                                      throw new Siviglia.types.BaseTypeException(Siviglia.types.BaseTypeException.ERR_INVALID,{});
+                                      throw new Siviglia.types.BaseTypeException(this.getFullPath(),Siviglia.types.BaseTypeException.ERR_INVALID,{});
                                       return false;
                                   }
                               }
@@ -2575,12 +2648,18 @@ Siviglia.Utils.buildClass(
                             if(remDefinition) {
                                 if (typeof remDefinition["FIELDS"][def["FIELD"]] != "undefined") {
                                     referencedField=def;
-                                    def = remDefinition["FIELDS"][def["FIELD"]];
+                                    newDef = remDefinition["FIELDS"][def["FIELD"]];
+                                    for(var k in def)
+                                    {
+                                        if(k!="MODEL" && k!="FIELD")
+                                            newDef[k]=def[k];
+                                    }
+                                    def=newDef;
                                     type=def["TYPE"];
                                 }
                             }
                             else
-                                throw new Siviglia.types.BaseTypeException(Siviglia.types.BaseTypeException.ERR_TYPE_NOT_FOUND, {type: type});
+                                throw new Siviglia.types.BaseTypeException(this.getFullPath(),Siviglia.types.BaseTypeException.ERR_TYPE_NOT_FOUND, {type: type});
                         }
                         else
                             type=def['TYPE'];
@@ -2609,14 +2688,14 @@ Siviglia.Utils.buildClass(
                                     url: Siviglia.config.metadataUrl + "/js/types/" + type,
                                     success:function(data){
                                         if (data === null)
-                                            throw new Siviglia.types.BaseTypeException(Siviglia.types.BaseTypeException.ERR_TYPE_NOT_FOUND, {type: type});
+                                            throw new Siviglia.types.BaseTypeException(null,Siviglia.types.BaseTypeException.ERR_TYPE_NOT_FOUND, {type: type});
                                         Siviglia.types.typeCache[type] = data;
                                     },
                                     complete: function (data) {
 
                                     },
                                     error: function (data) {
-                                        throw new Siviglia.types.BaseTypeException(Siviglia.types.BaseTypeException.ERR_TYPE_NOT_FOUND, {type: type});
+                                        throw new Siviglia.types.BaseTypeException(null,Siviglia.types.BaseTypeException.ERR_TYPE_NOT_FOUND, {type: type});
                                     }
 
                                 }
@@ -2648,8 +2727,8 @@ Siviglia.Utils.buildClass(
                     // definicion correcta que necesite.
                     if(mode!="obj")
                         def={};
-
-                    newType=new ctx.context[ctx.object](def,val,parent.relaxed);
+                    var relaxed=parent==null?false:parent.relaxed;
+                    newType=new ctx.context[ctx.object](def,val,relaxed);
                     newType.setParent(parent);
                     if(referencedField!==null)
                         newType.setReferencedField(referencedField);
@@ -2670,7 +2749,7 @@ Siviglia.i18n=(Siviglia.i18n || {});
 Siviglia.i18n.es=(Siviglia.i18n.es || {});
 Siviglia.i18n.es.base=(Siviglia.i18n.es.base || {});
 Siviglia.i18n.es.base.errors={
-        Base:{1:'Por favor, complete este campo.',2:'Campo no válido'},
+        Base:{1:'Por favor, complete este campo.',2:'Campo no válido',5:'Campo Requerido'},
         Integer:{100:'Valor demasiado pequeño',101:'Valor demasiado grande',102:'Debes introducir un número'},
         String:{100:'El campo debe tener al menos %min% caracteres',
                 101:'El campo debe tener un máximo de %max% caracteres',

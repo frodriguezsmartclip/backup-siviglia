@@ -40,13 +40,26 @@
         Siviglia.Model.initialize(Siviglia.config);
 
 
+</script>
+</head>
+<body>
+<?php include_once("../../jQuery/JqxWidgets.html");?>
+
+<div style="display:none">
+    <div data-sivWidget="Test.SimpleWidget" data-widgetParams="" data-widgetCode="Test.SimpleWidget">
+
+    </div>
+</div>
+<div data-sivView="Test.SimpleWidget" data-sivlayout="Siviglia.inputs.jqwidgets.Container"></div>
+<script>
+
         Siviglia.Utils.buildClass(
             {
                 context:"Test",
                 classes:
                     {
                         "SimpleWidget":{
-                            inherits: "Siviglia.UI.Expando.View,Siviglia.Dom.EventManager",
+                            inherits: "Siviglia.inputs.jqwidgets.Form",
                             methods: {
                                 preInitialize: function (params) {
 
@@ -101,6 +114,7 @@
                                             },*/
                                             modelSelector:
                                                 {
+                                                    "LABEL":"ModelSelector",
                                                     "TYPE":"String",
                                                     "SOURCE":{
                                                         "TYPE":"DataSource",
@@ -111,57 +125,59 @@
                                                     }
                                                 },
                                             fieldSelector:
-                                        {
-                                            "TYPE":"String",
-                                            "SOURCE":{
-                                                "TYPE":"DataSource",
-                                                "MODEL":"/model/reflection/Model",
-                                                "DATASOURCE":"FieldList",
-                                                "PARAMS": {
-                                                    "model": "[%#../modelSelector%]"
+                                                {
+                                                    "LABEL":"FieldSelector",
+                                                    "TYPE":"String",
+                                                    "SOURCE":{
+                                                        "TYPE":"DataSource",
+                                                        "MODEL":"/model/reflection/Model",
+                                                        "DATASOURCE":"FieldList",
+                                                        "PARAMS": {
+                                                            "model": "[%#../modelSelector%]"
+                                                        },
+                                                        "LABEL":"NAME",
+                                                        "VALUE":"FIELD"
+                                                    }
                                                 },
-                                                "LABEL":"NAME",
-                                                "VALUE":"FIELD"
-                                            }
-                                        },
 
-/*
-                                    depStr1:{
-                                                "LABEL":"Dependent String 1",
-                                                "TYPE":"String",
-                                                "SOURCE":{
-                                                    "TYPE":"Array",
-                                                    "DATA":[
-                                                        {"val":"one","label":"Sel one"},
-                                                        {"val":"two","label":"Sel two"}
-                                                    ],
-                                                    "LABEL":"label",
-                                                    "VALUE":"val"
-                                                }
-                                            },
-                                            depStr2:{
-                                                "TYPE":"Integer",
-                                                "SOURCE": {
-                                                    "TYPE": "Array",
-                                                    "DATA":
-                                                        {"one":[
-                                                                {"a":1,"message":"Opcion 1"},
-                                                                {"a":2,"message":"Opcion 2"},
-                                                            ],
-                                                            "two":[
-                                                                {"a":10,"message":"xxOpcion 1"},
-                                                                {"a":11,"message":"xxOpcion 2"},
-                                                            ]
-                                                        }
-                                                    ,
-                                                    //"LABEL_EXPRESSION":"[%/message%]:[%/a%]",
-                                                    LABEL:"message",
-                                                    "VALUE":"a",
-                                                    "PATH":"/{%#../depStr1%}"
+                                            /*
+                                                                                depStr1:{
+                                                                                            "LABEL":"Dependent String 1",
+                                                                                            "TYPE":"String",
+                                                                                            "SOURCE":{
+                                                                                                "TYPE":"Array",
+                                                                                                "DATA":[
+                                                                                                    {"val":"one","label":"Sel one"},
+                                                                                                    {"val":"two","label":"Sel two"}
+                                                                                                ],
+                                                                                                "LABEL":"label",
+                                                                                                "VALUE":"val"
+                                                                                            }
+                                                                                        },
+                                                                                        depStr2:{
+                                                                                            "TYPE":"Integer",
+                                                                                            "SOURCE": {
+                                                                                                "TYPE": "Array",
+                                                                                                "DATA":
+                                                                                                    {"one":[
+                                                                                                            {"a":1,"message":"Opcion 1"},
+                                                                                                            {"a":2,"message":"Opcion 2"},
+                                                                                                        ],
+                                                                                                        "two":[
+                                                                                                            {"a":10,"message":"xxOpcion 1"},
+                                                                                                            {"a":11,"message":"xxOpcion 2"},
+                                                                                                        ]
+                                                                                                    }
+                                                                                                ,
+                                                                                                //"LABEL_EXPRESSION":"[%/message%]:[%/a%]",
+                                                                                                LABEL:"message",
+                                                                                                "VALUE":"a",
+                                                                                                "PATH":"/{%#../depStr1%}"
 
-                                                }
-                                            },*/
+                                                                                            }
+                                                                                        },*/
                                             cont1:    {
+                                                "LABEL":"cont1",
                                                 "TYPE":"Container",
                                                 "FIELDS":{
                                                     "Field1":{
@@ -178,7 +194,7 @@
                                         "INPUTPARAMS":{
                                             "/depStr2":{
                                                 "classes":"test"
-                                                },
+                                            },
                                             "/cont1/Field1":{
                                                 "classes":"test2"
                                             },
@@ -187,41 +203,20 @@
                                             }
                                         }
                                     });
-                                },
-                                initialize: function (params) {
-                                },
-                                show:function()
-                                {
-                                    for(var k=0;k<this.typeCol.length;k++)
-                                        console.dir(this.typeCol[k].getValue());
+                                    this.Form$preInitialize({bto:this.bType})
                                 }
+
                             }
                         }
                     }
             }
         );
-    </script>
-</head>
-<body>
-<?php include_once("../../jQuery/JqxWidgets.html");?>
-<div style="display:none">
-    <div data-sivWidget="Test.SimpleWidget" data-widgetParams="" data-widgetCode="Test.SimpleWidget">
-
-
-        <div data-sivView="Siviglia.inputs.jqwidgets.Form" data-sivParams='{"value":"/*bType"}'>
-        </div>
-
-        <input type="button" data-sivEvent="click" data-sivCallback="show" value="show">
-    </div>
-</div>
-<div data-sivView="Test.SimpleWidget"></div>
-<script>
-    $(document).ready(function(){
-    //var remoteRoot=new Siviglia.model.RemotePath("http://127.0.0.1/buscando");
-        var parser=new Siviglia.UI.HTMLParser();
-        //parser.addContext("/",obj1);
-        parser.parse($(document.body));
-    });
+        $(document).ready(function(){
+            //var remoteRoot=new Siviglia.model.RemotePath("http://127.0.0.1/buscando");
+            var parser=new Siviglia.UI.HTMLParser();
+            //parser.addContext("/",obj1);
+            parser.parse($(document.body));
+            });
 </script>
 </body>
 </html>

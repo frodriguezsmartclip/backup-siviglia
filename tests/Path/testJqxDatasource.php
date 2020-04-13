@@ -36,15 +36,19 @@
 <div style="display:none">
 
     <div data-sivWidget="Test.ListViewer" data-widgetCode="Test.ListViewer">
-        <div style="width:250px;float:left" data-sivView="Siviglia.inputs.jqwidgets.Form" data-sivParams='{"value":"/*modelSelector"}'></div>
+        <div style="width:250px;float:left" data-sivView="Siviglia.inputs.jqwidgets.Form" data-sivParams='{"bto":"/*modelSelector"}'
+             data-sivlayout="Siviglia.inputs.jqwidgets.Container"
+        ></div>
         <div style="float:left">
-            <div data-sivView="Siviglia.model.web.Page.views.List" data-sivParams='{"model":"/*modelSelector/model"}'></div>
+            <div data-sivView="Siviglia.model.web.Page.views.List" data-sivParams='{"model":"/*modelSelector/model"}'
+            ></div>
         </div>
     </div>
 
 
     <div data-sivWidget="Siviglia.model.web.Page.views.List" data-widgetCode="Siviglia.model.web.Page.views.List">
-        <div data-sivView="Siviglia.inputs.jqwidgets.Form" data-sivParams='{"value":"/*parameters"}'></div>
+        <div data-sivView="Siviglia.inputs.jqwidgets.Form" data-sivParams='{"bto":"/*parameters"}'
+             data-sivlayout="Siviglia.inputs.jqwidgets.FlexContainer"></div>
         <div data-sivId="grid"></div>
     </div>
 </div>

@@ -479,7 +479,7 @@ Siviglia.Utils.buildClass(
                                 {
                                     if(this.pstring===null)
                                     {
-                                        this._doFetch("{}");
+                                        this._dofetch("{}");
                                         return;
                                     }
                                    try{
@@ -489,24 +489,25 @@ Siviglia.Utils.buildClass(
                                        this.onData(null);
                                    }
                                 },
-                                _doFetch:function(parameters)
+                                _dofetch:function(parameters)
                                 {
+
                                     var p=JSON.parse(parameters);
                                     this.ds.freeze();
                                     for(var k in p)
-                                        this.ds[k]=p;
+                                        this.ds.params[k]=p[k];
                                     if(this.searchString!==null)
                                     {
                                         var f=this.getDynamicField();
                                         if(f)
-                                            this.ds[f]=this.searchString;
+                                            this.ds.params[f]=this.searchString;
                                     }
                                     this.ds.unfreeze().then(
                                         function(){
                                             this.onData(this.ds.data)}.bind(this),
                                         function(){
                                             this.onData(null);
-                                        }
+                                        }.bind(this)
                                         );
                                 },
                                 isLoadValid:function(data)

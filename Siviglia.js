@@ -1938,6 +1938,10 @@ Siviglia.Utils.buildClass(
                             }
                         ]).then(function(){
                             // Cuando se ha parseado el nodo al cargar el widget, se ha autoañadido a la cache.
+                            if(typeof lib[widgetName]==="undefined")
+                            {
+                                console.error("El widget "+widgetName+" no esta bien definido.Se ha cargado el fichero, pero la clase sigue sin existir");
+                            }
                             p.resolve(lib[widgetName]);
                         });
 
@@ -2033,6 +2037,7 @@ Siviglia.Utils.buildClass(
                     this.name = null;
                     this.params = null;
                     this.str=null;
+                    this.altLayout=null;
                     this.gotName=false;
                     this.paramListeners=[];
                 },
@@ -2044,7 +2049,9 @@ Siviglia.Utils.buildClass(
                     {
                         _initialize: function (node, nodeManager, stack, nodeExpandos) {
                             // Listener de nombre de vista: Es el propio del Expando.
-
+                            var altLayout = node.data("sivlayout");
+                            if(typeof altLayout!=="undefined")
+                                this.altLayout=altLayout;
 
                             this.stack=stack;
 
@@ -2093,7 +2100,9 @@ Siviglia.Utils.buildClass(
                                 var className=w.getClass();
                                 var obj=Siviglia.Utils.stringToContextAndObject(className);
 
-                                this.view = new obj.context[obj.object](this.name, this.currentParamsValues,null, this.node,  this.stack);
+                                this.view = new obj.context[obj.object](
+                                    this.altLayout==null?this.name:this.altLayout,
+                                    this.currentParamsValues,null, this.node,  this.stack);
                                 this.view.__build().then(function(){
                                     if(oldSibling!==null)
                                     {
@@ -2103,7 +2112,6 @@ Siviglia.Utils.buildClass(
                                         if(oldParent!=null)
                                             oldParent.appendChild(m.node[0]);
                                     }
-                                    console.log(m.node.html());
                                     p.resolve()
                                 });
 

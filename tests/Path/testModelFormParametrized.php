@@ -11,8 +11,9 @@
     <script src="../../Siviglia.js"></script>
     <script src="../../SivigliaTypes.js"></script>
     <script src="../../SivigliaStore.js"></script>
-    <script src="../../Model.js"></script>
     <script src="../../SivigliaTypes.js"></script>
+    <script src="../../Model.js"></script>
+
     <script src="../../../jqwidgets/jqx-all.js"></script>
     <script src="../../../jqwidgets/globalization/globalize.js"></script>
     <link rel="stylesheet" href="../../../jqwidgets/styles/jqx.base.css">
@@ -38,49 +39,76 @@
 <body>
 <?php include_once(__DIR__."/../../jQuery/JqxWidgets.html"); ?>
 <div style="display:none">
-    <div data-sivWidget="Siviglia.model.web.Page.forms.Edit" data-widgetCode="Siviglia.model.web.Page.forms.Edit">
-        <div data-sivView="Siviglia.inputs.jqwidgets.Form" data-sivParams='{"value":"/*instance"}'></div>
-        <div><input type="button" data-sivEvent="click" data-sivCallback="doSubmit" value="Guardar"></div>
+    <div data-sivWidget="MyTest.test" data-widgetCode="MyTest.test">
     </div>
 </div>
 
 
-<div data-sivView="Siviglia.model.web.Page.forms.Edit" data-sivParams='{"id_page":2}'></div>
-
+<div data-sivView="MyTest.test" data-sivlayout="Siviglia.inputs.jqwidgets.Container"></div>
 
 <script>
     Siviglia.Utils.buildClass({
-        "context":"Siviglia.model.web.Page.forms",
+        "context":"MyTest",
         "classes":{
-            Edit:{
-                "inherits":"Siviglia.UI.Expando.View",
+            test:{
+                "inherits":"Siviglia.inputs.jqwidgets.Form",
                 "methods":{
                     preInitialize:function(params)
                     {
-                        var p=$.Deferred();
-                        var m=this;
-                        var f=new Siviglia.Model.ModelFactory();
-                        f.load("/model/web/Page",params.id_page).then(function(instance){
-                            instance.__definition.INPUTPARAMS= {
-                                "/": {
+                        this.bType=new Siviglia.model.BaseTypedObject({
+                            "FIELDS": {
+                                a1: {
+                                    "LABEL": "Array1",
+                                    "TYPE": "Array",
+                                    "ELEMENTS": {
+                                        "LABEL": "cont1",
+                                        "TYPE": "Container",
+                                        "FIELDS": {
+                                            "Field1": {
+                                                "LABEL": "Field 1",
+                                                "TYPE": "String"
+                                            },
+                                            "Field2": {
+                                                "LABEL": "Field 2",
+                                                "TYPE": "Integer"
+                                            }
+                                        },
+                                        GROUPS: {
+                                            "G1": {"LABEL": "Grupo 1", "FIELDS": ["Field1"]},
+                                            "G2": {"LABEL": "Grupo 2", "FIELDS": ["Field2"]}
+                                        }
+                                    }
+                                }
+                            },
+
+                            "INPUTPARAMS":{
+                                "/a1/.*": {
                                     "INPUT": "TabbedContainer",
                                     "JQXPARAMS":{width:700,height:500,position:top}
                                 }
-                            };
-                            instance.__definition.GROUPS={
-                                    "G1":{"LABEL":"Grupo 1","FIELDS":["id_page","name","tag","id_type"]},
-                                    "G2":{"LABEL":"Grupo 2","FIELDS":["date_add","date_modified"]},
-                                    "G3":{"LABEL":"Grupo 3","FIELDS":["isPrivate","title","path","tags","description","model","modelParam","datasource"]}
-                            };
-                            m.instance=instance;
-                            p.resolve();
-                        })
-                        return p;
+
+                            }
+                        });
+
+                        var p={
+                            "bto":this.bType
+                        }
+                        return this.Form$preInitialize(p);
                     },
-                    initialize:function(params){},
-                    doSubmit:function()
+                    setupBto:function()
                     {
-                        this.instance.save();
+                        this.__bto.__definition.INPUTPARAMS = {
+                            "/": {
+                                "INPUT": "TabbedContainer",
+                                "JQXPARAMS":{width:700,height:500,position:top}
+                            }
+                        };
+                        this.__bto.__definition.GROUPS={
+                            "G1":{"LABEL":"Grupo 1","FIELDS":["id_page","name","tag","id_type"]},
+                            "G2":{"LABEL":"Grupo 2","FIELDS":["date_add","date_modified"]},
+                            "G3":{"LABEL":"Grupo 3","FIELDS":["isPrivate","title","path","tags","description","model","modelParam","datasource"]}
+                        };
+                        this.Form$setupBto();
                     }
                 }
             }
