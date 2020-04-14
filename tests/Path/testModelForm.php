@@ -32,7 +32,8 @@
 <?php include_once(__DIR__."/../../jQuery/JqxWidgets.html"); ?>
 <div style="display:none">
     <div data-sivWidget="Siviglia.model.web.Page.forms.Edit" data-widgetCode="Siviglia.model.web.Page.forms.Edit">
-        <div data-sivView="Siviglia.inputs.jqwidgets.Form" data-sivParams='{"value":"/*instance"}'></div>
+        <div data-sivView="Siviglia.inputs.jqwidgets.Form" data-sivParams='{"bto":"/*instance"}'
+             data-sivlayout="Siviglia.inputs.jqwidgets.Container"></div>
         <div><input type="button" data-sivEvent="click" data-sivCallback="doSubmit" value="Guardar"></div>
     </div>
 </div>

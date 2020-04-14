@@ -91,7 +91,11 @@ Siviglia.Utils.buildClass({
                     return Siviglia.Model.mapper.getJSModelPath(this);
                 },
                 getActionUrl: function (actionName) {
-                    return Siviglia.Model.mapper.getActionUrl(this, actionName);
+                    return Siviglia.Model.mapper.getActionUrl(this.getCanonical(), actionName);
+                },
+                getFormUrl:function(formName,keys)
+                {
+                    return Siviglia.Model.mapper.getFormUrl(this.getCanonical(),formName,keys);
                 },
                 getModelNamespace: function () {
                     var s = this.getCanonicalDotted();
@@ -127,6 +131,20 @@ Siviglia.Utils.buildClass({
                 getModel: function (spec) {
                     var m = new Siviglia.Model.ModelDescriptor(spec);
                     return this.config.baseUrl + "/js/" + this.config.mapper + "/" + this.getObjectPath(m) + "/Model.js";
+                },
+                getFormUrl: function (model, form, keys) {
+                    var query="";
+                    var n={};
+                    if(typeof(keys)!=="undefined" && keys!==null)
+                    {
+                        for(var k in keys)
+                        {
+                            if(keys[k]!=null)
+                                n[k]=keys[k];
+                        }
+                    }
+                    query =$.param(n);
+                    return this.config.baseUrl + "form" + model + '/' +  form + '?output=json' + "&" + query;
                 },
                 getDataSourceUrl: function (model, datasource, id, params,settings) {
                     var query="";
@@ -369,8 +387,12 @@ Siviglia.Utils.buildClass({
                         {sort:[{attribute:, descending:(true/false)}],page:,pagination:}}
                      */
                     getDataSource: function (model, name, params, options) {
-                        var ds=new Siviglia.Model.DataSource(model,name,params,null);
-                        return ds;
+                        return new Siviglia.Model.DataSource(model,name,params,null);
+                    },
+                    getForm:function(model,name,keys)
+                    {
+                        var factory=new Siviglia.Model.FormFactory();
+                        return factory.loadForm(model,name,keys);
                     },
                     doAction: function (keys, data, objectName, actionName) {
                         var mName = new Siviglia.Model.ModelDescriptor(objectName);
@@ -389,7 +411,7 @@ Siviglia.Utils.buildClass({
                         var url = mName.getActionUrl(actionName);
                         var transport = new Siviglia.Model.Transport();
                         transport.doPost(url + '?output=json&nc=' + nd.getTime(),
-                            {json: JSON.stringify(actionFormat)},
+                            {json: JSON.stringify(actionFormat)}).then(
                             function (response) {
                                 p.resolve(response);
                                 return response;
@@ -403,15 +425,203 @@ Siviglia.Utils.buildClass({
                     }
                 }
         },
+        FormFactory:{
+            construct:function(){},
+            methods: {
+                getForm: function (model, name, keys) {
+                    var loadedPromise = $.Deferred();
+                    var descriptor = new Siviglia.Model.ModelDescriptor(model);
+                    var formUrl = descriptor.getFormUrl(name, keys);
+                    var transport = new Siviglia.Model.Transport();
+                    transport.doGet(formUrl).then(function(result){
+                        if(result.error==0)
+                        {
+                            var definition=result.definition;
+                            var bto=new Siviglia.Model.Form(model,name,keys,result.form.definition,result.form.value);
+                            loadedPromise.resolve(bto);
+                        }
+                        else
+                            loadedPromise.reject();
+                    })
+                    return loadedPromise;
+                }
+            }
+        },
+        Form: {
+            inherits: 'Siviglia.model.BaseTypedObject',
+            construct: function (model, name, keys,definition,value) {
+                this.__model=model;
+                this.__name=name;
+                this.__keys=keys;
+                this.BaseTypedObject(definition,value,false);
+            },
+            methods:
+                {
+
+                    parseErrors:function(e)
+                    {
+                        if (e.error == 1) {
+                            if (e.action.fieldErrors) {
+                                for (var k in e.action.fieldErrors) {
+                                    if (this[k])
+                                    {
+                                        var text=this.decodeServerError(k, e.action.fieldErrors[k]);
+                                        this[k].addError('invalidMessage',text);
+                                        this.fireEvent("FIELD_ERROR",{field:k,text:text,code: e.action.fieldErrors[k]});
+                                    }
+                                    else {
+                                        // No existe un input para este campo.
+                                        var text = '';
+                                        for (var c in e.action.fieldErrors[k]) {
+                                            var typeErrorText = Siviglia.i18n.es.base.getErrorFromServerException(c,e.action.fieldErrors[k][c]);
+                                            if (!typeErrorText) {
+                                                text += k + ': ' + c + '<br>';
+                                            }
+                                            else {
+                                                text += k + ': ' + typeErrorText;
+                                            }
+                                        }
+                                        this.fireEvent("GENERAL_ERROR",text);
+                                    }
+                                }
+                            }
+                            var isArray=toString.call(e.action.globalErrors) === "[object Array]";
+                            if (e.action.globalErrors && !isArray)
+                            {
+                                this.decodeGlobalServerErrors(e.action.globalErrors)
+                            }
+                        }
+                        else
+                        {
+                            if(e.message)
+                                this.fireEvent("GENERAL_ERROR",e.message + e.response.text);
+                        }
+                    },
+                    /*
+
+                        NOTA : ESTOS METODOS SE DEJAN AQUI, PERO TENDRAN QUE MOVERSE MUY POSIBLEMENTE
+                        A LOS WIDGETS, YA QUE SE DEDICAN A PINTAR
+                     */
+                    decodeGlobalServerErrors:function(ex)
+                    {
+                        var nErrors=0;
+                        for(var k in ex)
+                        {
+                            nErrors++;
+                            var parts= k.split("::");
+                            var exName=parts[1];
+                            var message='';
+                            if (this.definition.ERRORS &&
+                                this.definition.ERRORS["GLOBAL"] &&
+                                this.definition.ERRORS["GLOBAL"][exName])
+                                message=this.definition.ERRORS["GLOBAL"][exName]["txt"];
+                            else
+                                message=exName;
+                            this.fireEvent("GLOBAL_ERROR",{index:k,message:message,data:ex[k]});
+                        }
+                    },
+                    decodeServerError: function (field, exception) {
+                        this[field].clearErrors();
+                        var exName="";
+                        for(var k in exception)
+                            exName=k;
+                        var errDef=this.definition.FIELDS[field]["ERRORS"];
+                        if(!errDef)
+                        {
+                            var h;
+                            if((h=this.definition.ERRORS) && (h= h.FIELDS) && (h=h[field]))
+                            {
+                                errDef=h;
+                            }
+                        }
+                        if(errDef && errDef[k])
+                            return errDef[k]["txt"];
+
+
+                        var msg = Siviglia.i18n.es.base.getErrorFromServerException(k, exception[k]);
+                        if (msg) {
+                            return msg;
+                        }
+                        return "Unknown error";
+                    },
+                    decodeJsError: function (field, ex) {
+                        this[field].clearErrors();
+                        var errDef=this.definition.FIELDS[field]["ERRORS"];
+                        if(!errDef)
+                        {
+                            var h;
+                            if((h=this.definition.ERRORS) && (h= h.FIELDS) && (h=h[field]))
+                            {
+                                errDef=h;
+                            }
+                        }
+                        if(errDef)
+                        {
+                            // Es un error que viene de js.No tenemos el mismo namespace de clase en la excepcion.Se convierte
+                            var source=ex.getName();
+                            if(errDef[source])
+                                return errDef[source]["txt"];
+
+                        }
+
+
+                        var msg = Siviglia.i18n.es.base.getErrorFromJsException(ex);
+                        if (msg) {
+                            return  msg;
+                        }
+                        return "Unknown Error";
+
+                    },
+                    mapInputsToModel:function()
+                    {
+                        var m=this;
+                        var valid=true;
+                        for(var k in this.inputs)
+                        {
+                            try {
+                                this.inputs[k].mapTo(this.model);
+                            }catch (e) {
+                                this.fireEvent("FIELD_ERROR",{field:k})
+                                valid = false;
+                            }
+                        }
+                        return valid;
+                    },
+                    validateForm: function () {
+                        var p = new $.Deferred();
+                        var errored=false;
+                        for(var k in this.inputs)
+                        {
+                            try{
+                                this.inputs[k].sivValidate();
+                            }
+                            catch(e)
+                            {
+                                errored=true;
+                            }
+                        }
+                        if(!errored)
+                            p.resolve();
+                        else
+                            p.reject();
+                        return p;
+                    },
+                    setValidationCallback:function(f)
+                    {
+                        this.validateForm=f;
+                    },
+
+                }
+        },
         DataSource:
             {
                 inherits: 'Siviglia.model.BaseTypedObject',
                 construct: function (model, name, params, response) {
                     var meta;
-                    this.frozen=false;
-                    this.model=model;
-                    this.name=name;
-                    this.params=params;
+                    this.__frozen=false;
+                    this.__model=model;
+                    this.__name=name;
+                    this.__params=params;
                     if(typeof response=="undefined" || response==null)
                     {
                         var descriptor=new Siviglia.Model.ModelDescriptor(model);
@@ -493,11 +703,11 @@ Siviglia.Utils.buildClass({
                 methods:{
                     freeze:function()
                     {
-                        this.frozen=true;
+                        this.__frozen=true;
                     },
                     unfreeze:function()
                     {
-                        this.frozen=false;
+                        this.__frozen=false;
                         return this.refresh();
                     },
                     onResponse:function(response)
@@ -512,12 +722,12 @@ Siviglia.Utils.buildClass({
                     },
                     refresh:function()
                     {
-                        if(this.frozen)
+                        if(this.__frozen)
                             return;
                         // Un datasource va a ser simplemente un BaseTypedObject con una definicion fija
                         // de datos, total de elementos, criterios de ordenacion, etc,etc.
-                        var mName = new Siviglia.Model.ModelDescriptor(this.model);
-                        var location = mName.getDataSourceUrl(this.name, null, this.params,this.settings);
+                        var mName = new Siviglia.Model.ModelDescriptor(this.__model);
+                        var location = mName.getDataSourceUrl(this.__name, null, this.params,this.settings);
                         var transport = new Siviglia.Model.Transport();
                         var m=this;
                         var h = $.Deferred();
@@ -570,36 +780,18 @@ Siviglia.Utils.buildClass({
                         getIndexFields: function () {
                             return this.__definition.INDEXFIELDS;
                         },
-                        callForm: function (formName, data) {
-                            var myIndexes = {};
-                            var f;
-                            for (var k = 0; k < this.__definition.INDEXFIELDS.length; k++) {
-                                f = this.__definition.INDEXFIELDS[k];
-                                myIndexes[f]=this["*f"].getValue();
-                            }
-                            var m = this;
-                            if(typeof data=="undefined")
-                                data=this.getValue();
-
-                            var p = new $.Deferred();
-                            Siviglia.Model.loader.doAction(myIndexes,data,this._name,formName).then(
-                                function(r)
-                                {
-                                    this.fireEvent("FORM_SAVED",{form:formName,data:data});
-                                    p.resolve();
-                                },
-                                function(e)
-                                {
-                                    console.log("ERROR GUARDANDO FORM");
-                                    p.reject(e);
-                                }
-                            )
-                            return p;
-                        },
                         getDataSource: function (dsName, params) {
                             return Siviglia.Model.loader.getDataSource(this._name,dsName, params);
                         },
                         save: function (instance,actionName) {
+                            // Se comprueba que todos los campos requeridos, etc, estan ok.
+                            var errors=this.__save();
+                            if(errors && errors.length > 0)
+                            {
+                                console.error("Guardando instancia de "+this._name+" incompleta");
+                                console.dir(errors);
+                                throw new Exception("Guardando instancia de "+this._name+" incompleta");
+                            }
                             var p = $.Deferred();
                             var m = this;
                             var i = this.__getDefinition().INDEXFIELDS;
@@ -623,7 +815,7 @@ Siviglia.Utils.buildClass({
                             Siviglia.Model.loader.doAction(myIndexes, vals, this._name, targetAction).then(
                                 function (r) {
                                     if (r.error == 0) {
-                                        m._setValue(r.data);
+                                        m.setValue(r.data[0]);
                                         p.resolve(r);
                                     } else
                                         p.reject(r);

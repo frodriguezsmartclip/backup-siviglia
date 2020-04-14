@@ -65,11 +65,12 @@
                                 type.setController(params.controller);
                             var dv=$('<div></div>');
                             var p=params || {};
-                            var formParams=form.getFormParams(type.getFullPath());
-                            if(formParams)
-                            {
-                                for(var k in formParams)
-                                    p[k]=formParams[k];
+                            if(typeof form!=="undefined") {
+                                var formParams = form.getFormParams(type.getFullPath());
+                                if (formParams) {
+                                    for (var k in formParams)
+                                        p[k] = formParams[k];
+                                }
                             }
                             p.type=type;
                             p.form=form;
@@ -122,58 +123,13 @@
                     }
                 },
 
-                Form:{
-                  inherits:"Siviglia.UI.Expando.View,Factory",
-                  destruct:function(){
-                      if(this.container!==null)
-                          this.container.destruct();
-                      if(this.formNode)
-                      this.formNode.html("");
-                  }  ,
-                  methods:
-                      {
-                          preInitialize:function(params)
-                          {
-                              // En los Params ya tiene que haber un baseTypedObject, inicializado con valores.
-                              // La mision del form no es esa.Es solo pintar.
-                              // Se crea un tipo Container, con el valor que nos hayan pasado.
-                              this.value=params.value;
-                              this.container=new Siviglia.types.Container(this.value);
-                              var ip=Siviglia.issetOr(params.value.__definition.INPUTPARAMS,{});
-                              this.ip=[];
-                              for(var k in ip)
-                              {
-                                  var t=k.replace(/\+/gm,'.*')
-                                  t=t.replace(/\*/gm,'[^/]*');
-                                  t=t.replace(/\//,'\\/');
-                                  var r=new RegExp("^"+t+"$");
-                                  this.ip.push({reg:r,ip:ip[k]});
-                              }
-                          },
-                          initialize:function(params)
-                          {
-                              var factory=new Siviglia.inputs.jqwidgets.Factory();
-                              factory.getInput(this.container,{},this).then(function(instance){
-                                  this.container=instance;
-                                  this.formNode.append(this.container.rootNode);
-                              }.bind(this))
-
-                          },
-                          getFormParams:function(typePath)
-                          {
-                              var curP={};
-                              this.ip.map(function(item){
-                                  if(typePath.match(item.reg))
-                                      curP=Siviglia.deepmerge(curP,item.ip);
-                              })
-                              return curP;
-                          }
-                      }
-                },
 
                 BaseInput: {
                     inherits: "Siviglia.UI.Expando.View,Siviglia.Dom.EventManager",
-
+                    destruct:function()
+                    {
+                      this.clearErrors();
+                    },
                     methods: {
                         preInitialize: function (params) {
                             this.errored = false;
@@ -200,8 +156,10 @@
                                     return;
                                 m.changing=true;
                                 try {
-                                    if (m.validate())
+                                    if (m.validate()) {
                                         m.type.setValue(m.getValue());
+                                        m.clearErrors();
+                                    }
                                 }catch(e)
                                 {
                                     this.showError(
@@ -216,10 +174,11 @@
                                 this._setInputValue(toSet);
                             }
                         },
+
                         onTypeChanged:function(event,params)
                         {
                             if(this.changing===false)
-                            this._setInputValue(params.value);
+                            this._setInputValue(params.data);
                         },
                         detach:function()
                         {
@@ -255,7 +214,41 @@
                             }
                             return false;
                         },
-                        showError: function (message) {
+                        save:function()
+                        {
+                            try{
+                                this.type.save();
+                                this.clearErrors();
+                            }catch(e)
+                            {
+                                this.showError(
+                                    Siviglia.i18n.es.base.getErrorFromJsException(e)
+                                );
+                            }
+                        },
+                        // Este metodo es llamado desde dos puntos:
+                        // En el save() final, antes del submit, se hace validacion y chequeo de REQUIRED.
+                        // Hay que tener en cuenta, que esa validacion y chequeo, no se hace sobre los INPUTS VISIBLES, sino
+                        // sobre el tipo (BaseTypedObject) que se está editando.
+                        // Por ejemplo, un diccionario puede estar mostrando SOLO 1 DE SUS KEYS, por lo que el input existente es SOLO DE ESA KEY
+                        // Sin embargo, la validacion se hace SOBRE TODAS LAS KEYS, SE ESTEN MOSTRANDO O NO.
+                        // La funcion addError recibe una excepcion.Esa excepcion tiene el path del campo que la genero.Al aniadirse el error, los
+                        // inputs deben seguir ese path, haciendo que el input asociado al campo, sea visible.
+                        // Los tipos "basicos", simplemente tienen que añadir el error, ya que deben ser el elemento final del path.
+                        // Pero los tipos "Container" tienen que asegurarse de que el campo que lo ha generado, sea visible.
+                        // El segundo caso en el que se usa este metodo, es cuando el error llega por la parte del servidor, por exactamente los mismos
+                        // motivos.
+
+                        addError:function(path,exception)
+                        {
+                            if(path.length==0) {
+                                this.showError(Siviglia.i18n.es.base.getErrorFromJsException(exception));
+                            }
+                            else
+                                console.err("Invalid error path:"+exception.path);
+
+                        },
+                        showError: function (message,dontAppend) {
                             var d = new Date();
                             this.tooltip = this.inputNode.jqxTooltip(
                                 {
@@ -265,14 +258,28 @@
                                     closeOnClick: false,
                                     position: 'right'
                                 });
+                            this.tooltipIds=this.inputNode.data().jqxTooltip.instance.IDArray;
                             this.inputNode.jqxTooltip({content: message});
                             this.inputNode.jqxTooltip("open");
                             this.inputNode.addClass("errored");
+                            this.form.appendError(this.type.getFullPath(),this);
                         },
                         clearErrors: function () {
-                            if (this.tooltip)
+                            if (this.tooltip) {
                                 this.inputNode.jqxTooltip('destroy');
-                            this.inputNode.removeClass("errored");
+                                this.tooltip = null;
+                                for(var k=0;k<this.tooltipIds.length;k++)
+                                {
+                                    var od=this.tooltipIds[k].tooltipID;
+                                    var el=document.getElementById(od);
+                                    if(el && el.parentElement)
+                                        el.parentElement.removeChild(el);
+                                }
+                            }
+                            if(this.inputNode)
+                                this.inputNode.removeClass("errored");
+                            if(this.form!==null)
+                                this.form.clearError(this.type.getFullPath(),this);
                             /*if(this.validator)
                              ths.validator.hide();*/
                         },
@@ -556,7 +563,7 @@
                                 placeHolder:Siviglia.issetOr(this.inputParams["placeholder"],"--Select"),
                                 search: function (str) {
                                     console.log("SEARCHING");
-                                    self.source.setSearch
+                                    self.source.search(str);
                                    // self.searchString = str;
                                    // self.refresh();
                                 }
@@ -817,6 +824,7 @@
                                 this.currentWidget.destruct();
                             this.currentWidget=null;
 
+
                         },
                         methods:
                             {
@@ -832,13 +840,18 @@
                                     this.hasCurrentKey=false;
                                     this.currentKey=null;
                                     this.params=params;
+                                    this.currentErrors={};
+
                                 },
                                 initialize:function(params)
                                 {
                                 },
-                                buildNewItemWidget:function(node,params)
+                                _setInputValue:function(toSet)
                                 {
 
+                                },
+                                buildNewItemWidget:function(node,params)
+                                {
                                     if(this.newItemWidget) {
                                         this.newItemWidget.destruct();
                                     }
@@ -853,11 +866,9 @@
                                         this.__context
                                     );
                                     this.newItemWidget.__build().then(function(){node.append(tempNode);})
-
                                 },
                                 onLabelClicked:function(node, params)
                                 {
-                                    console.log("*****LABEL CLICKED*****");
                                     this.currentKey=params.key;
                                     this.hasCurrentKey=true;
 
@@ -865,6 +876,7 @@
                                 getInputFor:function(node,params)
                                 {
                                     if(this.currentWidget!=null) {
+
                                         this.currentWidget.destruct();
                                         this.currentWidget = null;
                                         node.html("");
@@ -875,29 +887,24 @@
                                     this.__getInputFor(params.key).then(function(instance){
                                         this.currentWidget=instance;
                                         node.append(this.currentWidget.rootNode);
+                                        var ce=this.currentErrors[params.key]
+                                        if(ce) {
+                                            for(var k=0;k<ce.length;k++) {
+                                                instance.addError(ce[k].path, ce[k].error);
+                                            }
+                                        }
+                                        delete this.currentErrors[params.key];
+
+
                                     }.bind(this));
                                 },
                                 __getInputFor:function(key)
                                 {
-                                    var l;
-                                    var p=$.Deferred();
+
                                     var factory=new Siviglia.inputs.jqwidgets.Factory()
                                     //this.curType=this.type.getField(key);
                                     this.curType=this.type.getValue()["*"+key];
-                                    factory.getInput(this.curType,{controller:this.type.controller},this.form).then(
-                                        function(instance){
-                                            if(this.curType.definition.LAYOUT)
-                                                l = this.curType.definition.LAYOUT;
-                                            else
-                                                l = "Siviglia.inputs.jqwidgets.DefaultLayout";
-                                            var s=Siviglia.Utils.stringToContextAndObject(l);
-                                            var lay=new s.context[s.object](l,{name:key,input:instance},{},$('<div></div>'),this.__context);
-                                            lay.__build().then(function(){
-
-                                                p.resolve(lay)
-                                            });
-                                        }.bind(this));
-                                    return p;
+                                    return factory.getInput(this.curType,{controller:this.type.controller},this.form)
 
                                 },
                                 getLabel:function(node,params,event)
@@ -909,6 +916,7 @@
                                 {
                                     if(params.key==this.currentKey && this.currentWidget!=null)
                                     {
+
                                         this.currentWidget.destruct();
                                     }
                                     this.hasCurrentKey=false;
@@ -924,6 +932,25 @@
                                     this.type.addItem(val);
                                     this.onLabelClicked(null,{key:val});
                                 },
+                                addError:function(path,exception)
+                                {
+                                    debugger;
+                                    var key=path.shift();
+                                    if(key==this.currentKey)
+                                    {
+                                        if(this.currentWidget!==null) {
+                                            this.currentWidget.addError(path, exception);
+                                            return;
+                                        }
+                                    }
+                                    else {
+                                        this.currentKey = key;
+                                    }
+                                        if (typeof this.currentErrors[key] == "undefined")
+                                            this.currentErrors[key] = [];
+                                        this.currentErrors[key].push({path: path, error: exception});
+
+                                }
 
                             }
                     },
@@ -939,6 +966,7 @@
                             preInitialize:function(params)
                             {
                                 this.subwidgets={};
+                                this.description="";
                                 this.Dictionary$preInitialize(params);
 
                             },
@@ -961,7 +989,15 @@
                                     return {"DEFAULT":{"LABEL":"Default","FIELDS":this.type.getKeys()}};
                                 }
                                 return groups;
+                            },
+                            // En este layout, los inputs de todos los campos del container estan
+                            // siempre visibles, por lo que el widget existe, y es posible asignarle la excepcion.
+                            addError:function(path,exception)
+                            {
+                                var key=path.shift();
+                                this.subwidgets[key].addError(path,exception);
                             }
+
                         }
                     },
                 TabbedContainer:{
@@ -987,68 +1023,27 @@
                             this.jqxTabs.append(this.groups.children())
                             var iParams=Siviglia.issetOr(this.formParams["JQXPARAMS"],{ width: 600, height: 250, position: 'top'});
                             this.jqxTabs.jqxTabs(iParams);
+                        },
+                        addError:function(path,exception)
+                        {
+                            var key=path.shift();
+                            // Se busca en que containergroup esta el campo.
+                            var idx=0;
+                            for(var k in this.containerGroups)
+                            {
+                                if(this.containerGroups[k].FIELDS.indexOf(key)>=0) {
+                                    this.jqxTabs.jqxTabs("select", idx);
+                                    this.subwidgets[key].addError(path,exception);
+                                    return;
+                                }
+                            }
                         }
+
                     }
                 },
                 FlexContainer:{
                     inherits:"Container"
                 },
-                FixedDictionary:
-                    {
-                        inherits:'Dictionary',
-                        methods: {
-                            preInitialize: function (params) {
-                                this.BaseInput$preInitialize(params);
-                                this.currentWidget = null;
-                                this.hasCurrentKey=false;
-                                this.currentKey = null;
-                            },
-                            buildNewItemWidget: function (node, params) {
-                                if (this.newItemSelector) {
-                                    this.title = "The title";
-                                    this.description = "The Description";
-                                    this.newItemSelector.destruct();
-                                    this.newItemSelector = null;
-                                }
-                                var uinode = this.params.type;
-                                var opts = uinode.getAvailableKeys();
-
-                                if (opts.length > 0) {
-                                    var tempType=new Siviglia.types.Enum({
-                                        "TYPE":"Enum",
-                                        "VALUES":opts
-                                    })
-                                    var factory=new Siviglia.inputs.jqwidgets.Factory();
-                                    factory.getInput(tempType,{},this.form).then(function(instance){
-                                    this.newItemSelector =instance;
-                                    var m = this;
-                                    this.newItemSelector.on("change", function (ev) {
-                                        var curLabel = m.newItemSelector.getValue();
-                                        var tt = m.type.getPossibleKeys();
-                                        for (var k=0;k<tt.length;k++) {
-                                            if (tt[k] == curLabel) {
-                                                m.onChangeType(tt[k]);
-                                                m.buildNewItemWidget(node, {});
-                                            }
-                                        }
-                                    });
-                                    node.append(this.newItemSelector.node);
-                                    }.bind(this));
-                                }
-
-                            },
-                            onChangeType: function (val) {
-                                this.type.addItem(val);
-                                this.onLabelClicked(null, {key: val});
-
-                            },
-                            onRemoveClicked: function (node, params, event) {
-                                this.DictionaryPainter$onRemoveClicked(node, params, event);
-                                this.buildNewItemWidget(this.newItemNode);
-                            }
-                        }
-
-                    },
                 Array:
                     {
                         inherits:'BaseInput',
@@ -1056,14 +1051,12 @@
                             {
                                 preInitialize:function(params)
                                 {
-
                                     this.BaseInput$preInitialize(params);
                                     this.value=params.type.getValue()
                                     this.newInstance=null;
                                     this.hasSimpleType=this.type.areContentsSimple();
                                     this.changing=false;
                                     this.currentItem=null;
-
                                 },
                                 initialize:function(params)
                                 {
@@ -1102,15 +1095,27 @@
                                 onNewItem:function()
                                 {
                                     if(this.hasSimpleType) {
-                                        if (!this.newInstance.isEmpty())
-                                            this.value.push(this.newInstance.getValue());
+                                        if (!this.newInstance.isEmpty()) {
+                                            var newInstance=this.newInstance.getValue();
+                                            var curVal=this.type.getValue();
+                                            if(curVal===null)
+                                                this.type.setValue([newInstance]);
+                                            else
+                                                this.type.getValue().push(newInstance);
+
+
+                                        }
                                         this.newItemSelector._setInputValue("");
                                         this.newItemSelector.inputNode.focus();
                                     }
                                     else
                                     {
                                         var newInstance=this.type.getValueInstance(0);
-                                        this.type.getValue().push(newInstance);
+                                        var curVal=this.type.getValue();
+                                        if(curVal===null)
+                                            this.type.setValue([newInstance]);
+                                        else
+                                            this.type.getValue().push(newInstance);
                                     }
                                 },
 
@@ -1128,70 +1133,16 @@
                                     this.currentItem=instance;
                                     this.currentItemNode.append(this.currentItem.rootNode);
                                     }.bind(this));
+                                },
+                                addError:function(path,exception)
+                                {
+                                    var key=path.shift();
+                                    this.setSelected(key);
+                                    this.currentItem.addError(path,exception);
                                 }
 
                             }
                     },
-                ObjectArray: {
-                    inherits:'BaseInput',
-                    methods: {
-                        preInitialize:function(params)
-                        {
-                            this.BaseInput$preInitialize(params);
-                            this.currentWidget=null;
-                            this.currentKey=null;
-                            this.hasCurrentKey=false;
-                            this.keyDirection="HORIZONTAL";
-
-                        },
-                        initialize:function(params)
-                        {
-
-                            this.nElems=this.type.children.length;
-                            this.widgetContainer=$('.currentWidget',this.rootNode);
-                        },
-                        onLabelClicked:function(node, params)
-                        {
-                            if(this.currentWidget)
-                                this.currentWidget.destruct();
-                            this.hasCurrentKey=true;
-                            this.currentKey=params.index;
-                            var factory=new Siviglia.inputs.jqwidgets.Factory();
-                            factory.getInput(tempType,{},this.form).then(function(instance){
-                            this.newItemSelector =
-
-                            this.currentWidget=this.painterFactory.factory(this.uinode.children[params.index], this.uinode.parent,{});
-                            this.widgetContainer.append(this.currentWidget.rootNode);
-                            }.bind(this));
-                        },
-                        getLabel:function(node,params,event)
-                        {
-                            if(typeof this.uinode.definition.VALUELABEL!="undefined")
-                                node.html(this.uinode.getValue()[params.index][this.uinode.definition.VALUELABEL]);
-                            else
-                                node.html(params.index);
-                        },
-                        onRemoveClicked:function(node,params,event)
-                        {
-                            this.uinode.removeItem(params.index);
-                            if(params.index==this.currentKey)
-                            {
-                                this.currentWidget.destruct();
-                            }
-                        },
-                        addItem:function(node)
-                        {
-                            var val=this.uinode.addItem(null);
-                            this.onLabelClicked(null,{index:this.uinode.children.length-1});
-                        },
-                        reload:function(event)
-                        {
-                            this.nElems=this.uinode.children.length;
-                            this.BasePainter$reload(event);
-                        }
-
-                    }
-                },
                 TypeSwitcher: {
                     inherits: 'BaseInput',
                     methods:
@@ -1212,13 +1163,11 @@
                                 "VALUE":"VALUE"
                             };
 
-                            this.typeSelector=Siviglia.types.TypeFactory.getType(this,{
+                            var currentType=params.type.getCurrentType();
+                            this.typeSelector=Siviglia.types.TypeFactory.getType(null,{
                                 "TYPE":"String",
                                 "SOURCE":source
-                            },this.form);
-                            var currentType=params.type.getCurrentType();
-                            if(currentType!==null)
-                                this.typeSelector.setValue(currentType);
+                            },currentType);
 
                         },
 
@@ -1238,7 +1187,7 @@
 
                                     this.typeSwitchSelector.append(this.typeSelectorWidget.rootNode);
                                     this.buildTypeUI();
-                            })
+                            }.bind(this))
                         },
                             detach:function()
                             {
@@ -1263,21 +1212,8 @@
                                 if(this.curType) {
                                     var curTypeObj=this.type.getCurrentTypeObj();
                                     factory.getInput(curTypeObj, {controller: this.type.controller},this.form).then(function(instance){
-                                        if (curTypeObj.definition.LAYOUT)
-                                            l = curTypeObj.definition.LAYOUT;
-                                        else
-                                            l = "Siviglia.inputs.jqwidgets.DefaultLayout";
-
-                                        var s = Siviglia.Utils.stringToContextAndObject(l);
-
-                                        var lay = new s.context[s.object](l, {
-                                            name: this.curType,
-                                            input: instance
-                                        }, {}, $('<div></div>'), this.__context);
-                                        lay.__build().then(function(){
-                                            this.subNode=lay;
-                                            this.fieldContainer.append(lay.rootNode);
-                                        }.bind(this));
+                                        this.fieldContainer.append(instance.rootNode);
+                                        this.subNode=instance;
                                     }.bind(this));
 
                                 }
@@ -1358,31 +1294,6 @@
                     }
 
                 },
-
-                DefaultLayout:
-                    {
-                        inherits: "Siviglia.UI.Expando.View",
-                        destruct:function()
-                        {
-                            this.input.destruct();
-                        },
-                        methods:
-                            {
-                                preInitialize:function(params)
-                                {
-                                    this.label=params.name;
-                                    this.input=params.input;
-                                    if(typeof this.input.type.definition.LABEL!=="undefined")
-                                        this.label=this.input.type.definition.LABEL;
-                                    else
-                                        this.label="<NO LABEL>";
-                                },
-                                initialize:function(params)
-                                {
-                                    this.inputNode.append(this.input.rootNode)
-                                }
-                            }
-                    },
                 NewItem:
                     {
                         inherits:"Siviglia.UI.Expando.View,Siviglia.Dom.EventManager",
@@ -1454,7 +1365,145 @@
 
                                 }
                             }
-                    }
+                    },
+                Form:{
+                    inherits:"Container",
+                    destruct:function()
+                    {
+                        if(this.__bto)
+                            this.__bto.destruct();
+                        if(this.__container)
+                            this.__container.destruct();
+                    },
+                    methods:
+                        {
+                            preInitialize:function(params)
+                            {
+                                //En los params puede haber o un campo model/form/value , o un bto
+                                // Si es un bto, el formulario no esta asociado a un model/form, sino que simplemente se edita
+                                // un basetypedobject, cuando, por ejemplo, es un filtro para un datasource, o un test.
+
+                                var loadedPromise = $.Deferred();
+
+                                var m=this;
+                                this.__bto=null;
+                                this.__model=null;
+                                this.__container=null;
+                                this.__erroredInputs={};
+                                if(typeof params.model==="undefined") {
+                                    this.__bto = params.bto;
+                                    this.setupBto();
+                                    this.Container$preInitialize({type:this.__container,form:this});
+                                    loadedPromise.resolve(this.bto);
+                                }
+                                else {
+                                    this.__model = params.model;
+                                    this.__formName = params.form;
+                                    var descriptor = new Siviglia.Model.ModelDescriptor(params.model);
+                                    var formUrl = descriptor.getFormUrl(params.form, params.keys);
+                                    var transport = new Siviglia.Model.Transport();
+
+                                    transport.doGet(formUrl).then(function (result) {
+                                        if (result.error == 0) {
+                                            this.__bto = new Siviglia.Model.Form(params.model, params.name, params.keys, result.form.definition, result.form.value);
+                                            this.setupBto();
+                                            this.Container$preInitialize({type:this.__container,form:this});
+                                            loadedPromise.resolve(this.__bto);
+                                        } else
+                                            loadedPromise.reject();
+                                    }.bind(this))
+                                }
+                                return loadedPromise;
+                            },
+                            setupBto:function()
+                            {
+
+                                this.__container = new Siviglia.types.Container(this.__bto);
+                                var ip = Siviglia.issetOr(this.__bto.__definition.INPUTPARAMS, {});
+                                this.__ip = [];
+                                for (var k in ip) {
+                                    var t = k.replace(/\+/gm, '.*')
+                                    t = t.replace(/\*/gm, '[^/]*');
+                                    t = t.replace(/\//, '\\/');
+                                    var r = new RegExp("^" + t + "$");
+                                    this.__ip.push({reg: r, ip: ip[k]});
+                                }
+                            },
+                            getFormParams:function(typePath)
+                            {
+                                var curP={};
+                                this.__ip.map(function(item){
+                                    if(typePath.match(item.reg))
+                                        curP=Siviglia.deepmerge(curP,item.ip);
+                                })
+                                return curP;
+                            },
+                            appendError:function(path,input)
+                            {
+                                this.__erroredInputs[path]=input;
+                            },
+                            clearError:function(path,input)
+                            {
+                                if(typeof this.__erroredInputs[path]!=="undefined")
+                                    delete this.__erroredInputs[path];
+                            },
+                            submit: function (instance,actionName) {
+                                var errors = this.__bto.__save();
+                                if (errors !== null) {
+                                    for (var k=0;k<errors.length;k++) {
+                                        if(!errors[k].path)
+                                        {
+                                            console.error("ERROR DURANTE SAVE:"+errors[k].toString());
+                                        }
+
+                                        var path = errors[k].path.split("/");
+                                        path.shift();
+                                        this.addError(path, errors[k]);
+                                    }
+                                }
+                                for (var k in this.erroredInputs)
+                                    return;
+                                var i = Siviglia.issetOr(this.__bto.__getDefinition().INDEXFIELDS,null);
+
+                                var myIndexes = {};
+                                var vals = this.__bto.getPlainValue();
+                                if(i!=null) {
+                                    for (var k = 0; k < i.length; k++) {
+                                        if (!this.__bto["*" + i[k]].isEmpty()) {
+                                            myIndexes[i[k]] = this.__bto[i[k]];
+                                        } else {
+                                            myIndexes = null;
+                                        }
+                                        delete vals[i[k]];
+                                    }
+                                }
+                                return this.onSubmit(myIndexes,vals);
+                            },
+                            onSubmit:function(indexes,vals)
+                            {
+                                var p=$.Deferred();
+                                if(this.__model===null) {
+                                    p.resolve();
+                                }
+                                else
+                                    {
+                                    Siviglia.Model.loader.doAction(indexes, vals, this.__model, this.__formName).then(
+                                        function (r) {
+                                            if (r.error == 0) {
+                                                //this.__bto.setValue(r.data[0]);
+                                                p.resolve(r);
+                                            } else
+                                                p.reject(r);
+                                        }.bind(this),
+                                        function (error) {
+                                            p.reject(error)
+                                        }
+                                    )
+                                }
+                                return p;
+                            }
+                        }
+                }
             }
         }
     )
@@ -1548,15 +1597,6 @@
         <div data-sivId="inputNode"></div>
     </div>
 
-    <div data-sivWidget="Siviglia.inputs.jqwidgets.DefaultLayout" data-widgetParams="name,input" data-widgetCode="Siviglia.inputs.jqwidgets.DefaultLayout">
-        <div class="container">
-            <div class="row">
-                <div class="col col-sm-2" data-sivValue="/*label"></div>
-                <div class="col-sm-10" data-sivId="inputNode"></div>
-            </div>
-        </div>
-    </div>
-
     <div data-sivWidget="Siviglia.inputs.jqwidgets.Dictionary" data-widgetParams="type,inputParams" data-widgetCode="Siviglia.inputs.jqwidgets.Dictionary"
          class="DictionaryType ContainerType">
         <div class="panel panel-primary">
@@ -1616,13 +1656,6 @@
 
                 <!--</div>-->
             </div>
-            <div class="actions">
-                <div class="addItem" data-sivId="newItemNode"></div>
-                <div style="float:right" class="saveNode" data-sivId="saveNode">
-                    <input type="button" value="Guardar" data-sivEvent="click" data-sivCallback="doSave">
-                </div>
-                <div style="clear:both"></div>
-            </div>
         </div>
     </div>
 <!--
@@ -1633,8 +1666,9 @@
         <div class="panel panel-primary">
             <!--<div class="panel-heading" data-sivValue="/*title" class="title"></div>-->
             <div class="panel-body">
-                <p class="text-info description" data-sivValue="/*description"></p>
+                <!--<p class="text-info description" data-sivValue="/*description"></p>-->
                 <div class="inputs container" data-sivLoop="/*type/definition/FIELDS" data-contextIndex="current">
+                    <div class="col col-sm-2" data-sivValue="/@current/LABEL"></div>
                     <div data-sivCall="getInputFor" data-sivParams='{"key":"/@current-index"}'></div>
                 </div>
             </div>
@@ -1656,45 +1690,6 @@
 <!--
     --------------------------------------------------------------------------------------------
 -->
-
-
-        <div data-sivWidget="Siviglia.inputs.jqwidgets.FixedDictionary" data-widgetParams="type,inputParams" data-widgetCode="Siviglia.inputs.jqwidgets.FixedDictionary"
-             class="DictionaryType ContainerType">
-            <div class="panel panel-primary">
-                <div class="panel-heading" data-sivValue="/*title" class="title"></div>
-                <div class="panel-body">
-                    <p class="text-info description" data-sivValue="/*description"></p>
-
-                    <div class="row" style="margin-bottom:10px;margin-left:0px">
-                        <div class="containerLabel well" style="margin-right:5px">
-
-                            <ul  class="nav nav-stacked" data-sivLoop="/*type/getKeys" data-contextIndex="current">
-                                <li role="presentation">
-                                    <button class="btn btn-primary" data-sivValue="/@current" data-sivEvent="click" data-sivCallback="onLabelClicked" data-sivParams='{"key":"/@current"}'></button>
-                                    <span class="removebutton" style="float:right" data-sivEvent="click" data-sivCallback="onRemoveClicked" data-sivParams='{"key":"/@current"}'></span>
-                                </li>
-                            </ul>
-
-                            <div class="newItemWidget" data-sivId="newItemNode" data-sivCall="buildNewItemWidget" ></div>
-                        </div>
-                        <div class="containerInput dictionaryInput" style="padding-right:10px;padding-left:10px">
-                            <div class="currentWidget" data-sivCall="getInputFor" data-sivParams='{"key":"/*currentKey"}'>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="actions">
-                        <div class="addItem" data-sivId="newItemNode"></div>
-                        <div style="clear:both"></div>
-                    </div>
-                </div>
-
-            </div>
-        </div>
-<!--
-    ------------------------------------------------------------------------------------------------------
-    -->
-
             <div data-sivWidget="Siviglia.inputs.jqwidgets.Array" data-widgetParams="parentObject,parentNode,value" data-widgetCode="Siviglia.inputs.jqwidgets.Array" class="ArrayType">
                 <!--<p class="text-info description" data-sivValue="/*description"></p>-->
                 <div data-sivIf="[%/*hasSimpleType%] == true" >
@@ -1728,47 +1723,6 @@
     <!--
     ------------------------------------------------------------------------------------------------------
     -->
-                <div data-sivWidget="Siviglia.inputs.jqwidgets.ObjectArray" data-widgetParams="parentObject,parentNode,value" data-widgetCode="Siviglia.inputs.jqwidgets.ObjectArray" class="ArrayType">
-                    <p class="text-info description" data-sivValue="/*description"></p>
-                    <div class="row" style="margin-left:0px">
-
-                        <div data-sivIf="[%/*keyDirection%] == VERTICAL">
-                            <div style="display:flex">
-                                <div class="well">
-                                    <ul  class="nav nav-stacked" data-sivLoop="/*type/children" data-contextIndex="current">
-                                        <li role="presentation">
-                                            <button class="btn btn-primary" data-sivCall="getLabel" data-sivValue="/@current" data-sivEvent="click" data-sivCallback="onLabelClicked" data-sivParams='{"index":"/@current-index"}'></button>
-                                            <span class="removebutton" style="float:right" data-sivEvent="click" data-sivCallback="onRemoveClicked" data-sivParams='{"key":"/@current-index"}'></span>
-                                        </li>
-                                    </ul>
-                                    <div class="newItemWidget" data-sivId="newItemNode">
-                                        <input type="button" data-sivEvent="click" data-sivCallback="addItem">
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <div data-sivIf="[%/*keyDirection%] == HORIZONTAL">
-                            <div>
-                                <span class="newItemWidget add" data-sivId="newItemNode" data-sivEvent="click" data-sivCallback="addItem">
-                                </span>
-                                <span  data-sivLoop="/*type/children" data-contextIndex="current">
-                                    <span class="label label-primary" style="display:inline-block;margin-right:4px;font-size:14px">
-                                        <span data-sivCall="getLabel"  data-sivEvent="click" data-sivCallback="onLabelClicked" data-sivParams='{"index":"/@current-index"}'></span>
-                                        <span class="removebutton" data-sivEvent="click" data-sivCallback="onRemoveClicked" data-sivParams='{"key":"/@current-index"}'></span>
-                                    </span>
-                                </span>
-                            </div>
-                        </div>
-                        <div class="containerInput dictionaryInput">
-                            <div class="currentWidget">
-                            </div>
-                        </div>
-
-                    </div>
-                </div>
-    <!--
-        ---------------------------------------------------------------------------------------------
-        -->
     <div data-sivWidget="Siviglia.inputs.jqwidgets.TypeSwitcher" data-widgetParams="parentObject,parentNode,value" data-widgetCode="Siviglia.inputs.jqwidgets.TypeSwitcher" class="TypeSwitchType">
         <div class="panel panel-primary">
             <div class="panel-body">
@@ -1843,4 +1797,3 @@
     </div>
 
 </div>
-

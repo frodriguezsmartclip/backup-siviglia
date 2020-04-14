@@ -1,7 +1,4 @@
 <html>
-<!--
-    Igual que testDatasource.html, pero se incluye integracion con JqxGrid.
--->
 <head>
     <script src="/node_modules/jquery/dist/jquery.js"></script>
     <script src="../../Siviglia.js"></script>
@@ -34,52 +31,54 @@
 <body>
 <?php include_once(__DIR__."/../../jQuery/JqxWidgets.html"); ?>
 <div style="display:none">
-
-    <div data-sivWidget="Test.ListViewer" data-widgetCode="Test.ListViewer">
-        <div style="width:250px;float:left" data-sivView="Siviglia.inputs.jqwidgets.Form" data-sivParams='{"value":"/*modelSelector"}'></div>
-        <div style="float:left">
-            <div data-sivView="Siviglia.model.web.Page.views.List" data-sivParams='{"model":"/*modelSelector/model"}'></div>
+<!--    <div data-sivWidget="Siviglia.model.web.Page.forms.Edit" data-widgetCode="Siviglia.model.web.Page.forms.Edit">
+        <div><div style="background-color:yellow">Nombre</div>
+            <div data-sivCall="getInputFor" data-sivParams='{"key":"name"}'></div>
         </div>
-    </div>
-
+        <div><div>Tag</div>
+            <div data-sivCall="getInputFor" data-sivParams='{"key":"tag"}'></div>
+        </div>
+        <div><div>Site</div>
+        <div data-sivCall="getInputFor" data-sivParams='{"key":"id_site"}'></div>
+        </div>
+        <div><div>Private</div>
+        <div data-sivCall="getInputFor" data-sivParams='{"key":"isPrivate"}'></div>
+        </div>
+        <div><div>Path</div>
+        <div data-sivCall="getInputFor" data-sivParams='{"key":"path"}'></div>
+        </div>
+        <div><input type="button" data-sivEvent="click" data-sivCallback="submit" value="Guardar"></div>
+    </div>-->
 </div>
 
-<div data-sivView="Test.ListViewer"></div>
 
+<!--<div data-sivView="Siviglia.model.web.Page.forms.Edit" data-sivParams='{"id_page":2}' data-sivlayout="Siviglia.inputs.jqwidgets.Container"></div>-->
+<div data-sivView="Siviglia.model.web.Page.forms.Edit" data-sivParams='{"id_page":2}'
+
+></div>
+
+<!--
 <script>
     Siviglia.Utils.buildClass({
-        "context":"Test",
+        "context":"Siviglia.model.web.Page.forms",
         "classes":{
-            ListViewer:{
-                "inherits":"Siviglia.UI.Expando.View",
+            Edit:{
+                "inherits":"Siviglia.inputs.jqwidgets.Form",
                 "methods":{
                     preInitialize:function(params)
                     {
-                        this.modelSelector=new Siviglia.model.BaseTypedObject(
-                            {
-                                "FIELDS":{
-                                    "model":{
-                                        "LABEL":"Select Model",
-                                        "TYPE":"String",
-                                        "SOURCE":{
-                                            "TYPE":"DataSource",
-                                            "MODEL":"/model/reflection/Model",
-                                            "DATASOURCE":"ModelList",
-                                            "LABEL":"smallName",
-                                            "VALUE":"smallName"
-                                        }
-                                    }
-                                }
-                            }
-                        )
-                    },
-                    initialize:function(params){}
+                        var p={
+                            "keys":params,
+                            "model":"/model/web/Page",
+                            "form":"Edit"
+                        }
+                        return this.Form$preInitialize(p);
+                    }
                 }
-            },
+            }
         }
-    })
-
-</script>
+    });
+</script>-->
 <script>
     var parser=new Siviglia.UI.HTMLParser();
     parser.parse($(document.body));
