@@ -309,16 +309,28 @@ Siviglia.Utils.buildClass(
                     // han sido rellenados, por lo que es posible realmente salvar el objeto.
                     __save:function()
                     {
-                        var errors=[];
+                        var errors=null;
                         for(var k in this.__definition["FIELDS"]) {
 
                             try {
-                                this.__fields[k].getType().save();
+                                var newErr=this.__fields[k].getType().save();
+                                if(newErr!==null)
+                                {
+                                    if(errors==null)
+                                        errors=newErr;
+                                    else
+                                        errors.concat(newErr);
+                                }
                             }catch(e)
                             {
+                                if(errors==null)
+                                    errors=[e];
+                                else
                                 errors.push(e);
                             }
                         }
+                        if(errors==null)
+                            return null;
                         if(errors.length==0)
                             return null;
                         return errors;
@@ -702,7 +714,7 @@ Siviglia.Utils.buildClass(
                             {
                                 if(this.definition.REQUIRED && (!this.valueSet || this.value===""))
                                     throw new Siviglia.types.BaseTypeException(this.getFullPath(), Siviglia.types.BaseTypeException.ERR_REQUIRED);
-                                return;
+                                return null;
                             },
                             setReferencedField:function(ref)
                             {
@@ -1659,7 +1671,8 @@ Siviglia.Utils.buildClass(
                     save:function()
                     {
                         if(this.innerBaseTypedObject)
-                            this.innerBaseTypedObject.save();
+                            return this.innerBaseTypedObject.__save();
+                        return null;
                     },
                     getKeyLabel:function(key)
                     {
@@ -1921,8 +1934,15 @@ Siviglia.Utils.buildClass(
                     },
                     save:function()
                     {
-                        for(var k in this.proxy)
-                            this.proxy["*"+k].save();
+                        var err=null;
+                        for(var k in this.proxy) {
+                            var newErr=this.proxy["*" + k].save();
+                            if(err==null)
+                                err=newErr;
+                            else
+                                err.concat(newErr);
+                        }
+                        return err;
                     }
                 }
             },
@@ -2356,6 +2376,8 @@ Siviglia.Utils.buildClass(
                 {
                     this.save();
                     var res=[];
+                    if(this.proxy==null)
+                        return null;
                     for(var k=0;k<this.proxy.length;k++)
                     {
                         var val=this.proxy["*"+k].getPlainValue();
@@ -2749,7 +2771,7 @@ Siviglia.i18n=(Siviglia.i18n || {});
 Siviglia.i18n.es=(Siviglia.i18n.es || {});
 Siviglia.i18n.es.base=(Siviglia.i18n.es.base || {});
 Siviglia.i18n.es.base.errors={
-        Base:{1:'Por favor, complete este campo.',2:'Campo no válido',5:'Campo Requerido'},
+        BaseType:{1:'Por favor, complete este campo.',2:'Campo no válido',5:'Campo Requerido'},
         Integer:{100:'Valor demasiado pequeño',101:'Valor demasiado grande',102:'Debes introducir un número'},
         String:{100:'El campo debe tener al menos %min% caracteres',
                 101:'El campo debe tener un máximo de %max% caracteres',

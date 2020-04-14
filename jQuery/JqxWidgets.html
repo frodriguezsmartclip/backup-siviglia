@@ -126,7 +126,10 @@
 
                 BaseInput: {
                     inherits: "Siviglia.UI.Expando.View,Siviglia.Dom.EventManager",
-
+                    destruct:function()
+                    {
+                      this.clearErrors();
+                    },
                     methods: {
                         preInitialize: function (params) {
                             this.errored = false;
@@ -153,8 +156,10 @@
                                     return;
                                 m.changing=true;
                                 try {
-                                    if (m.validate())
+                                    if (m.validate()) {
                                         m.type.setValue(m.getValue());
+                                        m.clearErrors();
+                                    }
                                 }catch(e)
                                 {
                                     this.showError(
@@ -237,13 +242,13 @@
                         addError:function(path,exception)
                         {
                             if(path.length==0) {
-                                this.showError(exception);
+                                this.showError(Siviglia.i18n.es.base.getErrorFromJsException(exception));
                             }
                             else
                                 console.err("Invalid error path:"+exception.path);
 
                         },
-                        showError: function (message) {
+                        showError: function (message,dontAppend) {
                             var d = new Date();
                             this.tooltip = this.inputNode.jqxTooltip(
                                 {
@@ -253,15 +258,26 @@
                                     closeOnClick: false,
                                     position: 'right'
                                 });
+                            this.tooltipIds=this.inputNode.data().jqxTooltip.instance.IDArray;
                             this.inputNode.jqxTooltip({content: message});
                             this.inputNode.jqxTooltip("open");
                             this.inputNode.addClass("errored");
                             this.form.appendError(this.type.getFullPath(),this);
                         },
                         clearErrors: function () {
-                            if (this.tooltip)
+                            if (this.tooltip) {
                                 this.inputNode.jqxTooltip('destroy');
-                            this.inputNode.removeClass("errored");
+                                this.tooltip = null;
+                                for(var k=0;k<this.tooltipIds.length;k++)
+                                {
+                                    var od=this.tooltipIds[k].tooltipID;
+                                    var el=document.getElementById(od);
+                                    if(el && el.parentElement)
+                                        el.parentElement.removeChild(el);
+                                }
+                            }
+                            if(this.inputNode)
+                                this.inputNode.removeClass("errored");
                             if(this.form!==null)
                                 this.form.clearError(this.type.getFullPath(),this);
                             /*if(this.validator)
@@ -860,6 +876,7 @@
                                 getInputFor:function(node,params)
                                 {
                                     if(this.currentWidget!=null) {
+
                                         this.currentWidget.destruct();
                                         this.currentWidget = null;
                                         node.html("");
@@ -869,11 +886,16 @@
 
                                     this.__getInputFor(params.key).then(function(instance){
                                         this.currentWidget=instance;
-                                        var ce=this.currentErrors[params.key]
-                                        if(ce)
-                                            instance.addError(ce.path,ce.exception);
-
                                         node.append(this.currentWidget.rootNode);
+                                        var ce=this.currentErrors[params.key]
+                                        if(ce) {
+                                            for(var k=0;k<ce.length;k++) {
+                                                instance.addError(ce[k].path, ce[k].error);
+                                            }
+                                        }
+                                        delete this.currentErrors[params.key];
+
+
                                     }.bind(this));
                                 },
                                 __getInputFor:function(key)
@@ -882,7 +904,7 @@
                                     var factory=new Siviglia.inputs.jqwidgets.Factory()
                                     //this.curType=this.type.getField(key);
                                     this.curType=this.type.getValue()["*"+key];
-                                    return factory.getInput(this.curType,{controller:this.type.controller},this.form);
+                                    return factory.getInput(this.curType,{controller:this.type.controller},this.form)
 
                                 },
                                 getLabel:function(node,params,event)
@@ -894,6 +916,7 @@
                                 {
                                     if(params.key==this.currentKey && this.currentWidget!=null)
                                     {
+
                                         this.currentWidget.destruct();
                                     }
                                     this.hasCurrentKey=false;
@@ -911,9 +934,21 @@
                                 },
                                 addError:function(path,exception)
                                 {
+                                    debugger;
                                     var key=path.shift();
-                                    this.currentErrors[key]={path:path,error:exception};
-                                    this.currentKey=key;
+                                    if(key==this.currentKey)
+                                    {
+                                        if(this.currentWidget!==null) {
+                                            this.currentWidget.addError(path, exception);
+                                            return;
+                                        }
+                                    }
+                                    else {
+                                        this.currentKey = key;
+                                    }
+                                        if (typeof this.currentErrors[key] == "undefined")
+                                            this.currentErrors[key] = [];
+                                        this.currentErrors[key].push({path: path, error: exception});
 
                                 }
 
@@ -1415,24 +1450,32 @@
                             submit: function (instance,actionName) {
                                 var errors = this.__bto.__save();
                                 if (errors !== null) {
-                                    for (var k in errors) {
-                                        var path = k.split("/");
+                                    for (var k=0;k<errors.length;k++) {
+                                        if(!errors[k].path)
+                                        {
+                                            console.error("ERROR DURANTE SAVE:"+errors[k].toString());
+                                        }
+
+                                        var path = errors[k].path.split("/");
                                         path.shift();
-                                        this.__container.addError(path, errors[k]);
+                                        this.addError(path, errors[k]);
                                     }
                                 }
                                 for (var k in this.erroredInputs)
                                     return;
-                                var i = this.__bto.__getDefinition().INDEXFIELDS;
+                                var i = Siviglia.issetOr(this.__bto.__getDefinition().INDEXFIELDS,null);
+
                                 var myIndexes = {};
                                 var vals = this.__bto.getPlainValue();
-                                for (var k = 0; k < i.length; k++) {
-                                    if (!this.__bto["*" + i[k]].isEmpty()) {
-                                        myIndexes[i[k]] = this.__bto[i[k]];
-                                    } else {
-                                        myIndexes = null;
+                                if(i!=null) {
+                                    for (var k = 0; k < i.length; k++) {
+                                        if (!this.__bto["*" + i[k]].isEmpty()) {
+                                            myIndexes[i[k]] = this.__bto[i[k]];
+                                        } else {
+                                            myIndexes = null;
+                                        }
+                                        delete vals[i[k]];
                                     }
-                                    delete vals[i[k]];
                                 }
                                 return this.onSubmit(myIndexes,vals);
                             },

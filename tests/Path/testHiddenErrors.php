@@ -44,12 +44,20 @@
 <?php include_once(__DIR__."/../../jQuery/JqxWidgets.html"); ?>
 <div style="display:none">
     <div data-sivWidget="Test.HiddenErrors" data-widgetCode="Test.HiddenErrors">
-        <!--<div><input type="button" data-sivEvent="click" data-sivCallback="submit" value="Guardar"></div>-->
+        <div>
+            <div>DICTIONARY</div>
+            <div data-sivCall="getInputFor" data-sivParams='{"key":"f1"}'></div>
+        </div>
+        <div>
+            <div>ARRAY</div>
+            <div data-sivCall="getInputFor" data-sivParams='{"key":"f2"}'></div>
+        </div>
+        <div><input type="button" data-sivEvent="click" data-sivCallback="submit" value="Guardar"></div>
     </div>
 </div>
 
 
-<div data-sivView="Test.HiddenErrors" data-sivlayout="Siviglia.inputs.jqwidgets.Container"></div>
+<div data-sivView="Test.HiddenErrors"></div>
 
 
 <script>
@@ -72,6 +80,7 @@
                                             "FIELDS":{
                                                 "Field1":{
                                                     "LABEL":"Field 1",
+                                                    "MINLENGTH":2,
                                                     "TYPE":"String",
                                                     "REQUIRED":true
                                                 },
