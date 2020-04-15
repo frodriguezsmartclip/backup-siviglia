@@ -31,7 +31,7 @@
 <body>
 <?php include_once(__DIR__."/../../jQuery/JqxWidgets.html"); ?>
 <div style="display:none">
-<!--    <div data-sivWidget="Siviglia.model.web.Page.forms.Edit" data-widgetCode="Siviglia.model.web.Page.forms.Edit">
+    <div data-sivWidget="Siviglia.model.web.Page.forms.Edit" data-widgetCode="Siviglia.model.web.Page.forms.Edit">
         <div><div style="background-color:yellow">Nombre</div>
             <div data-sivCall="getInputFor" data-sivParams='{"key":"name"}'></div>
         </div>
@@ -48,7 +48,7 @@
         <div data-sivCall="getInputFor" data-sivParams='{"key":"path"}'></div>
         </div>
         <div><input type="button" data-sivEvent="click" data-sivCallback="submit" value="Guardar"></div>
-    </div>-->
+    </div>
 </div>
 
 
@@ -57,7 +57,7 @@
 
 ></div>
 
-<!--
+
 <script>
     Siviglia.Utils.buildClass({
         "context":"Siviglia.model.web.Page.forms",
@@ -78,7 +78,7 @@
             }
         }
     });
-</script>-->
+</script>
 <script>
     var parser=new Siviglia.UI.HTMLParser();
     parser.parse($(document.body));

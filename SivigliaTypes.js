@@ -433,7 +433,7 @@ Siviglia.Utils.buildClass(
                     construct: function (type, def, val,relaxed) {
                         this.__type__ = "BaseType";
                         this.relaxed=relaxed;
-                        this.type = type;
+                        this.type = Siviglia.issetOr(def["TYPE"],type);
                         this.definition = def;
                         this.definition["TYPE"] = type;
                         this.valueSet = false;
@@ -477,10 +477,10 @@ Siviglia.Utils.buildClass(
                             __overrideDefinition:function(d,d1)
                             {
                                 var t={};
-                                for(var k in d)
-                                    t[k]=d[k];
                                 for(var k in d1)
                                     t[k]=d1[k];
+                                for(var k in d)
+                                    t[k]=d[k];
                                 return t;
 
                             },
@@ -1358,7 +1358,6 @@ Siviglia.Utils.buildClass(
                             TYPE: 'Password',
                             MINLENGTH: 6,
                             MAXLENGTH: 16,
-                            REGEXP: '/^[a-z\d_]{6,32}$/i',
                             TRIM: true
                         };
                         var fullDef=this.__overrideDefinition(definition,stdDef);
