@@ -794,7 +794,20 @@
                     inherits:'Decimal'
                 },
                 Password:{
-                    inherits:'String'
+                    inherits:'String',
+                    methods:{
+                        getDefaultInputOptions: function () {
+                            var opts = {
+                                height: 25,
+                                width: 200,
+                                minLength: 0
+                            };
+                            return opts;
+                        },
+                        getJqxWidgetName: function () {
+                            return "jqxPasswordInput";
+                        }
+                    }
                 },
                 State:{
                     inherits:'Enum'
@@ -1570,7 +1583,7 @@
     </div>
     <div data-sivWidget="Siviglia.inputs.jqwidgets.Password" data-widgetParams="type,inputParams"
          data-widgetCode="Siviglia.inputs.jqwidgets.Password">
-        <div data-sivId="inputNode"></div>
+        <input type="password" data-sivId="inputNode"></input>
     </div>
     <div data-sivWidget="Siviglia.inputs.jqwidgets.State" data-widgetParams="type,inputParams"
          data-widgetCode="Siviglia.inputs.jqwidgets.Date">

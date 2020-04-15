@@ -21,7 +21,7 @@
     <script src="../../../jqwidgets/jqx-all.js"></script>
     <script src="../../../jqwidgets/globalization/globalize.js"></script>
     <link rel="stylesheet" href="../../../jqwidgets/styles/jqx.base.css">
-    <link rel="stylesheet" href="../../../jqwidgets/styles/jqx.light.css">
+    <link rel="stylesheet" href="../../../jqwidgets/styles/jqx.darkblue.css">
     <script>
         var Siviglia = Siviglia || {};
         Siviglia.config = {
@@ -36,6 +36,7 @@
             mapper:'Siviglia'
 
         };
+        $.jqx.theme = "darkblue";
         Siviglia.Model.initialize(Siviglia.config);
     </script>
 
