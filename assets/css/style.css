@@ -1,0 +1,13 @@
+.form-field-input { color: red; }
+
+.form-field-type { 
+    border: 1px solid #000;
+    text-align: center; 
+}
+
+.form-field-label { font-weight: bold; color: green; }
+
+.form-container { background-color: grey; }
+
+.form-row { background-color: green; }
+

@@ -36,19 +36,15 @@
 <div style="display:none">
 
     <div data-sivWidget="Test.ListViewer" data-widgetCode="Test.ListViewer">
-        <div style="width:250px;float:left" data-sivView="Siviglia.inputs.jqwidgets.Form" data-sivParams='{"bto":"/*modelSelector"}'
-             data-sivlayout="Siviglia.inputs.jqwidgets.Container"
-        ></div>
+        <div style="width:250px;float:left" data-sivView="Siviglia.inputs.jqwidgets.Form" data-sivParams='{"value":"/*modelSelector"}'></div>
         <div style="float:left">
-            <div data-sivView="Siviglia.model.web.Page.views.List" data-sivParams='{"model":"/*modelSelector/model"}'
-            ></div>
+            <div data-sivView="Siviglia.model.web.Page.views.List" data-sivParams='{"model":"/*modelSelector/model"}'></div>
         </div>
     </div>
 
 
     <div data-sivWidget="Siviglia.model.web.Page.views.List" data-widgetCode="Siviglia.model.web.Page.views.List">
-        <div data-sivView="Siviglia.inputs.jqwidgets.Form" data-sivParams='{"bto":"/*parameters"}'
-             data-sivlayout="Siviglia.inputs.jqwidgets.FlexContainer"></div>
+        <div data-sivView="Siviglia.inputs.jqwidgets.Form" data-sivParams='{"value":"/*parameters"}'></div>
         <div data-sivId="grid"></div>
     </div>
 </div>
@@ -155,7 +151,7 @@
                             pagenum:this.ds.settings.__start,
                             pagesize:this.ds.settings.__count,
                             totalrecords:this.ds.settings.count,
-
+                        
                             pager: function (pagenum, pagesize, oldpagenum) {
                                 if(pageSize!=this.settings.__count)
                                 {
@@ -176,26 +172,14 @@
 
                         this.dataAdapter.dataBind();
                         var definition=this.ds.__getDefinition();
-                       
-                        // var linkrenderer = function (row, column, value) {
-                        //     if (value.indexOf('#') != -1) {
-                        //         value = value.substring(0, value.indexOf('#'));
-                        //     }
-                        //     var format = { target: '"_blank"' };
-                        //     var html = $.jqx.dataFormat.formatlink(value, format);
-                        //     return html;
-                        // }
-
                         var columns=[];
+                        var tooltiprenderer = function (element) {
+                            $(element).jqxTooltip({position: 'mouse', content: $(element).text() });
+                        }
                         for(var k in definition.FIELDS.data.ELEMENTS.FIELDS)
                         {
-                            //columns.push({text:k,datafield:k, cellsrenderer: linkrenderer})
-                            columns.push({text:k,datafield:k})
+                            columns.push({text:k,datafield:k, rendered: tooltiprenderer})
                         }
-
-                        
-
-                        
 
                         this.grid.jqxGrid(
                             {
@@ -207,6 +191,7 @@
                                 enabletooltips: true,
                                 editable: false,
                                 virtualmode: true,
+                                selectionmode: 'checkbox',
                                 rendergridrows: function(obj)
                                 {
                                     return obj.data;

@@ -1,0 +1,24 @@
+.datasource-field-label { 
+    font-weight: bold; 
+    color: $verde;
+    border: 1px solid blac
+    
+}
+
+.datasource-field-label-string { font-weight: bold; color: $azul; }
+
+.datasource-field-label-integer { font-weight: bold; color: $morado; }
+
+.datasource-field-label-login { font-weight: bold; color: $naranja; }
+
+.datasource-field-label-password { font-weight: bold; color: $rosa; }
+
+.datasource-field-label-email { font-weight: bold; color: $amarillo; }
+
+.datasource-field-label-textarea { font-weight: bold; color: $negro; }
+
+.datasource-field-label-date { font-weight: bold; color: $gris-100; }
+
+.datasource-field-label-decimal { font-weight: bold; color: $gris-200; }
+
+.datasource-field-label-enum { font-weight: bold; color: $gris-300; }

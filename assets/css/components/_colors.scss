@@ -1,0 +1,91 @@
+$rojo: rojo;
+$azul: azul;
+$verde: verde;
+
+//
+// Color system
+//
+
+$blanco:    #fff !default;
+$gris-100: #f8f9fa !default;
+$gris-200: #e9ecef !default;
+$gris-300: #dee2e6 !default;
+$gris-400: #ced4da !default;
+$gris-500: #adb5bd !default;
+$gris-600: #6c757d !default;
+$gris-700: #495057 !default;
+$gris-800: #343a40 !default;
+$gris-900: #212529 !default;
+$negro:    #000 !default;
+
+$grises: () !default;
+// stylelint-disable-next-line scss/dollar-variable-default
+$grises: map-merge(
+  (
+    "100": $gris-100,
+    "200": $gris-200,
+    "300": $gris-300,
+    "400": $gris-400,
+    "500": $gris-500,
+    "600": $gris-600,
+    "700": $gris-700,
+    "800": $gris-800,
+    "900": $gris-900
+  ),
+  $grises
+);
+
+
+$azul:    #007bff !default;
+$morado:  #6f42c1 !default;
+$rosa:    #e83e8c !default;
+$rojo:     #dc3545 !default;
+$naranja:  #fd7e14 !default;
+$amarillo:  #ffc107 !default;
+$verde:   #28a745 !default;
+
+$colores: () !default;
+// stylelint-disable-next-line scss/dollar-variable-default
+$colores: map-merge(
+  (
+    "azul":       $azul,
+    "indigo":     $indigo,
+    "morado":     $morado,
+    "rosa":       $rosa,
+    "rojo":        $rojo,
+    "naranja":     $naranja,
+    "amarillo":     $amarillo,
+    "verde":      $verde,
+    "teal":       $teal,
+    "cyan":       $cyan,
+    "blanco":      $blanco,
+    "gris":       $gris-600,
+    "gris-negro":  $gris-800
+  ),
+  $colores
+);
+
+$principal:       $azul !default;
+$secundario:     $gris-600 !default;
+$exito:       $verde !default;
+$info:          $cyan !default;
+$aviso:       $amarillo !default;
+$peligro:        $rojo !default;
+$claro:         $gris-100 !default;
+$oscuro:          $gris-800 !default;
+
+$tema-colores: () !default;
+// stylelint-disable-next-line scss/dollar-variable-default
+$tema-colores: map-merge(
+  (
+    "principal":    $principal,
+    "secundario":  $secundario,
+    "exito":    $exito,
+    "info":       $info,
+    "aviso":    $aviso,
+    "peligro":     $peligro,
+    "claro":      $claro,
+    "negro":       $negro
+  ),
+  $tema-colores
+);

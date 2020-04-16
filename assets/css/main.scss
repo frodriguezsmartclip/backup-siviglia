@@ -1,0 +1,21 @@
+@import "components/colors";
+// @import "components/actions";
+// @import "components/boxes";
+// @import "components/buttons";
+// @import "components/model";
+// @import "components/raw";
+// @import "components/variables";
+
+.form-field-input { background-color: black; color: yellow; font-size: 18px; }
+
+.form-field-type { 
+    border: 1px solid #000;
+    text-align: center; 
+}
+
+.form-field-label { font-weight: bold; color: green; }
+
+.form-container { background-color: grey; }
+
+.form-row { background-color: green; }
+
